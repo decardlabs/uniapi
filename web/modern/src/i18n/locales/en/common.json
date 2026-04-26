@@ -159,5 +159,13 @@
     "light": "Light",
     "system": "System",
     "toggle": "Toggle theme"
+  },
+  "sidebar": {
+    "collapse": "Collapse"
+  },
+  "nav": {
+    "core": "Core",
+    "admin": "Admin",
+    "system": "System"
   }
 }

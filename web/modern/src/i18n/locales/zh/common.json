@@ -159,5 +159,13 @@
     "light": "浅色",
     "system": "跟随系统",
     "toggle": "切换主题"
+  },
+  "sidebar": {
+    "collapse": "收起"
+  },
+  "nav": {
+    "core": "核心功能",
+    "admin": "管理功能",
+    "system": "系统"
   }
 }

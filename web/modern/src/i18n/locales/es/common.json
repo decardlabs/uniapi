@@ -159,5 +159,13 @@
     "light": "Claro",
     "system": "Sistema",
     "toggle": "Cambiar tema"
+  },
+  "sidebar": {
+    "collapse": "Contraer"
+  },
+  "nav": {
+    "core": "Principal",
+    "admin": "Administración",
+    "system": "Sistema"
   }
 }

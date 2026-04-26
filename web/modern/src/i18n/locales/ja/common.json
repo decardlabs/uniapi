@@ -159,5 +159,13 @@
     "light": "ライト",
     "system": "システム",
     "toggle": "テーマを切り替え"
+  },
+  "sidebar": {
+    "collapse": "折りたたむ"
+  },
+  "nav": {
+    "core": "基本機能",
+    "admin": "管理機能",
+    "system": "システム"
   }
 }

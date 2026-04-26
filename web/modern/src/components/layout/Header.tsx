@@ -1,7 +1,14 @@
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,47 +22,10 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { useSystemStatus } from '@/hooks/useSystemStatus';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/lib/stores/auth';
-import {
-  BarChart3,
-  CreditCard,
-  DollarSign,
-  FileText,
-  Gift,
-  Home,
-  Info,
-  LogOut,
-  Menu,
-  MessageSquare,
-  Radio,
-  Server,
-  Settings,
-  User,
-  Users,
-  Wrench,
-  Zap,
-} from 'lucide-react';
+import { LogOut, Menu, User } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { HeaderNav } from './HeaderNav';
-
-// Icon mapping for navigation items
-const navigationIcons = {
-  '/dashboard': Home,
-  '/channels': Zap,
-  '/tokens': CreditCard,
-  '/logs': FileText,
-  '/users': Users,
-  '/recharges': Gift,
-  '/topup': DollarSign,
-  '/models': BarChart3,
-  '/chat': MessageSquare,
-  '/realtime': Radio,
-  '/about': Info,
-  '/settings': Settings,
-  '/mcps': Server,
-  '/tools': Wrench,
-};
 
 export function Header() {
   const { t } = useTranslation();
@@ -65,13 +35,14 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLogoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const { isMobile } = useResponsive();
+  const { isMobile, isTablet } = useResponsive();
   const { systemStatus } = useSystemStatus();
 
   const isAdmin = user?.role >= 10;
 
-  // Navigation items visible to logged-in users
-  const authenticatedNavItems = user
+  // Build navigation items for mobile drawer (uses shared config)
+  // These must match NavigationDrawer's expected type: { name, href, icon?, isActive? }
+  const rawNavItems = user
     ? [
         { name: t('common.dashboard'), to: '/dashboard', show: true },
         { name: t('common.tokens'), to: '/tokens', show: true },
@@ -85,37 +56,32 @@ export function Header() {
         { name: t('common.tools'), to: '/tools', show: true },
         { name: t('common.status'), to: '/status', show: true },
         { name: t('common.playground'), to: '/chat', show: true },
-        { name: t('common.realtime'), to: '/realtime', show: false },
         { name: t('common.about'), to: '/about', show: true },
         { name: t('common.settings'), to: '/settings', show: isAdmin },
       ]
     : [
-        // Public navigation for anonymous users
         { name: t('common.models'), to: '/models', show: true },
         { name: t('common.tools'), to: '/tools', show: true },
         { name: t('common.status'), to: '/status', show: true },
       ];
 
-  const navigationItems = authenticatedNavItems
+  const navigationItems = rawNavItems
     .filter((item) => item.show)
     .map((item) => ({
       ...item,
       href: item.to,
-      icon: navigationIcons[item.to as keyof typeof navigationIcons],
       isActive: location.pathname === item.to,
     }));
 
   const performLogout = async () => {
     setIsLoggingOut(true);
     try {
-      // Unified API call - complete URL with /api prefix
       await api.get('/api/user/logout');
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {
       setLogoutDialogOpen(false);
       setIsLoggingOut(false);
-      // Force logout even if API call fails
       logout();
       navigate('/login');
     }
@@ -123,94 +89,109 @@ export function Header() {
 
   return (
     <>
-      <header className="border-b bg-background/95 backdrop-blur-sm sticky top-0 z-50 w-full max-w-full">
-        <div className="mx-auto px-3 sm:px-4 w-full max-w-full">
-          <div className="flex items-center justify-between h-16 gap-4">
-            {/* Logo and Brand */}
-            <div className="flex items-center flex-shrink-0">
-              <Link to="/" className="text-xl font-bold hover:text-primary transition-colors truncate max-w-[55vw] sm:max-w-none mr-4">
-                {systemStatus.system_name || t('common.app_name', 'OneAPI')}
-              </Link>
-            </div>
+      {/* Simplified header — no nav items here (moved to Sidebar) */}
+      <header className="border-b bg-background/95 backdrop-blur-sm sticky top-0 z-50 w-full">
+        <div
+          className="flex items-center justify-between h-14 gap-4"
+          style={{
+            // Left padding accounts for sidebar width on desktop; mobile has default padding
+            paddingLeft: !isMobile && !isTablet ? '1rem' : undefined,
+          }}
+        >
+          {/* Left area */}
+          <div className="flex items-center flex-shrink-0 gap-3">
+            {/* Mobile hamburger — opens NavigationDrawer */}
+            {(isMobile || isTablet) && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setMobileMenuOpen(true)}
+                  className="touch-target p-2 h-9 w-9"
+                  aria-label={t('header.navigation')}
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+                {/* Mobile logo text */}
+                <Link
+                  to="/"
+                  className="text-lg font-bold hover:text-primary transition-colors truncate max-w-[50vw]"
+                >
+                  {systemStatus.system_name || t('common.app_name', 'OneAPI')}
+                </Link>
+              </>
+            )}
+          </div>
 
-            {/* Navigation - Collapses items dynamically */}
-            {!isMobile && <HeaderNav items={navigationItems} />}
+          {/* Right area — actions & user menu */}
+          <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+            <LanguageSelector />
+            <ThemeToggle />
 
-            {/* Actions and User Menu */}
-            <div className="flex items-center space-x-2 flex-shrink-0">
-              <LanguageSelector />
-              <ThemeToggle />
+            {user ? (
+              <>
+                {!isMobile && (
+                  <span className="hidden xl:inline text-sm text-muted-foreground truncate max-w-32">
+                    {user.username}
+                  </span>
+                )}
 
-              {user ? (
-                <>
-                  {/* User Welcome - Hide on mobile */}
-                  <span className="hidden md:inline text-sm text-muted-foreground truncate max-w-32">{user.username}</span>
-
-                  {/* Desktop hamburger menu for account actions */}
-                  {!isMobile && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="inline-flex touch-target" aria-label="Open account menu">
-                          <Menu className="h-5 w-5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-56">
-                        <DropdownMenuLabel className="flex flex-col">
-                          <span className="text-xs text-muted-foreground">{t('header.signed_in_as')}</span>
-                          <span className="font-medium truncate">{user.username}</span>
-                        </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onSelect={() => navigate('/settings')} className="flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          {t('header.profile')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setLogoutDialogOpen(true)} className="flex items-center gap-2">
-                          <LogOut className="h-4 w-4" />
-                          {t('common.logout')}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-
-                  {/* Mobile menu button - Show on mobile screens only */}
-                  {isMobile && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setMobileMenuOpen(true)}
-                      className="touch-target"
-                      aria-label="Open navigation menu"
-                    >
-                      <Menu className="h-5 w-5" />
-                    </Button>
-                  )}
-                </>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  {isMobile && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setMobileMenuOpen(true)}
-                      className="touch-target"
-                      aria-label="Open navigation menu"
-                    >
-                      <Menu className="h-5 w-5" />
-                    </Button>
-                  )}
-                  <Link to="/register" className="font-medium text-sm text-muted-foreground hover:text-primary transition-colors">
-                    {t('common.register')}
-                  </Link>
-                  <Button asChild size="sm" className="touch-target">
-                    <Link to="/login">{t('common.login')}</Link>
-                  </Button>
-                </div>
-              )}
-            </div>
+                {/* User menu — desktop dropdown / mobile handled in drawer */}
+                {!isMobile && !isTablet ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="inline-flex touch-target"
+                        aria-label={t('header.profile')}
+                      >
+                        <User className="h-5 w-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuLabel className="flex flex-col">
+                        <span className="text-xs text-muted-foreground">
+                          {t('header.signed_in_as')}
+                        </span>
+                        <span className="font-medium truncate">{user.username}</span>
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onSelect={() => navigate('/settings')}
+                        className="flex items-center gap-2"
+                      >
+                        <User className="h-4 w-4" />
+                        {t('header.profile')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onSelect={() => setLogoutDialogOpen(true)}
+                        className="flex items-center gap-2"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        {t('common.logout')}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : null}
+              </>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Link
+                  to="/register"
+                  className="font-medium text-sm text-muted-foreground hover:text-primary transition-colors hidden sm:inline"
+                >
+                  {t('common.register')}
+                </Link>
+                <Button asChild size="sm" className="touch-target">
+                  <Link to="/login">{t('common.login')}</Link>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Mobile Navigation Drawer */}
+        {/* Mobile Navigation Drawer — full nav with profile/logout footer */}
         <NavigationDrawer
           isOpen={mobileMenuOpen}
           onClose={() => setMobileMenuOpen(false)}
@@ -247,6 +228,7 @@ export function Header() {
         />
       </header>
 
+      {/* Logout confirmation dialog */}
       <Dialog open={isLogoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -254,10 +236,18 @@ export function Header() {
             <DialogDescription>{t('header.logout_description')}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLogoutDialogOpen(false)} disabled={isLoggingOut}>
+            <Button
+              variant="outline"
+              onClick={() => setLogoutDialogOpen(false)}
+              disabled={isLoggingOut}
+            >
               {t('common.cancel')}
             </Button>
-            <Button variant="destructive" onClick={performLogout} disabled={isLoggingOut}>
+            <Button
+              variant="destructive"
+              onClick={performLogout}
+              disabled={isLoggingOut}
+            >
               {isLoggingOut ? t('header.logging_out') : t('header.log_out')}
             </Button>
           </DialogFooter>

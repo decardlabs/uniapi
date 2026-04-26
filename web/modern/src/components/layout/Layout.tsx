@@ -1,41 +1,74 @@
 import { PasskeyPromptBanner } from '@/components/auth/PasskeyPromptBanner';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useAuthStore } from '@/lib/stores/auth';
 import { cn } from '@/lib/utils';
 import { Outlet } from 'react-router-dom';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Footer } from './Footer';
 import { Header } from './Header';
+import { Sidebar } from './Sidebar';
+import {
+  buildAuthenticatedNavItems,
+  buildPublicNavItems,
+  groupNavItems,
+} from './navigation';
 
+/**
+ * Main layout — Sidebar + Header + Content + Footer
+ *
+ * Desktop (≥1024px):  Fixed sidebar on left, header on top of content area.
+ * Mobile/Tablet (<1024px): No sidebar, full-width header with hamburger drawer.
+ */
 export function Layout() {
   const { isMobile } = useResponsive();
+  const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Build navigation from shared config
+  const isAdmin = (user?.role ?? 0) >= 10;
+  const navItems = user
+    ? buildAuthenticatedNavItems(t, isAdmin)
+    : buildPublicNavItems(t);
+  const navGroups = groupNavItems(navItems);
 
   return (
     <div
       className={cn(
-        // Grid layout prevents any accidental extra space after footer
-        'grid grid-rows-[auto_1fr_auto] bg-background',
-        // Use dynamic viewport height to avoid iOS/Android 100vh bugs causing extra blank space
-        'min-h-screen-dvh',
-        // Full width root
-        'w-full'
+        'bg-background min-h-screen-dvh w-full',
+        // On desktop with sidebar: offset left by sidebar width
+        !isMobile && 'lg:pl-64',
+        !isMobile && sidebarCollapsed && 'lg:pl-[68px]',
+        // Smooth transition for layout shift when collapsing
+        'transition-[padding-left] duration-300 ease-in-out'
       )}
     >
-      <Header />
-      <PasskeyPromptBanner />
+      {/* Fixed Sidebar — only visible on desktop */}
+      <Sidebar
+        navGroups={navGroups}
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+      />
 
-      <main
-        className={cn(
-          // Row 2 of grid grows to fill available space
-          'w-full min-h-0',
-          // Responsive padding and spacing
-          isMobile ? 'px-3 py-4' : 'px-4 py-6',
-          // Ensure proper spacing from header
-          'mt-0'
-        )}
-      >
-        <Outlet />
-      </main>
+      {/* Right area: Header + Content + Footer */}
+      <div className="flex flex-col min-h-dvh">
+        <Header />
 
-      <Footer />
+        <PasskeyPromptBanner />
+
+        {/* Main content — grows to fill space */}
+        <main
+          className={cn(
+            'w-full flex-1 min-h-0',
+            isMobile ? 'px-3 py-4' : 'px-4 sm:px-6 py-6'
+          )}
+        >
+          <Outlet />
+        </main>
+
+        <Footer />
+      </div>
     </div>
   );
 }
