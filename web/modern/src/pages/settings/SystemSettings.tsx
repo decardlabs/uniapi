@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 import { Info } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { AxiosError } from 'axios';
 
 interface OptionRow {
   key: string;
@@ -362,9 +363,10 @@ export function SystemSettings() {
           title: t('system_settings.saved_success'),
           message: t('system_settings.saved_message', { key }),
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error saving option:', error);
-        const errMsg = error?.response?.data?.message || error?.message || 'Unknown error';
+        const axiosErr = error as AxiosError<{ message?: string }>;
+        const errMsg = axiosErr.response?.data?.message || axiosErr.message || 'Unknown error';
         notify({
           type: 'error',
           title: t('system_settings.save_failed'),

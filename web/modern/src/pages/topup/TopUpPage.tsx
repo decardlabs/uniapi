@@ -15,13 +15,32 @@ import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import * as z from 'zod';
 
+interface UserInfo {
+  id: number; // eslint-disable-line @typescript-eslint/no-explicit-any
+  username: string;
+  display_name?: string;
+  quota: number;
+}
+
+interface TopUpRequest {
+  id: number;
+  user_id: number;
+  amount?: number; // eslint-disable-line @typescript-eslint/no-explicit-any
+  quota: number;
+  status: number;
+  remark?: string; // eslint-disable-line @typescript-eslint/no-explicit-any
+  admin_remark?: string; // eslint-disable-line @typescript-eslint/no-explicit-any
+  created_at: string;
+  created_time?: number; // eslint-disable-line @typescript-eslint/no-explicit-any — backend may return this instead of created_at
+}
+
 export function TopUpPage() {
   const { user, updateUser } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userQuota, setUserQuota] = useState(user?.quota || 0);
   const [topUpLink, setTopUpLink] = useState('');
-  const [userData, setUserData] = useState<any>(null);
-  const [myRequests, setMyRequests] = useState<any[]>([]);
+  const [userData, setUserData] = useState<UserInfo | null>(null);
+  const [myRequests, setMyRequests] = useState<TopUpRequest[]>([]);
   // Use the new display unit hook for balance rendering only (input is always tokens)
   const { renderQuota: renderQuotaHook, toValue } = useDisplayUnit();
   const { t } = useTranslation();
@@ -251,7 +270,7 @@ export function TopUpPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {myRequests.map((req: any) => (
+                {myRequests.map((req: TopUpRequest) => (
                   <div key={req.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex items-center gap-3">
                       {statusBadge(req.status)}

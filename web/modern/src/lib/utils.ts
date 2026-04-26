@@ -248,7 +248,7 @@ export interface SystemStatus {
   github_oauth?: boolean;
   github_client_id?: string;
   chat_link?: string;
-  [key: string]: any;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export const persistSystemStatus = (data: SystemStatus) => {
@@ -258,6 +258,7 @@ export const persistSystemStatus = (data: SystemStatus) => {
   localStorage.setItem('footer_html', data.footer_html || '');
   localStorage.setItem('quota_per_unit', data.quota_per_unit || '500000');
   // Legacy key — kept for backward compat with renderQuota bridge
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const displayUnit = (data.display_in_currency === 'false') ? 'token' : (data as any).display_unit;
   if (displayUnit) {
     localStorage.setItem('display_unit', displayUnit);
@@ -333,7 +334,7 @@ export function generateUUIDv4(): string {
 }
 
 // Local storage utilities
-export const saveToStorage = (key: string, data: any) => {
+export const saveToStorage = (key: string, data: unknown) => {
   try {
     localStorage.setItem(key, JSON.stringify(data));
   } catch (error) {
@@ -341,7 +342,7 @@ export const saveToStorage = (key: string, data: any) => {
   }
 };
 
-export const loadFromStorage = (key: string, defaultValue: any = null) => {
+export const loadFromStorage = (key: string, defaultValue: unknown = null) => {
   try {
     const item = localStorage.getItem(key);
     return item ? JSON.parse(item) : defaultValue;

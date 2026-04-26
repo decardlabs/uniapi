@@ -15,6 +15,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Info } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import type { AxiosResponse } from 'axios';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as z from 'zod';
@@ -31,7 +32,7 @@ const renderQuotaWithPrompt = (quota: number): string => {
 const tokenSchema = z.object({
   name: z.string().min(1, 'Token name is required'),
   remain_quota: z.coerce.number().min(0, 'Quota must be non-negative'),
-  expired_time: z.string().optional(),
+  expired_time: z.union([z.string(), z.number()]).optional(),
   unlimited_quota: z.boolean().default(false),
   models: z.array(z.string()).default([]),
   subnet: z.string().optional(),
@@ -117,6 +118,7 @@ export function EditTokenPage() {
 
         form.reset(data);
         // Persist original id/status for submission logic
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (form as any)._original = {
           id: data.id as number,
           status: data.status as number,
@@ -198,7 +200,8 @@ export function EditTokenPage() {
 
       // Convert datetime-local to timestamp (local timezone to UTC)
       if (payload.expired_time) {
-        const timestamp = fromDateTimeLocal(payload.expired_time);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const timestamp = fromDateTimeLocal(payload.expired_time as any);
         if (!timestamp || timestamp <= 0) {
           form.setError('expired_time', {
             message: tr('validation.invalid_expiration', 'Invalid expiration time'),
@@ -210,29 +213,30 @@ export function EditTokenPage() {
           });
           return;
         }
-        payload.expired_time = timestamp as any;
+        payload.expired_time = timestamp as unknown as number;
       } else {
-        payload.expired_time = -1 as any;
+        payload.expired_time = -1 as unknown as number;
       }
 
       // Convert models array to string
-      const modelsString = payload.models.join(',');
-      payload.models = modelsString as any;
+      const modelsString = (payload.models as string[]).join(',');
+      (payload as Record<string, unknown>).models = modelsString;
 
-      let response: any;
+      let response: AxiosResponse<{ success: boolean; message?: string }>;
       // Include current status and auto-adjust so Unlimited or new expiry takes effect
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const original: BackendToken | undefined = (form as any)._original;
       if (original) {
         let nextStatus = original.status;
         const nowSec = Math.floor(Date.now() / 1000);
-        const exp = Number((payload as any).expired_time);
-        const isUnlimited = !!(payload as any).unlimited_quota;
-        const hasQuota = Number((payload as any).remain_quota) > 0;
+        const exp = Number((payload as Record<string, unknown>).expired_time);
+        const isUnlimited = !!(payload as Record<string, unknown>).unlimited_quota;
+        const hasQuota = Number((payload as Record<string, unknown>).remain_quota) > 0;
         // Exhausted -> Enabled if unlimited or quota > 0
         if (nextStatus === 4 && (isUnlimited || hasQuota)) nextStatus = 1;
         // Expired -> Enabled if never expire or a future expiry
         if (nextStatus === 3 && (exp === -1 || exp > nowSec)) nextStatus = 1;
-        (payload as any).status = nextStatus;
+        (payload as Record<string, unknown>).status = nextStatus;
       }
       if (isEdit && tokenId) {
         // Unified API call - complete URL with /api prefix
@@ -277,7 +281,8 @@ export function EditTokenPage() {
   };
 
   // RHF invalid handler
-  const onInvalid = (errors: any) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const onInvalid = (errors: Record<string, { message?: string }>) => {
     const firstKey = Object.keys(errors)[0];
     const fallbackMessage = tr('validation.fix_fields', 'Please correct the highlighted fields.');
     const firstMsg = errors[firstKey]?.message || fallbackMessage;
@@ -289,11 +294,12 @@ export function EditTokenPage() {
     const el = document.querySelector(`[name="${firstKey}"]`) as HTMLElement | null;
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      (el as any).focus?.();
+      (el as HTMLElement).focus();
     }
   };
 
   // Error highlighting
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const hasError = (path: string): boolean => !!(form.formState.errors as any)?.[path];
   const errorClass = (path: string) => (hasError(path) ? 'border-destructive focus-visible:ring-destructive' : '');
   const LabelWithHelp = ({
@@ -514,9 +520,9 @@ export function EditTokenPage() {
                     control={form.control}
                     name="remain_quota"
                     render={({ field }) => {
-                      const raw = field.value as any;
-                      const fallback = form.getValues('remain_quota') as any;
-                      const current = (raw ?? fallback) as any;
+                      const raw = field.value as number | string;
+                      const fallback = form.getValues('remain_quota') as number | string;
+                      const current = (raw ?? fallback) as number | string;
                       const numeric = Number(current);
                       const usdLabel = Number.isFinite(numeric) && numeric >= 0 ? renderQuotaWithPrompt(numeric) : '$0.00';
                       return (

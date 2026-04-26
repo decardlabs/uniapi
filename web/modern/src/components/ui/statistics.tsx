@@ -8,7 +8,7 @@ interface StatisticsData {
   quota: number;
   token?: number;
   request_count?: number;
-  [key: string]: any;
+  [key: string]: number | string | undefined; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 interface StatisticsProps {

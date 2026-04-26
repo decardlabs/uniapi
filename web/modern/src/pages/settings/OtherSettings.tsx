@@ -65,7 +65,7 @@ export function OtherSettings() {
       const res = await api.get('/api/option/');
       const { success, data } = res.data;
       if (success && data) {
-        const formData: any = {};
+        const formData: Record<string, string> = {};
         data.forEach((item: { key: string; value: string }) => {
           const key = item.key;
           if (key in form.getValues()) {

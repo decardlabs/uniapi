@@ -18,6 +18,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import type { AxiosResponse } from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as z from 'zod';
 
@@ -183,12 +184,12 @@ export function RedemptionsPage() {
   ];
 
   const manage = async (id: number, action: 'enable' | 'disable' | 'delete', idx: number) => {
-    let res: any;
+    let res: AxiosResponse<{ success?: boolean; data?: unknown }>;
     if (action === 'delete') {
       // Unified API call - complete URL with /api prefix
       res = await api.delete(`/api/redemption/${id}`);
     } else {
-      const body: any = { id, status: action === 'enable' ? 1 : 2 };
+      const body: { id: number; status: number } = { id, status: action === 'enable' ? 1 : 2 };
       res = await api.put('/api/redemption/?status_only=true', body);
     }
     if (res.data?.success) {
@@ -257,7 +258,7 @@ export function RedemptionsPage() {
               searchEndpoint="/api/redemption/search"
               transformResponse={(data) =>
                 Array.isArray(data)
-                  ? data.map((r: any) => ({
+                  ? data.map((r: { id: number; name: string }) => ({
                       key: String(r.id),
                       value: r.name,
                       text: r.name,
