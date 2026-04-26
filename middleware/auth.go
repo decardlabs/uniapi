@@ -37,81 +37,106 @@ import (
 	"github.com/songquanpeng/one-api/model"
 )
 
-// authHelper is a shared authentication helper function that validates user sessions or access tokens.
-// It checks if a user has sufficient role permissions (minRole) to access a resource.
-// Authentication is attempted first via session cookies, then falls back to Authorization header tokens.
-// Parameters:
-//   - c: Gin context for the HTTP request
-//   - minRole: Minimum role level required (e.g., common user, admin, root)
-func authHelper(c *gin.Context, minRole int) {
+// authResult holds the resolved user identity from session or token authentication.
+// All fields are pointers so callers can distinguish "not set" from zero values.
+type authResult struct {
+	username interface{}
+	role      interface{}
+	id        interface{}
+	status    interface{}
+	userObj   *model.User
+}
+
+// resolveIdentity attempts to authenticate a user from session cookies first,
+// then falls back to the Authorization header (access token).
+// Returns (*authResult, true) if authentication succeeded, or (nil, false) if not.
+func resolveIdentity(c *gin.Context) (*authResult, bool) {
 	session := sessions.Default(c)
 	username := session.Get("username")
-	role := session.Get("role")
-	id := session.Get("id")
-	status := session.Get("status")
-	var userObj *model.User
-
-	// First, try to authenticate using session data (cookies)
-	if username == nil {
-		gmw.GetLogger(c).Info("no user session found, try to use access token")
-		// If no session exists, try to authenticate using the Authorization header
-		accessToken := c.Request.Header.Get("Authorization")
-		if accessToken == "" {
-			// No authentication method available - reject request
-			respondAuthError(c, http.StatusUnauthorized, "No permission to perform this operation, not logged in and no access token provided")
-			return
-		}
-
-		// Validate the access token against the database
-		user := model.ValidateAccessToken(accessToken)
-		if user != nil && user.Username != "" {
-			// Token is valid - use the user data from token validation
-			userObj = user
-			username = user.Username
-			role = user.Role
-			id = user.Id
-			status = user.Status
-		} else {
-			// Invalid token - reject request
-			respondAuthError(c, http.StatusUnauthorized, "No permission to perform this operation, access token is invalid")
-			return
-		}
+	if username != nil {
+		return &authResult{
+			username: username,
+			role:      session.Get("role"),
+			id:        session.Get("id"),
+			status:    session.Get("status"),
+		}, true
 	}
 
-	// Check if user is disabled or banned
-	if status.(int) == model.UserStatusDisabled || blacklist.IsUserBanned(id.(int)) {
-		respondAuthError(c, http.StatusForbidden, "User has been banned")
-		// Clear session data for banned users
+	// No session — try access token
+	accessToken := c.Request.Header.Get("Authorization")
+	if accessToken == "" {
+		return nil, false
+	}
+
+	user := model.ValidateAccessToken(accessToken)
+	if user == nil || user.Username == "" {
+		return nil, false
+	}
+
+	return &authResult{
+		userObj:   user,
+		username:  user.Username,
+		role:      user.Role,
+		id:        user.Id,
+		status:    user.Status,
+	}, true
+}
+
+// checkUserStatus validates that the user is not disabled or banned.
+// Returns an error message string if the check fails, empty string if OK.
+func checkUserStatus(c *gin.Context, id int, status int) string {
+	if status == model.UserStatusDisabled || blacklist.IsUserBanned(id) {
+		// Clear session for banned users
 		session := sessions.Default(c)
 		session.Clear()
 		_ = session.Save()
+		return "User has been banned"
+	}
+	return ""
+}
+
+// setUserContext populates Gin context with the resolved user identity.
+func setUserContext(c *gin.Context, result *authResult) {
+	if result.userObj != nil {
+		c.Set(ctxkey.UserObj, result.userObj)
+	} else if result.id != nil {
+		ctx := gmw.Ctx(c)
+		uid := result.id.(int)
+		userObj, err := model.CacheGetUserById(ctx, uid)
+		if err != nil {
+			gmw.GetLogger(c).Warn("failed to fetch user object for context", zap.Int("user_id", uid), zap.Error(err))
+		}
+		if userObj != nil {
+			c.Set(ctxkey.UserObj, userObj)
+		}
+	}
+	c.Set(ctxkey.Username, result.username)
+	c.Set(ctxkey.Role, result.role)
+	c.Set(ctxkey.Id, result.id)
+}
+
+// authHelper is the shared authentication logic for UserAuth/AdminAuth/RootAuth.
+// It requires successful authentication — rejects with 401/403 on failure.
+func authHelper(c *gin.Context, minRole int) {
+	result, ok := resolveIdentity(c)
+	if !ok {
+		respondAuthError(c, http.StatusUnauthorized, "No permission to perform this operation, not logged in and no access token provided")
 		return
 	}
 
-	// Check if user has sufficient role permissions
-	if role.(int) < minRole {
+	// Validate user status (disabled / banned)
+	if msg := checkUserStatus(c, result.id.(int), result.status.(int)); msg != "" {
+		respondAuthError(c, http.StatusForbidden, msg)
+		return
+	}
+
+	// Check role permissions
+	if result.role.(int) < minRole {
 		respondAuthError(c, http.StatusForbidden, "No permission to perform this operation, insufficient permissions")
 		return
 	}
 
-	// For session-based auth, fetch the full user object if not already available
-	if userObj == nil {
-		ctx := gmw.Ctx(c)
-		var err error
-		userObj, err = model.CacheGetUserById(ctx, id.(int))
-		if err != nil {
-			gmw.GetLogger(c).Warn("failed to fetch user object for context", zap.Int("user_id", id.(int)), zap.Error(err))
-			// Non-fatal: downstream handlers can still fall back to individual lookups
-		}
-	}
-
-	// Authentication successful - set user context and continue
-	if userObj != nil {
-		c.Set(ctxkey.UserObj, userObj)
-	}
-	c.Set(ctxkey.Username, username)
-	c.Set(ctxkey.Role, role)
-	c.Set(ctxkey.Id, id)
+	setUserContext(c, result)
 	c.Next()
 }
 
@@ -130,47 +155,20 @@ func UserAuth() func(c *gin.Context) {
 // are populated; otherwise the request continues anonymously (Id defaults to 0).
 func OptionalUserAuth() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		session := sessions.Default(c)
-		username := session.Get("username")
-		role := session.Get("role")
-		id := session.Get("id")
-		status := session.Get("status")
-		var userObj *model.User
-
-		if username == nil {
-			// Try Authorization header as fallback
-			accessToken := c.Request.Header.Get("Authorization")
-			if accessToken != "" {
-				if user := model.ValidateAccessToken(accessToken); user != nil && user.Username != "" {
-					userObj = user
-					username = user.Username
-					role = user.Role
-					id = user.Id
-					status = user.Status
-				}
-			}
+		result, ok := resolveIdentity(c)
+		if !ok {
+			c.Next()
+			return
 		}
 
-		// If we resolved a user, validate and set context
-		if username != nil && status != nil {
-			if status.(int) != model.UserStatusDisabled && !blacklist.IsUserBanned(id.(int)) {
-				if userObj == nil {
-					ctx := gmw.Ctx(c)
-					var err error
-					userObj, err = model.CacheGetUserById(ctx, id.(int))
-					if err != nil {
-						gmw.GetLogger(c).Warn("failed to fetch user object for context", zap.Int("user_id", id.(int)), zap.Error(err))
-					}
-				}
-				if userObj != nil {
-					c.Set(ctxkey.UserObj, userObj)
-				}
-				c.Set(ctxkey.Username, username)
-				c.Set(ctxkey.Role, role)
-				c.Set(ctxkey.Id, id)
-			}
+		// Validate user status
+		if msg := checkUserStatus(c, result.id.(int), result.status.(int)); msg != "" {
+			gmw.GetLogger(c).Info("optional auth: user is banned, skipping context set", zap.String("msg", msg))
+			c.Next()
+			return
 		}
 
+		setUserContext(c, result)
 		c.Next()
 	}
 }
