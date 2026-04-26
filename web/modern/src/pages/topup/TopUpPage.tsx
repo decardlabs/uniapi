@@ -42,7 +42,11 @@ export function TopUpPage() {
   const [userData, setUserData] = useState<UserInfo | null>(null);
   const [myRequests, setMyRequests] = useState<TopUpRequest[]>([]);
   // Use the new display unit hook for balance rendering only (input is always tokens)
-  const { renderQuota: renderQuotaHook, toValue } = useDisplayUnit();
+  const { renderQuota: renderQuotaHook } = useDisplayUnit();
+
+  // USD conversion for preview — always use quota/500000 regardless of user's display unit
+  const QUOTA_PER_USD = 500000; // sync with backend ratio.QuotaPerUsd
+  const quotaToUsd = (quota: number): number => quota / QUOTA_PER_USD;
   const { t } = useTranslation();
   const { notify } = useNotifications();
 
@@ -233,8 +237,8 @@ export function TopUpPage() {
                       {(field.value || 0) > 0 && (
                         <p className="text-xs text-muted-foreground mt-1">
                           {displayMValue >= 0.001
-                            ? `≈ ${displayMValue.toLocaleString(undefined, { maximumFractionDigits: 4 })}M tokens = ${previewTokenCount.toLocaleString()} tokens ≈ $${toValue(previewQuota).toFixed(4)} USD`
-                            : `≈ ${previewTokenCount.toLocaleString()} tokens ≈ $${toValue(previewQuota).toFixed(4)} USD`}
+                            ? `≈ ${displayMValue.toLocaleString(undefined, { maximumFractionDigits: 4 })}M tokens = ${previewTokenCount.toLocaleString()} quota (≈ $${quotaToUsd(previewQuota).toFixed(2)} USD)`
+                            : `≈ ${previewTokenCount.toLocaleString()} quota (≈ $${quotaToUsd(previewQuota).toFixed(2)} USD)`}
                         </p>
                       )}
                       <FormMessage />

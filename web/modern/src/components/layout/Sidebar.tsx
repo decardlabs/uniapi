@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
+import { useIsDesktop } from '@/hooks/useResponsive';
 import type { NavGroup, NavItem } from './navigation';
 
 interface SidebarProps {
@@ -20,17 +21,24 @@ interface SidebarProps {
 /**
  * Sidebar navigation component — fixed left panel with collapsible support.
  * Desktop (≥1024px): always visible, can collapse to icon-only mode.
- * Mobile (<1024px): hidden (use NavigationDrawer instead).
+ * Mobile (<1024px): not rendered (use NavigationDrawer instead).
  */
 export function Sidebar({ navGroups, collapsed, onToggle }: SidebarProps) {
   const location = useLocation();
   const { t } = useTranslation();
+  // JS-level responsive control — avoids reliance on Tailwind lg: breakpoint compilation
+  const isDesktop = useIsDesktop();
+
+  // Don't render sidebar at all on mobile/tablet
+  if (!isDesktop) {
+    return null;
+  }
 
   return (
     <aside
       className={cn(
-        // Fixed position on desktop, hidden on mobile/tablet
-        'fixed inset-y-0 left-0 z-40 hidden lg:flex',
+        // Fixed position on desktop — no hidden/lg:flex needed since we conditionally render
+        'fixed inset-y-0 left-0 z-40',
         // Background + border
         'bg-background border-r border-border',
         // Smooth width transition when collapsing
