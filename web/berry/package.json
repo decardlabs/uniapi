@@ -14,7 +14,7 @@
     "@mui/system": "^5.8.6",
     "@mui/utils": "^5.8.6",
     "@mui/x-date-pickers": "^6.18.5",
-    "@tabler/icons-react": "^2.44.0",
+    "@tabler/icons-react": "^2.47.0",
     "@types/qrcode": "^1.5.5",
     "apexcharts": "3.35.3",
     "axios": "^0.27.2",

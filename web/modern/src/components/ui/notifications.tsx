@@ -2,6 +2,9 @@ import { Copy, X } from 'lucide-react';
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
+/** Maximum notifications visible simultaneously */
+const MAX_VISIBLE = 5;
+
 // Helper function to copy text to clipboard
 const copyToClipboard = async (text: string): Promise<boolean> => {
   try {
@@ -76,7 +79,7 @@ function genId() {
 
 export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<Notification[]>([]);
-  const timers = useRef<Record<string, any>>({});
+  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const dismiss = useCallback((id: string) => {
     setItems((prev) => prev.filter((n) => n.id !== id));
@@ -96,7 +99,19 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
         type: opts.type ?? 'info',
         durationMs: opts.durationMs ?? 3000,
       };
-      setItems((prev) => [...prev, n]);
+      setItems((prev) => {
+        // Enforce max visible limit — dismiss oldest when exceeded
+        const next = [...prev, n];
+        if (next.length > MAX_VISIBLE) {
+          const removed = next.shift();
+          if (removed) {
+            // Auto-dismiss the overflow item
+            clearTimeout(timers.current[removed.id]);
+            delete timers.current[removed.id];
+          }
+        }
+        return next;
+      });
       // auto-dismiss
       timers.current[id] = setTimeout(() => dismiss(id), n.durationMs);
       return id;
@@ -135,18 +150,21 @@ export const NotificationsViewport: React.FC<{
       className="fixed right-3 top-3 z-[1000] flex w-[90vw] max-w-sm flex-col gap-2 md:right-6 md:top-6"
       role="region"
       aria-label="Notifications"
+      aria-live="polite"
     >
       {items.map((n) => (
         <div
           key={n.id}
           className={cn(
-            'group relative w-full rounded-md border px-4 py-3 shadow-sm transition',
+            'group relative w-full rounded-md border px-4 py-3 shadow-sm',
+            // Enter animation
+            'animate-in slide-in-from-right-2 fade-in-0 duration-200',
             n.type === 'success' && 'border-success-border bg-success-muted text-success-foreground',
             n.type === 'error' && 'border-destructive/30 bg-destructive/5 text-destructive',
             n.type === 'warning' && 'border-warning-border bg-warning-muted text-warning-foreground',
             n.type === 'info' && 'border-info-border bg-info-muted text-info-foreground'
           )}
-          aria-live="polite"
+          role="status"
         >
           <div className="flex items-start gap-3">
             <div className="min-w-0 flex-1">

@@ -20,9 +20,13 @@ interface HeaderNavProps {
 
 export function HeaderNav({ items, className }: HeaderNavProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const moreButtonRef = useRef<HTMLButtonElement>(null);
   const [visibleCount, setVisibleCount] = useState(items.length);
   const itemsRef = useRef<(HTMLAnchorElement | null)[]>([]);
   const itemWidths = useRef<number[]>([]);
+
+  // Dynamic gap matching the nav's space-x-1 (4px)
+  const GAP = 4;
 
   const updateVisibleItems = () => {
     if (!containerRef.current) return;
@@ -31,7 +35,6 @@ export function HeaderNav({ items, className }: HeaderNavProps) {
     const itemElements = itemsRef.current;
 
     // Capture widths of items if we haven't yet or if they change
-    // This assumes they are all visible at least once or we measure them while visible
     itemElements.forEach((el, i) => {
       if (el && el.offsetWidth > 0) {
         itemWidths.current[i] = el.offsetWidth;
@@ -40,8 +43,8 @@ export function HeaderNav({ items, className }: HeaderNavProps) {
 
     if (itemWidths.current.length === 0) return;
 
-    const MORE_BUTTON_WIDTH = 85; // Roughly the width of the "More" button with icons and padding
-    const GAP = 4; // space-x-1 gap constant
+    // Dynamically measure the "More" button width instead of hardcoding
+    const moreButtonWidth = moreButtonRef.current?.offsetWidth || 85;
 
     let currentWidth = 0;
     let newVisibleCount = items.length;
@@ -53,7 +56,7 @@ export function HeaderNav({ items, className }: HeaderNavProps) {
         newVisibleCount = i;
 
         // Ensure "More" button fits
-        while (newVisibleCount > 0 && currentWidth + MORE_BUTTON_WIDTH > containerWidth) {
+        while (newVisibleCount > 0 && currentWidth + moreButtonWidth > containerWidth) {
           newVisibleCount--;
           currentWidth -= (itemWidths.current[newVisibleCount] || 100) + GAP;
         }
@@ -63,7 +66,7 @@ export function HeaderNav({ items, className }: HeaderNavProps) {
     }
 
     // Limit visible count to at least 1 if we have items, or 0 if container is tiny
-    if (newVisibleCount < 1 && items.length > 0 && containerWidth > MORE_BUTTON_WIDTH) {
+    if (newVisibleCount < 1 && items.length > 0 && containerWidth > moreButtonWidth) {
       // newVisibleCount = 0; // Show only More menu
     }
 
@@ -95,7 +98,7 @@ export function HeaderNav({ items, className }: HeaderNavProps) {
 
   return (
     <div ref={containerRef} className={cn('flex items-center flex-1 min-w-0 overflow-hidden', className)}>
-      <nav className="flex items-center space-x-1 min-w-0">
+      <nav className="flex items-center space-x-1 min-w-0" aria-label={items[0]?.name ? 'Main navigation' : 'Navigation'}>
         {items.map((item, index) => (
           <Link
             key={item.to}
@@ -115,7 +118,7 @@ export function HeaderNav({ items, className }: HeaderNavProps) {
         {hiddenItems.length > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="px-2 h-9 gap-1 text-muted-foreground">
+              <Button ref={moreButtonRef} variant="ghost" size="sm" className="px-2 h-9 gap-1 text-muted-foreground" aria-label="More navigation items" aria-haspopup="menu">
                 <MoreHorizontal className="h-4 w-4" />
                 <ChevronDown className="h-4 w-4" />
               </Button>

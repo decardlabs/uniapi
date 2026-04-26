@@ -25,6 +25,22 @@
       "success": "¡Canjeado exitosamente! Se agregaron {{value}} tokens.",
       "title": "Canjear código"
     },
+    "request": {
+      "amount_currency_label": "Monto *",
+      "amount_label": "Monto (en unidades de cuota) *",
+      "amount_placeholder": "Ingresa el monto...",
+      "amount_required": "El monto debe ser mayor a 0",
+      "amount_token_label": "Monto (Tokens) *",
+      "amount_token_placeholder": "Ingresa la cantidad de tokens...",
+      "description": "Ingresa el monto que deseas recargar. Un administrador revisará y aprobará tu solicitud.",
+      "failed": "Error al enviar la solicitud",
+      "remark_label": "Nota (opcional)",
+      "remark_placeholder": "Notas para el administrador...",
+      "submit": "Enviar solicitud",
+      "submitting": "Enviando...",
+      "success": "¡Solicitud enviada! Esperando aprobación del administrador.",
+      "title": "Enviar solicitud de recarga"
+    },
     "tips": {
       "content": [
         "La cuota se consume según el uso de tu API y los costos del modelo",

@@ -25,6 +25,7 @@
     "title": "À propos"
   },
   "common": {
+    "app_name": "One API",
     "about": "À propos",
     "back": "Retour",
     "cancel": "Annuler",

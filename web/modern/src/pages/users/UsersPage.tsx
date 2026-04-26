@@ -5,6 +5,7 @@ import { EnhancedDataTable } from '@/components/ui/enhanced-data-table';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { ListActionButton } from '@/components/ui/list-action-button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNotifications } from '@/components/ui/notifications';
 import { ResponsiveActionGroup } from '@/components/ui/responsive-action-group';
 import { ResponsivePageContainer } from '@/components/ui/responsive-container';
@@ -13,7 +14,7 @@ import { TimestampDisplay } from '@/components/ui/timestamp';
 import { STORAGE_KEYS, usePageSize } from '@/hooks/usePersistentState';
 import { useResponsive } from '@/hooks/useResponsive';
 import { api } from '@/lib/api';
-import { cn, renderQuota } from '@/lib/utils';
+import { cn, renderQuota, renderQuotaWithUsd } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Ban, CheckCircle, CreditCard, Settings, Trash2 } from 'lucide-react';
@@ -88,7 +89,7 @@ export function UsersPage() {
       if (quota === -1) {
         return tr('table.quota.unlimited', 'Unlimited');
       }
-      return renderQuota(quota);
+      return renderQuotaWithUsd(quota);
     },
     [tr]
   );
@@ -222,7 +223,7 @@ export function UsersPage() {
       header: tr('columns.used_quota', 'Used Quota'),
       accessorKey: 'used_quota',
       cell: ({ row }) => {
-        const quotaLabel = renderQuota(row.original.used_quota || 0);
+        const quotaLabel = renderQuotaWithUsd(row.original.used_quota || 0);
         return (
           <span
             className="font-mono text-sm"
@@ -339,21 +340,25 @@ export function UsersPage() {
         {tr('toolbar.add_user', 'Add User')}
       </Button>
       <div className="flex gap-2 w-full">
-        <select
-          className={cn('h-9 border rounded-md px-3 py-2 text-sm flex-1', isMobile ? '' : 'min-w-[120px]')}
+        <Select
           value={sortBy}
-          onChange={(e) => {
-            setSortBy(e.target.value);
+          onValueChange={(value) => {
+            setSortBy(value);
             setSortOrder('desc');
           }}
         >
-          <option value="">{tr('toolbar.sort.default', 'Default')}</option>
-          <option value="quota">{tr('toolbar.sort.quota', 'Remaining Quota')}</option>
-          <option value="used_quota">{tr('toolbar.sort.used_quota', 'Used Quota')}</option>
-          <option value="username">{tr('toolbar.sort.username', 'Username')}</option>
-          <option value="id">{tr('toolbar.sort.id', 'ID')}</option>
-          <option value="created_at">{tr('toolbar.sort.register_time', 'Register Time')}</option>
-        </select>
+          <SelectTrigger className={cn('h-9 text-sm flex-1', isMobile ? '' : 'min-w-[120px]')}>
+            <SelectValue placeholder={tr('toolbar.sort.default', 'Default')} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">{tr('toolbar.sort.default', 'Default')}</SelectItem>
+            <SelectItem value="quota">{tr('toolbar.sort.quota', 'Remaining Quota')}</SelectItem>
+            <SelectItem value="used_quota">{tr('toolbar.sort.used_quota', 'Used Quota')}</SelectItem>
+            <SelectItem value="username">{tr('toolbar.sort.username', 'Username')}</SelectItem>
+            <SelectItem value="id">{tr('toolbar.sort.id', 'ID')}</SelectItem>
+            <SelectItem value="created_at">{tr('toolbar.sort.register_time', 'Register Time')}</SelectItem>
+          </SelectContent>
+        </Select>
         <Button
           variant="outline"
           size="sm"

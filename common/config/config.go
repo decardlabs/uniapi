@@ -1145,6 +1145,15 @@ var (
 	// Default: true
 	DisplayInCurrencyEnabled = true
 
+	// DisplayUnit controls the global display mode for quota values.
+	// Accepted values: "token" (raw token count), "usd" (USD), "cny" (CNY/RMB).
+	// This supersedes DisplayInCurrencyEnabled when set.
+	// Frontend reads this option to determine how to render all quota values.
+	//
+	// Runtime variable (set via admin UI)
+	// Default: "token"
+	DisplayUnit = "token"
+
 	// DisplayTokenStatEnabled toggles the token statistics card on the dashboard.
 	// Shows users their token consumption metrics when enabled.
 	//

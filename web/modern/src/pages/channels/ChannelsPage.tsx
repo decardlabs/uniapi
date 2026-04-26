@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import { EnhancedDataTable } from '@/components/ui/enhanced-data-table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ListActionButton } from '@/components/ui/list-action-button';
 import { useNotifications } from '@/components/ui/notifications';
 import { ResponsiveActionGroup } from '@/components/ui/responsive-action-group';
@@ -40,49 +41,16 @@ interface Channel {
 /**
  * Channel options defined at relay/channeltype/define.go
  */
+/**
+ * Channel options - simplified to supported types only
+ */
 const CHANNEL_TYPES: Record<number, { name: string; color: string }> = {
-  1: { name: 'OpenAI', color: 'green' },
-  50: { name: 'OpenAI Compatible', color: 'olive' },
-  14: { name: 'Anthropic', color: 'black' },
-  33: { name: 'AWS', color: 'orange' },
-  3: { name: 'Azure', color: 'blue' },
-  11: { name: 'PaLM2', color: 'orange' },
-  24: { name: 'Gemini', color: 'orange' },
-  51: { name: 'Gemini (OpenAI)', color: 'orange' },
-  28: { name: 'Mistral AI', color: 'purple' },
-  41: { name: 'Novita', color: 'purple' },
-  40: { name: 'ByteDance Volcano', color: 'blue' },
-  15: { name: 'Baidu Wenxin', color: 'blue' },
-  47: { name: 'Baidu Wenxin V2', color: 'blue' },
-  17: { name: 'Alibaba Qianwen', color: 'orange' },
-  49: { name: 'Alibaba Bailian', color: 'orange' },
-  18: { name: 'iFlytek Spark', color: 'blue' },
-  48: { name: 'iFlytek Spark V2', color: 'blue' },
-  16: { name: 'Zhipu ChatGLM', color: 'violet' },
-  19: { name: '360 ZhiNao', color: 'blue' },
-  25: { name: 'Moonshot AI', color: 'black' },
-  23: { name: 'Tencent Hunyuan', color: 'teal' },
-  26: { name: 'Baichuan', color: 'orange' },
-  27: { name: 'MiniMax', color: 'red' },
-  29: { name: 'Groq', color: 'orange' },
-  30: { name: 'Ollama', color: 'black' },
-  31: { name: '01.AI', color: 'green' },
-  32: { name: 'StepFun', color: 'blue' },
-  34: { name: 'Coze', color: 'blue' },
-  35: { name: 'Cohere', color: 'blue' },
-  36: { name: 'DeepSeek', color: 'black' },
-  37: { name: 'Cloudflare', color: 'orange' },
-  38: { name: 'DeepL', color: 'black' },
-  39: { name: 'together.ai', color: 'blue' },
-  42: { name: 'VertexAI', color: 'blue' },
-  43: { name: 'Proxy', color: 'blue' },
-  44: { name: 'SiliconFlow', color: 'blue' },
-  45: { name: 'xAI', color: 'blue' },
-  46: { name: 'Replicate', color: 'blue' },
-  8: { name: 'Custom', color: 'pink' },
-  22: { name: 'FastGPT', color: 'blue' },
-  21: { name: 'AI Proxy KB', color: 'purple' },
   20: { name: 'OpenRouter', color: 'black' },
+  16: { name: 'Zhipu GLM', color: 'violet' },
+  25: { name: 'Moonshot AI (KIMI)', color: 'black' },
+  27: { name: 'MiniMax', color: 'red' },
+  17: { name: 'Alibaba Qianwen', color: 'orange' },
+  50: { name: 'OpenAI Compatible', color: 'olive' },
 };
 
 const formatResponseTime = (time?: number) => {
@@ -333,7 +301,7 @@ export function ChannelsPage() {
   const updateTestingModel = async (id: number, testingModel: string | null) => {
     try {
       const current = data.find((c) => c.id === id);
-      const payload: any = { id, name: current?.name };
+      const payload: Record<string, unknown> = { id, name: current?.name };
       // When null, let backend clear it (auto-cheapest)
       if (testingModel === null) {
         payload.testing_model = null;
@@ -489,22 +457,22 @@ export function ChannelsPage() {
         const value = ch.testing_model ?? ''; // empty => Auto (cheapest)
         return (
           <div className="w-[140px] md:w-[160px] max-w-[220px]">
-            <select
-              className="w-full border rounded px-2 py-1 text-sm bg-background"
+            <Select
               value={value}
-              aria-label={t('channels.columns.testing_model')}
-              onChange={(e) => {
-                const v = e.target.value;
-                updateTestingModel(ch.id, v === '' ? null : v);
-              }}
+              onValueChange={(v) => updateTestingModel(ch.id, v === '' ? null : v)}
             >
-              <option value="">{t('channels.testing.auto')}</option>
-              {models.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full text-sm" aria-label={t('channels.columns.testing_model')}>
+                <SelectValue placeholder={t('channels.testing.auto')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">{t('channels.testing.auto')}</SelectItem>
+                {models.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {m}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         );
       },
@@ -630,7 +598,7 @@ export function ChannelsPage() {
           </Button>
         }
       >
-        <Card className="border-0 md:border shadow-none md:shadow-sm">
+        <Card className="border border-l-4 border-l-primary/50 shadow-sm">
           <CardContent className={cn(isMobile ? 'p-2' : 'p-6')}>
             <EnhancedDataTable
               columns={columns}

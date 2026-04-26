@@ -25,6 +25,7 @@
     "title": "概要"
   },
   "common": {
+    "app_name": "One API",
     "about": "概要",
     "back": "戻る",
     "cancel": "キャンセル",

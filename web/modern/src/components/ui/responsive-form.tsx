@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { useResponsive } from '@/hooks/useResponsive';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTranslation } from 'react-i18next';
 
 interface ResponsiveFormProps {
   children: ReactNode;
@@ -199,6 +200,7 @@ interface ResponsiveFormStepsProps {
 
 export function ResponsiveFormSteps({ children, currentStep, totalSteps, onStepChange, className }: ResponsiveFormStepsProps) {
   const { isMobile } = useResponsive();
+  const { t } = useTranslation();
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -228,7 +230,7 @@ export function ResponsiveFormSteps({ children, currentStep, totalSteps, onStepC
         </div>
 
         <div className="text-sm text-muted-foreground">
-          Step {currentStep} of {totalSteps}
+          {t('form.step_of', 'Step {{current}} of {{total}}', { current: currentStep, total: totalSteps })}
         </div>
       </div>
 
@@ -262,6 +264,8 @@ export function QuickForm({
   loading = false,
   className,
 }: QuickFormProps) {
+  const { t } = useTranslation();
+
   return (
     <Card className={className}>
       {(title || description) && (
@@ -281,7 +285,7 @@ export function QuickForm({
               </Button>
             )}
             <Button type="submit" disabled={loading}>
-              {loading ? 'Loading...' : submitLabel}
+              {loading ? t('common.loading', 'Loading...') : submitLabel}
             </Button>
           </ResponsiveFormActions>
         </ResponsiveForm>

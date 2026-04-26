@@ -14,7 +14,7 @@ import { STORAGE_KEYS, usePageSize } from '@/hooks/usePersistentState';
 import { api } from '@/lib/api';
 import { LOG_TYPES, LOG_TYPE_OPTIONS } from '@/lib/constants/logs';
 import { useAuthStore } from '@/lib/stores/auth';
-import { cn, formatTimestamp, fromDateTimeLocal, renderQuota, toDateTimeLocal } from '@/lib/utils';
+import { cn, formatTimestamp, fromDateTimeLocal, renderQuota, renderQuotaWithUsd, toDateTimeLocal } from '@/lib/utils';
 import type { LogEntry, LogMetadata } from '@/types/log';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Copy, Eye, EyeOff, FileDown, Filter, RefreshCw } from 'lucide-react';
@@ -234,7 +234,7 @@ export function LogsPage() {
                 <span>•</span>
                 {renderLogTypeBadge(log.type)}
                 <span>•</span>
-                <span>{t('logs.search.quota', { value: renderQuota(log.quota) })}</span>
+                <span>{t('logs.search.quota', { value: renderQuotaWithUsd(log.quota) })}</span>
               </div>
             </div>
           ),
@@ -479,7 +479,7 @@ export function LogsPage() {
             header: t('logs.table.cost'),
             cell: ({ row }) => (
               <span className="font-mono text-sm" title={row.original.content || ''}>
-                {renderQuota(row.original.quota)}
+                {renderQuotaWithUsd(row.original.quota)}
               </span>
             ),
           },
@@ -557,7 +557,7 @@ export function LogsPage() {
             <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
               <span>
                 {t('logs.stats.total_quota', {
-                  value: renderQuota(stat.quota),
+                  value: renderQuotaWithUsd(stat.quota),
                 })}
               </span>
               <Button size="sm" variant="ghost" onClick={loadStatistics} disabled={statLoading} className="h-7 w-7 p-0">
@@ -583,7 +583,7 @@ export function LogsPage() {
         </div>
       }
     >
-      <Card className="border-0 md:border shadow-none md:shadow-sm">
+      <Card className="border border-l-4 border-l-chart-2/50 shadow-sm">
         <CardContent className="px-2 pt-3 md:px-6 md:pt-6">
           {/* Filters */}
           <div className="grid grid-cols-1 md:grid-cols-7 gap-3 md:gap-4 mb-6 p-3 md:p-4 border-x-0 md:border border-y md:rounded-lg bg-muted/5 md:bg-muted/10">

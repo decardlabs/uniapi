@@ -2,14 +2,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatNumber } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import type { TooltipProps } from 'recharts';
 import { barColor, getDisplayInCurrency } from '../types';
 
+/** A single data point in a stacked bar chart — each key is a series (model/user/token name) */
+interface StackedDataPoint {
+  [key: string]: number | string; // e.g. { date: "2026-04-01", gpt4o: 1200, deepseek: 3400 }
+}
+
 interface UsageChartsProps {
-  modelStackedData: any[];
+  modelStackedData: StackedDataPoint[];
   modelKeys: string[];
-  userStackedData: any[];
+  userStackedData: StackedDataPoint[];
   userKeys: string[];
-  tokenStackedData: any[];
+  tokenStackedData: StackedDataPoint[];
   tokenKeys: string[];
   statisticsMetric: 'tokens' | 'requests' | 'expenses';
   setStatisticsMetric: (metric: 'tokens' | 'requests' | 'expenses') => void;
@@ -50,11 +56,11 @@ export function UsageCharts({
     }
   };
 
-  const stackedTooltip = ({ active, payload, label }: any) => {
+  const stackedTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
     if (active && payload && payload.length) {
       const filtered = payload
-        .filter((entry: any) => entry.value && typeof entry.value === 'number' && entry.value > 0)
-        .sort((a: any, b: any) => (b.value as number) - (a.value as number));
+        .filter((entry) => entry.value !== undefined && typeof entry.value === 'number' && entry.value > 0)
+        .sort((a, b) => (b.value as number) - (a.value as number));
 
       if (!filtered.length) {
         return null;
@@ -97,7 +103,7 @@ export function UsageCharts({
           >
             {label}
           </div>
-          {filtered.map((entry: any, index: number) => (
+          {filtered.map((entry, index) => (
             <div
               key={`${entry.name ?? 'series'}-${index}`}
               style={{

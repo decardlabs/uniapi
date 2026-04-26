@@ -3,9 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'; // NEW
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { api } from '@/lib/api';
+import { setDisplayUnit, type DisplayUnit } from '@/hooks/useDisplayUnit'; // NEW
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Info } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -27,7 +29,8 @@ const operationSchema = z.object({
   AutomaticDisableChannelEnabled: z.boolean().default(false),
   AutomaticEnableChannelEnabled: z.boolean().default(false),
   LogConsumeEnabled: z.boolean().default(false),
-  DisplayInCurrencyEnabled: z.boolean().default(false),
+  DisplayInCurrencyEnabled: z.boolean().default(false), // kept for backward compat
+  DisplayUnit: z.string().default('token'), // NEW: primary display unit setting
   DisplayTokenStatEnabled: z.boolean().default(false),
   ApproximateTokenEnabled: z.boolean().default(false),
 });
@@ -55,6 +58,7 @@ export function OperationSettings() {
       RetryTimes: t('operation_settings.general.retry_times_desc'),
       LogConsumeEnabled: t('operation_settings.general.log_consume_enabled_desc'),
       DisplayInCurrencyEnabled: t('operation_settings.general.display_in_currency_desc'),
+      DisplayUnit: t('operation_settings.general.display_unit_desc'), // NEW
       DisplayTokenStatEnabled: t('operation_settings.general.display_token_stat_desc'),
       ApproximateTokenEnabled: t('operation_settings.general.approximate_token_desc'),
 
@@ -84,6 +88,7 @@ export function OperationSettings() {
       AutomaticEnableChannelEnabled: false,
       LogConsumeEnabled: false,
       DisplayInCurrencyEnabled: false,
+      DisplayUnit: 'token', // NEW
       DisplayTokenStatEnabled: false,
       ApproximateTokenEnabled: false,
     },
@@ -105,6 +110,10 @@ export function OperationSettings() {
               const numValue = parseFloat(item.value);
               formData[key] = isNaN(numValue) ? item.value : numValue;
             }
+          }
+          // Sync DisplayUnit to localStorage immediately
+          if (key === 'DisplayUnit' && ['token', 'usd', 'cny'].includes(item.value)) {
+            setDisplayUnit(item.value as DisplayUnit);
           }
         });
         form.reset(formData);
@@ -458,20 +467,11 @@ export function OperationSettings() {
 
                 <FormField
                   control={form.control}
-                  name="DisplayInCurrencyEnabled"
+                  name="DisplayUnit"
                   render={({ field }) => (
-                    <FormItem className="flex items-center space-x-2">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={(checked) => {
-                            field.onChange(checked);
-                            updateOption('DisplayInCurrencyEnabled', checked);
-                          }}
-                        />
-                      </FormControl>
+                    <FormItem className="space-y-3">
                       <FormLabel className="flex items-center gap-2">
-                        {t('operation_settings.general.display_in_currency')}
+                        {t('operation_settings.general.display_unit', '显示单位')}
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button type="button" className="text-muted-foreground hover:text-foreground" aria-label={t('common.info')}>
@@ -479,10 +479,58 @@ export function OperationSettings() {
                             </button>
                           </TooltipTrigger>
                           <TooltipContent side="top" align="start" className="max-w-[320px]">
-                            {descriptions.DisplayInCurrencyEnabled}
+                            {descriptions.DisplayUnit}
                           </TooltipContent>
                         </Tooltip>
                       </FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          value={field.value}
+                          onValueChange={(val) => {
+                            field.onChange(val);
+                            const unit = val as DisplayUnit;
+                            setDisplayUnit(unit);
+                            // Also persist to server option
+                            updateOption('DisplayUnit', unit);
+                            // Keep backward compat
+                            updateOption('DisplayInCurrencyEnabled', unit !== 'token');
+                          }}
+                          className="flex flex-col sm:flex-row gap-3"
+                        >
+                          {[
+                            { value: 'token', label: t('operation_settings.general.unit_token', 'Tokens'), desc: t('operation_settings.general.unit_token_desc', '以 Token 数量显示配额') },
+                            { value: 'usd', label: t('operation_settings.general.unit_usd', 'USD ($)'), desc: t('operation_settings.general.unit_usd_desc', '以美元显示配额') },
+                            { value: 'cny', label: t('operation_settings.general.unit_cny', 'CNY (¥)'), desc: t('operation_settings.general.unit_cny_desc', '以人民币显示配额') },
+                          ].map((opt) => (
+                            <label
+                              key={opt.value}
+                              className={`flex items-center gap-2 rounded-lg border px-4 py-3 cursor-pointer transition-colors hover:bg-accent ${
+                                field.value === opt.value ? 'border-primary bg-accent' : 'border-muted'
+                              }`}
+                            >
+                              <RadioGroupItem value={opt.value} id={`unit-${opt.value}`} />
+                              <div className="flex-1">
+                                <span className="font-medium text-sm">{opt.label}</span>
+                                <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
+                              </div>
+                            </label>
+                          ))}
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Legacy checkbox — hidden but kept for backward compat, auto-synced */}
+                <FormField
+                  control={form.control}
+                  name="DisplayInCurrencyEnabled"
+                  render={({ field }) => (
+                    <FormItem className="hidden">
+                      <FormControl>
+                        <input type="hidden" {...field} value={String(field.value)} />
+                      </FormControl>
                     </FormItem>
                   )}
                 />

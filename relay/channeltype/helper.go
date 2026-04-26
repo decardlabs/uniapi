@@ -55,6 +55,10 @@ func ToAPIType(channelType int) int {
 		apiType = apitype.XAI
 	case Copilot:
 		apiType = apitype.Copilot
+	case OpenRouter:
+		apiType = apitype.OpenRouter
+	case Minimax:
+		apiType = apitype.Minimax
 	}
 
 	return apiType

@@ -842,5 +842,38 @@
         }
       }
     }
+  },
+  "recharges": {
+    "title": "Gestión de Recargas",
+    "description": "Revisar y procesar las solicitudes de recarga de los usuarios",
+    "empty": "No hay solicitudes de recarga",
+    "columns": {
+      "id": "ID",
+      "user": "Usuario",
+      "amount": "Monto",
+      "status": "Estado",
+      "remark": "Nota",
+      "admin_note": "Nota del Admin",
+      "created": "Fecha",
+      "actions": "Acciones"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "approved": "Aprobado",
+      "rejected": "Rechazado"
+    },
+    "actions": {
+      "review": "Revisar",
+      "approve_btn": "Aprobar",
+      "reject_submit": "Rechazar",
+      "reject_reason_placeholder": "Ingrese el motivo del rechazo (obligatorio)...",
+      "cancel": "Cancelar"
+    },
+    "notifications": {
+      "approved": "✅ Solicitud aprobada! El saldo del usuario se ha actualizado.",
+      "rejected": "❌ Solicitud rechazada.",
+      "failed": "Error en la operación. Intente nuevamente.",
+      "reason_required": "⚠️ Por favor ingrese un motivo de rechazo."
+    }
   }
 }

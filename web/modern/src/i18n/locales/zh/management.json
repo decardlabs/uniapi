@@ -842,5 +842,38 @@
         }
       }
     }
+  },
+  "recharges": {
+    "title": "充值管理",
+    "description": "审核并处理用户的充值申请",
+    "empty": "暂无充值申请",
+    "columns": {
+      "id": "ID",
+      "user": "用户",
+      "amount": "金额",
+      "status": "状态",
+      "remark": "备注",
+      "admin_note": "管理员备注",
+      "created": "申请时间",
+      "actions": "操作"
+    },
+    "status": {
+      "pending": "待审核",
+      "approved": "已通过",
+      "rejected": "已拒绝"
+    },
+    "actions": {
+      "review": "审批",
+      "approve_btn": "同意",
+      "reject_submit": "拒绝",
+      "reject_reason_placeholder": "请输入拒绝理由（必填）...",
+      "cancel": "取消"
+    },
+    "notifications": {
+      "approved": "✅ 充值申请已通过！用户余额已更新。",
+      "rejected": "❌ 充值申请已拒绝。",
+      "failed": "操作失败，请稍后重试",
+      "reason_required": "⚠️ 请填写拒绝理由"
+    }
   }
 }

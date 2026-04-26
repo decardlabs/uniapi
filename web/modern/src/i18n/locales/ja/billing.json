@@ -25,6 +25,22 @@
       "success": "引き換えに成功しました！ {{value}} トークンを追加しました。",
       "title": "コードを引き換え"
     },
+    "request": {
+      "amount_currency_label": "金額 *",
+      "amount_label": "金額（クォータ単位）*",
+      "amount_placeholder": "金額を入力...",
+      "amount_required": "金額は0より大きい必要があります",
+      "amount_token_label": "金額（トークン数）*",
+      "amount_token_placeholder": "トークン数を入力...",
+      "description": "充値したい金額を入力してください。管理者が審査・承認を行います。",
+      "failed": "申請の送信に失敗しました",
+      "remark_label": "備考（任意）",
+      "remark_placeholder": "管理者へのメモ...",
+      "submit": "申請を送信",
+      "submitting": "送信中...",
+      "success": "充値申請が送信されました！管理者の審査をお待ちください。",
+      "title": "充値申請を提出"
+    },
     "tips": {
       "content": [
         "クォータは API の利用状況とモデルのコストに基づいて消費されます",

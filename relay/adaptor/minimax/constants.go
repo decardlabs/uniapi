@@ -6,17 +6,14 @@ import (
 )
 
 // ModelRatios contains all supported models and their pricing ratios
-// Model list is derived from the keys of this map, eliminating redundancy
-// Based on Minimax pricing: https://api.minimax.chat/document/price
+// Default: input $0.30/M tokens, output $1.50/M tokens (USD)
 var ModelRatios = map[string]adaptor.ModelConfig{
-	// Minimax Models - Based on https://api.minimax.chat/document/price
-	"abab6.5-chat":    {Ratio: 0.03 * ratio.MilliTokensRmb, CompletionRatio: 1},
-	"abab6.5s-chat":   {Ratio: 0.01 * ratio.MilliTokensRmb, CompletionRatio: 1},
-	"abab6-chat":      {Ratio: 0.1 * ratio.MilliTokensRmb, CompletionRatio: 1},
-	"abab5.5-chat":    {Ratio: 0.015 * ratio.MilliTokensRmb, CompletionRatio: 1},
-	"abab5.5s-chat":   {Ratio: 0.005 * ratio.MilliTokensRmb, CompletionRatio: 1},
-	"MiniMax-VL-01":   {Ratio: 0.02 * ratio.MilliTokensRmb, CompletionRatio: 1},  // Estimated pricing
-	"MiniMax-Text-01": {Ratio: 0.015 * ratio.MilliTokensRmb, CompletionRatio: 1}, // Estimated pricing
+	// MiniMax M2 series (2026-04)
+	// Based on https://api.minimaxi.com/v1
+	"MiniMax-M2.7":            {Ratio: 0.15 * ratio.MilliTokensUsd, CompletionRatio: 5},
+	"MiniMax-M2.7-highspeed": {Ratio: 0.15 * ratio.MilliTokensUsd, CompletionRatio: 5},
+	"MiniMax-M2.5":            {Ratio: 0.15 * ratio.MilliTokensUsd, CompletionRatio: 5},
+	"MiniMax-M2.5-highspeed": {Ratio: 0.15 * ratio.MilliTokensUsd, CompletionRatio: 5},
 }
 
 // ModelList derived from ModelRatios for backward compatibility

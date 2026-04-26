@@ -177,36 +177,62 @@ export function formatNumber(num: number): string {
   return num.toString();
 }
 
-// Quota formatting with USD conversion support
+// Quota formatting — DEPRECATED: prefer useDisplayUnit() hook for new code.
+// These functions are kept for backward compatibility and auto-migrate from legacy settings.
+import { getDisplayUnit, formatQuotaByUnit } from '@/hooks/useDisplayUnit';
+
 export function formatQuota(quota: number): string {
-  const displayInCurrency = localStorage.getItem('display_in_currency') === 'true';
-  const quotaPerUnit = parseFloat(localStorage.getItem('quota_per_unit') || '500000');
-
-  if (displayInCurrency) {
-    const amount = (quota / quotaPerUnit).toFixed(4);
-    return `$${amount}`;
-  }
-
-  // Return formatted tokens
-  return formatNumber(quota);
+  const unit = getDisplayUnit();
+  return formatQuotaByUnit(quota, unit, { decimals: 4, showSymbol: true, showLabel: false });
 }
 
 // Render quota with proper formatting
 export function renderQuota(quota: number): string {
-  return formatQuota(quota);
+  const unit = getDisplayUnit();
+  return formatQuotaByUnit(quota, unit, { decimals: 2, showSymbol: true, showLabel: true });
 }
 
-// Render quota with prompting information
-export function renderQuotaWithPrompt(quota: number): string {
-  const displayInCurrency = localStorage.getItem('display_in_currency') === 'true';
+// Render quota with USD equivalent — always shows token value + ≈$USD
+// This is the B-solution: users always see the "real money" value alongside tokens
+export function renderQuotaWithUsd(quota: number): string {
+  const unit = getDisplayUnit();
   const quotaPerUnit = parseFloat(localStorage.getItem('quota_per_unit') || '500000');
 
-  if (displayInCurrency) {
-    const amount = (quota / quotaPerUnit).toFixed(4);
-    return `$${amount}`;
+  if (unit === 'token' && Number.isFinite(quota) && quota > 0 && quotaPerUnit > 0) {
+    const usdValue = quota / quotaPerUnit;
+    // Format token part
+    let tokenStr: string;
+    if (quota >= 1_000_000) {
+      tokenStr = (quota / 1_000_000).toFixed(1) + 'M';
+    } else if (quota >= 1_000) {
+      tokenStr = (quota / 1_000).toFixed(1) + 'K';
+    } else {
+      tokenStr = Math.round(quota).toLocaleString();
+    }
+    // Show USD for meaningful amounts (>= $0.001)
+    if (usdValue >= 0.001) {
+      return `${tokenStr} ≈$${usdValue.toFixed(usdValue >= 100 ? 1 : usdValue >= 1 ? 2 : 4)}`;
+    }
+    return tokenStr;
   }
 
-  return `${formatNumber(quota)} tokens`;
+  // For currency modes, delegate to normal renderQuota
+  return formatQuotaByUnit(quota, unit, { decimals: 2, showSymbol: true, showLabel: true });
+}
+
+// Render quota with prompting information (shows both token + currency)
+export function renderQuotaWithPrompt(quota: number): string {
+  const unit = getDisplayUnit();
+  if (unit === 'token') {
+    const value = quota; // raw tokens
+    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M tokens`;
+    if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K tokens`;
+    return `${Math.round(value).toLocaleString()} tokens`;
+  }
+  // Currency mode: show both
+  const tokenStr = quota >= 1_000_000 ? `${(quota / 1_000_000).toFixed(1)}M` : quota >= 1_000 ? `${(quota / 1_000).toFixed(1)}K` : `${quota}`;
+  const currencyStr = formatQuotaByUnit(quota, unit, { decimals: 4, showSymbol: true, showLabel: false });
+  return `${tokenStr} tokens (${currencyStr})`;
 }
 
 // System status utility function
@@ -216,6 +242,7 @@ export interface SystemStatus {
   footer_html?: string;
   quota_per_unit?: string;
   display_in_currency?: string;
+  display_unit?: string; // NEW: "token" | "usd" | "cny"
   turnstile_check?: boolean;
   turnstile_site_key?: string;
   github_oauth?: boolean;
@@ -230,6 +257,11 @@ export const persistSystemStatus = (data: SystemStatus) => {
   localStorage.setItem('logo', data.logo || '');
   localStorage.setItem('footer_html', data.footer_html || '');
   localStorage.setItem('quota_per_unit', data.quota_per_unit || '500000');
+  // Legacy key — kept for backward compat with renderQuota bridge
+  const displayUnit = (data.display_in_currency === 'false') ? 'token' : (data as any).display_unit;
+  if (displayUnit) {
+    localStorage.setItem('display_unit', displayUnit);
+  }
   localStorage.setItem('display_in_currency', data.display_in_currency || 'true');
 
   if (data.chat_link) {

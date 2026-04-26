@@ -2,11 +2,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { ResponsivePageContainer } from '@/components/ui/responsive-container';
+import { useNotifications } from '@/components/ui/notifications';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/lib/stores/auth';
+import { useDisplayUnit } from '@/hooks/useDisplayUnit'; // for balance display only
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import * as z from 'zod';
@@ -17,38 +21,22 @@ export function TopUpPage() {
   const [userQuota, setUserQuota] = useState(user?.quota || 0);
   const [topUpLink, setTopUpLink] = useState('');
   const [userData, setUserData] = useState<any>(null);
+  const [myRequests, setMyRequests] = useState<any[]>([]);
+  // Use the new display unit hook for balance rendering only (input is always tokens)
+  const { renderQuota: renderQuotaHook, toValue } = useDisplayUnit();
   const { t } = useTranslation();
-  const tr = useCallback(
-    (key: string, defaultValue: string, options?: Record<string, unknown>) => t(`topup.${key}`, { defaultValue, ...options }),
-    [t]
-  );
+  const { notify } = useNotifications();
 
-  const topupSchema = z.object({
-    redemption_code: z.string().min(1, tr('redeem.required', 'Redemption code is required')),
-  });
+  const tr = (key: string, defaultValue: string) =>
+    t(`topup.${key}`, { defaultValue });
 
-  type TopUpForm = z.infer<typeof topupSchema>;
-
-  const form = useForm<TopUpForm>({
-    resolver: zodResolver(topupSchema),
-    defaultValues: { redemption_code: '' },
-  });
-
-  // Helper function to render quota with USD conversion
+  // Render quota using the unified display unit system (for balance display)
   const renderQuotaWithPrompt = (quota: number): string => {
-    const quotaPerUnit = parseFloat(localStorage.getItem('quota_per_unit') || '500000');
-    const displayInCurrency = localStorage.getItem('display_in_currency') === 'true';
-
-    if (displayInCurrency) {
-      const usdValue = (quota / quotaPerUnit).toFixed(6);
-      return `${quota.toLocaleString()} tokens ($${usdValue})`;
-    }
-    return `${quota.toLocaleString()} tokens`;
+    return renderQuotaHook(quota);
   };
 
   const loadUserData = async () => {
     try {
-      // Unified API call - complete URL with /api prefix
       const res = await api.get('/api/user/self');
       const { success, data } = res.data;
       if (success) {
@@ -75,58 +63,25 @@ export function TopUpPage() {
     }
   };
 
-  const onSubmit = async (data: TopUpForm) => {
-    setIsSubmitting(true);
+  const loadMyRequests = async () => {
     try {
-      // Unified API call - complete URL with /api prefix
-      const res = await api.post('/api/user/topup', {
-        key: data.redemption_code,
-      });
-      const { success, message, data: responseData } = res.data;
-
-      if (success) {
-        const addedQuota = responseData || 0;
-        setUserQuota((prev) => prev + addedQuota);
-        form.reset();
-        form.setError('root', {
-          type: 'success',
-          message: tr('redeem.success', `Successfully redeemed! Added {{value}} tokens.`, { value: addedQuota.toLocaleString() }),
-        });
-        // Reload user data to get updated quota
-        loadUserData();
-      } else {
-        form.setError('root', {
-          message: message || tr('redeem.failed', 'Redemption failed'),
-        });
+      const res = await api.get('/api/recharge/self?p=1&size=10');
+      if (res.data?.success) {
+        setMyRequests(res.data.data || []);
       }
     } catch (error) {
-      form.setError('root', {
-        message: error instanceof Error ? error.message : tr('redeem.failed', 'Redemption failed'),
-      });
-    } finally {
-      setIsSubmitting(false);
+      console.error('Error loading recharge requests:', error);
     }
   };
 
   const openTopUpLink = () => {
-    if (!topUpLink) {
-      console.error('No top-up link configured');
-      return;
-    }
-
+    if (!topUpLink) return;
     try {
       const url = new URL(topUpLink);
       if (userData) {
         url.searchParams.append('username', userData.username);
         url.searchParams.append('user_id', userData.id.toString());
-        const uuid =
-          (globalThis as any).crypto?.randomUUID?.() ??
-          'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-            const r = (Math.random() * 16) | 0;
-            const v = c === 'x' ? r : (r & 0x3) | 0x8;
-            return v.toString(16);
-          });
-        url.searchParams.append('transaction_id', uuid);
+        url.searchParams.append('transaction_id', crypto.randomUUID());
       }
       window.open(url.toString(), '_blank');
     } catch (error) {
@@ -134,73 +89,191 @@ export function TopUpPage() {
     }
   };
 
+  // Recharge request form
+  const rechargeSchema = z.object({
+    amount: z.coerce.number().min(0.0001, tr('request.amount_required', 'Amount must be greater than 0')),
+    remark: z.string().optional(),
+  });
+  type RechargeForm = z.infer<typeof rechargeSchema>;
+  const form = useForm<RechargeForm>({
+    resolver: zodResolver(rechargeSchema),
+    defaultValues: { amount: 0, remark: '' },
+  });
+
+  // Watch the amount field for live conversion preview
+  const watchAmount = form.watch('amount');
+
+  // Input is in Millions of Tokens (M) — multiply by 1,000,000 to get actual token count
+  const TOKENS_PER_M = 1_000_000;
+  const getQuotaFromInput = (mTokenAmount: number): number => {
+    return Math.round(mTokenAmount * TOKENS_PER_M);
+  };
+
+  const onSubmitRecharge = async (data: RechargeForm) => {
+    setIsSubmitting(true);
+    try {
+      // Convert display unit value → internal quota before sending to server
+      const quotaAmount = getQuotaFromInput(data.amount);
+      const res = await api.post('/api/recharge/', {
+        amount: quotaAmount,
+        remark: data.remark || '',
+      });
+      if (res.data?.success) {
+        notify({ type: 'success', message: tr('request.success', 'Recharge request submitted successfully! Awaiting admin approval.') });
+        form.reset();
+        loadMyRequests();
+      } else {
+        notify({
+          type: 'error',
+          message: res.data?.message || tr('request.failed', 'Failed to submit recharge request'),
+        });
+      }
+    } catch (error) {
+      notify({
+        type: 'error',
+        message: error instanceof Error ? error.message : tr('request.failed', 'Failed to submit'),
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Live preview: convert M tokens → actual token count (for display)
+  const previewTokenCount = Math.round((watchAmount || 0) * TOKENS_PER_M);
+  const previewQuota = previewTokenCount; // internal quota = token count in this system
+  const displayMValue = (watchAmount || 0);
+
+  const statusBadge = (status: number) => {
+    switch (status) {
+      case 1:
+        return <Badge variant="secondary">{tr('history.pending', 'Pending')}</Badge>;
+      case 2:
+        return <Badge className="bg-success-muted text-success-foreground">{tr('history.approved', 'Approved')}</Badge>;
+      case 3:
+        return <Badge variant="destructive">{tr('history.rejected', 'Rejected')}</Badge>;
+      default:
+        return null;
+    }
+  };
+
   useEffect(() => {
     loadUserData();
     loadSystemStatus();
+    loadMyRequests();
   }, []);
 
   return (
     <ResponsivePageContainer
       title={tr('title', 'Top Up')}
-      description={tr('description', 'Manage your account balance and redeem codes')}
+      description={tr('description', 'Manage your account balance and submit recharge requests')}
       className="max-w-4xl"
     >
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Current Balance */}
+        {/* Current Balance */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{tr('balance.title', 'Current Balance')}</CardTitle>
+            <CardDescription>{tr('balance.description', 'Your current quota balance')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-primary mb-2">{renderQuotaWithPrompt(userQuota)}</div>
+              <p className="text-sm text-muted-foreground">{tr('balance.available', 'Available quota for API usage')}</p>
+              <Button variant="outline" className="mt-4" onClick={loadUserData}>
+                {tr('balance.refresh', 'Refresh Balance')}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recharge Request Form */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{tr('request.title', 'Submit Recharge Request')}</CardTitle>
+            <CardDescription>{tr('request.description', 'Enter the amount you want to recharge. An admin will review and approve your request.')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmitRecharge)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{tr('request.amount_token_label', 'Amount (Million Tokens) *')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder={tr('request.amount_token_placeholder', 'e.g. 1 = 1M tokens, 0.5 = 500K...')}
+                          {...field}
+                        />
+                      </FormControl>
+                      {/* Live preview: show equivalent in actual tokens and USD */}
+                      {(field.value || 0) > 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {displayMValue >= 0.001
+                            ? `≈ ${displayMValue.toLocaleString(undefined, { maximumFractionDigits: 4 })}M tokens = ${previewTokenCount.toLocaleString()} tokens ≈ $${toValue(previewQuota).toFixed(4)} USD`
+                            : `≈ ${previewTokenCount.toLocaleString()} tokens ≈ $${toValue(previewQuota).toFixed(4)} USD`}
+                        </p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="remark"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{tr('request.remark_label', 'Remark (optional)')}</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder={tr('request.remark_placeholder', 'Any notes for the admin...')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? tr('request.submitting', 'Submitting...') : tr('request.submit', 'Submit Request')}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+
+        {/* My Recent Requests */}
+        {myRequests.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>{tr('balance.title', 'Current Balance')}</CardTitle>
-              <CardDescription>{tr('balance.description', 'Your current quota balance')}</CardDescription>
+              <CardTitle>{tr('history.title', 'My Recharge Requests')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-primary mb-2">{renderQuotaWithPrompt(userQuota)}</div>
-                <p className="text-sm text-muted-foreground">{tr('balance.available', 'Available quota for API usage')}</p>
-                <Button variant="outline" className="mt-4" onClick={loadUserData}>
-                  {tr('balance.refresh', 'Refresh Balance')}
-                </Button>
+              <div className="space-y-3">
+                {myRequests.map((req: any) => (
+                  <div key={req.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      {statusBadge(req.status)}
+                      <div>
+                        <span className="font-mono font-medium">{renderQuotaWithPrompt(req.amount)}</span>
+                        {req.remark && <span className="text-xs text-muted-foreground ml-2">- {req.remark}</span>}
+                        {req.admin_remark && (
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            Admin: {req.admin_remark}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-xs text-muted-foreground hidden sm:inline">
+                      {new Date(req.created_time * 1000).toLocaleDateString()}
+                    </span>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
-
-          {/* Redemption Code */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{tr('redeem.title', 'Redeem Code')}</CardTitle>
-              <CardDescription>{tr('redeem.description', 'Enter a redemption code to add quota')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="redemption_code"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{tr('redeem.label', 'Redemption Code')}</FormLabel>
-                        <FormControl>
-                          <Input placeholder={tr('redeem.placeholder', 'Enter your redemption code')} {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {form.formState.errors.root && (
-                    <div className={`text-sm ${form.formState.errors.root.type === 'success' ? 'text-success' : 'text-destructive'}`}>
-                      {form.formState.errors.root.message}
-                    </div>
-                  )}
-
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? tr('redeem.processing', 'Redeeming...') : tr('redeem.button', 'Redeem Code')}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </div>
+        )}
 
         {/* External Top-up */}
         {topUpLink && (
@@ -211,39 +284,15 @@ export function TopUpPage() {
             </CardHeader>
             <CardContent>
               <div className="text-center space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  {tr(
-                    'online.text',
-                    'Click the button below to open our secure payment portal where you can purchase additional quota for your account.'
-                  )}
-                </p>
+                <p className="text-sm text-muted-foreground">{tr('online.text', 'Click the button below to open our secure payment portal.')}</p>
                 <Button onClick={openTopUpLink} size="lg">
                   {tr('online.button', 'Open Payment Portal')}
                 </Button>
-                <p className="text-xs text-muted-foreground">
-                  {tr(
-                    'online.note',
-                    'You will be redirected to an external payment system. Your account information will be automatically included.'
-                  )}
-                </p>
+                <p className="text-xs text-muted-foreground">{tr('online.note', 'You will be redirected to an external payment system.')}</p>
               </div>
             </CardContent>
           </Card>
         )}
-
-        {/* Usage Tips */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{tr('tips.title', 'Tips')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              {(t('topup.tips.content', { returnObjects: true }) as string[]).map((tip, index) => (
-                <p key={index}>• {tip}</p>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </ResponsivePageContainer>
   );

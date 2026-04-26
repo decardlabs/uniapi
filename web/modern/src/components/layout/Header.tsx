@@ -46,7 +46,7 @@ const navigationIcons = {
   '/tokens': CreditCard,
   '/logs': FileText,
   '/users': Users,
-  '/redemptions': Gift,
+  '/recharges': Gift,
   '/topup': DollarSign,
   '/models': BarChart3,
   '/chat': MessageSquare,
@@ -79,13 +79,13 @@ export function Header() {
         { name: t('common.users'), to: '/users', show: isAdmin },
         { name: t('common.channels'), to: '/channels', show: isAdmin },
         { name: t('common.mcps'), to: '/mcps', show: isAdmin },
-        { name: t('common.redemptions'), to: '/redemptions', show: isAdmin },
+        { name: t('common.recharges'), to: '/recharges', show: isAdmin },
         { name: t('common.topup'), to: '/topup', show: true },
         { name: t('common.models'), to: '/models', show: true },
         { name: t('common.tools'), to: '/tools', show: true },
         { name: t('common.status'), to: '/status', show: true },
         { name: t('common.playground'), to: '/chat', show: true },
-        { name: t('common.realtime'), to: '/realtime', show: true },
+        { name: t('common.realtime'), to: '/realtime', show: false },
         { name: t('common.about'), to: '/about', show: true },
         { name: t('common.settings'), to: '/settings', show: isAdmin },
       ]
@@ -129,7 +129,7 @@ export function Header() {
             {/* Logo and Brand */}
             <div className="flex items-center flex-shrink-0">
               <Link to="/" className="text-xl font-bold hover:text-primary transition-colors truncate max-w-[55vw] sm:max-w-none mr-4">
-                {systemStatus.system_name || 'OneAPI'}
+                {systemStatus.system_name || t('common.app_name', 'OneAPI')}
               </Link>
             </div>
 

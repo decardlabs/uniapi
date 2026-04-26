@@ -75,6 +75,10 @@
       "user_usage": "ユーザー別利用状況"
     },
     "title": "ダッシュボード",
+    "empty": {
+      "title": "データがありません",
+      "description": "APIリクエストを開始すると、ここに使用統計とグラフが表示されます。"
+    },
     "top_models": {
       "highest_cost": "コスト最大",
       "most_requests": "リクエスト最多",

@@ -13,8 +13,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { STORAGE_KEYS, usePageSize } from '@/hooks/usePersistentState';
 import { useResponsive } from '@/hooks/useResponsive';
 import { api } from '@/lib/api';
+import type { AxiosResponse } from 'axios';
 import { useAuthStore } from '@/lib/stores/auth';
-import { cn, renderQuota } from '@/lib/utils';
+import { cn, renderQuota, renderQuotaWithUsd } from '@/lib/utils';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Ban, Check, CheckCircle, Copy, Eye, EyeOff, Plus, Settings, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -87,7 +88,7 @@ export function TokensPage() {
       if (unlimited) {
         return tr('quota.unlimited', 'Unlimited');
       }
-      return renderQuota(quota);
+      return renderQuotaWithUsd(quota);
     },
     [tr]
   );
@@ -260,7 +261,7 @@ export function TokensPage() {
 
   const manage = async (id: number, action: 'enable' | 'disable' | 'delete') => {
     try {
-      let res: any;
+      let res: AxiosResponse<{ success: boolean; message?: string }>;
       if (action === 'delete') {
         // Unified API call - complete URL with /api prefix
         res = await api.delete(`/api/token/${id}`);
@@ -529,7 +530,7 @@ export function TokensPage() {
           </Button>
         }
       >
-        <Card className="border-0 md:border shadow-none md:shadow-sm">
+        <Card className="border border-l-4 border-l-primary/50 shadow-sm">
           <CardContent className={cn(isMobile ? 'p-2' : 'p-6')}>
             <EnhancedDataTable
               columns={columns}

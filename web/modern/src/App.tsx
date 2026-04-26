@@ -24,8 +24,7 @@ const LogsPage = lazy(() => import('@/pages/logs/LogsPage').then((m) => ({ defau
 const EditMCPServerPage = lazy(() => import('@/pages/mcp/EditMCPServerPage').then((m) => ({ default: m.EditMCPServerPage })));
 const MCPServersPage = lazy(() => import('@/pages/mcp/MCPServersPage').then((m) => ({ default: m.MCPServersPage })));
 const ModelsPage = lazy(() => import('@/pages/models/ModelsPage'));
-const EditRedemptionPage = lazy(() => import('@/pages/redemptions/EditRedemptionPage'));
-const RedemptionsPage = lazy(() => import('@/pages/redemptions/RedemptionsPage').then((m) => ({ default: m.RedemptionsPage })));
+const RechargesPage = lazy(() => import('@/pages/recharges/RechargesPage'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
 const StatusPage = lazy(() => import('@/pages/status/StatusPage'));
 const EditTokenPage = lazy(() => import('@/pages/tokens/EditTokenPage'));
@@ -115,9 +114,8 @@ function App() {
                     <Route path="mcps" element={<MCPServersPage />} />
                     <Route path="mcps/add" element={<EditMCPServerPage />} />
                     <Route path="mcps/edit/:id" element={<EditMCPServerPage />} />
-                    <Route path="redemptions" element={<RedemptionsPage />} />
-                    <Route path="redemptions/add" element={<EditRedemptionPage />} />
-                    <Route path="redemptions/edit/:id" element={<EditRedemptionPage />} />
+                    {/* Recharge management (replaces redemption system) */}
+                    <Route path="recharges" element={<RechargesPage />} />
                     <Route path="about" element={<AboutPage />} />
                     <Route path="settings" element={<SettingsPage />} />
                     <Route path="topup" element={<TopUpPage />} />

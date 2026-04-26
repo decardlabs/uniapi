@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/songquanpeng/one-api/relay/adaptor"
+	"github.com/songquanpeng/one-api/relay/adaptor/openai_compatible"
 	"github.com/songquanpeng/one-api/relay/meta"
 	"github.com/songquanpeng/one-api/relay/model"
 )
@@ -19,15 +20,17 @@ type Adaptor struct {
 func (a *Adaptor) Init(meta *meta.Meta) {}
 
 func (a *Adaptor) GetRequestURL(meta *meta.Meta) (string, error) {
-	return "", nil
+	return GetRequestURL(meta)
 }
 
 func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Request, meta *meta.Meta) error {
+	adaptor.SetupCommonRequestHeader(c, req, meta)
+	req.Header.Set("Authorization", "Bearer "+meta.APIKey)
 	return nil
 }
 
 func (a *Adaptor) ConvertRequest(c *gin.Context, relayMode int, request *model.GeneralOpenAIRequest) (any, error) {
-	return nil, nil
+	return request, nil
 }
 
 func (a *Adaptor) ConvertImageRequest(c *gin.Context, request *model.ImageRequest) (any, error) {
@@ -40,11 +43,17 @@ func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, request *model.ClaudeRequ
 }
 
 func (a *Adaptor) DoRequest(c *gin.Context, meta *meta.Meta, requestBody io.Reader) (*http.Response, error) {
-	return nil, nil
+	return adaptor.DoRequestHelper(a, c, meta, requestBody)
 }
 
 func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, meta *meta.Meta) (usage *model.Usage, err *model.ErrorWithStatusCode) {
-	return nil, nil
+	// MiniMax uses OpenAI-compatible response format (supports both stream & non-stream)
+	if meta.IsStream {
+		err, usage = openai_compatible.StreamHandler(c, resp, meta.PromptTokens, meta.ActualModelName)
+	} else {
+		err, usage = openai_compatible.Handler(c, resp, meta.PromptTokens, meta.ActualModelName)
+	}
+	return
 }
 
 func (a *Adaptor) GetModelList() []string {

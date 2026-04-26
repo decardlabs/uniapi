@@ -89,7 +89,7 @@ const typeConfig = {
   },
   16: {
     input: {
-      models: ['glm-4', 'glm-4v', 'glm-3-turbo', 'chatglm_turbo', 'chatglm_pro', 'chatglm_std', 'chatglm_lite']
+      models: ['glm-5.1', 'glm-4.7', 'glm-4.7v', 'glm-4-flash']
     },
     modelGroup: 'zhipu'
   },
@@ -98,7 +98,7 @@ const typeConfig = {
       other: '插件参数'
     },
     input: {
-      models: ['qwen-turbo', 'qwen-plus', 'qwen-max', 'qwen-max-longcontext', 'text-embedding-v1']
+      models: ['qwen3.6-plus', 'qwen3.6-flash', 'qwen3-max', 'qwen3-max-preview', 'qwen3-235b-a22b', 'qwen3-32b', 'qvlm-plus', 'text-embedding-v1', 'text-embedding-v2', 'text-embedding-v3']
     },
     prompt: {
       other: '请输入插件参数，即 X-DashScope-Plugin 请求头的取值'
@@ -124,17 +124,28 @@ const typeConfig = {
     },
     modelGroup: '360'
   },
+  20: {
+    input: {
+      models: ['anthropic/claude-opus-4.7', 'anthropic/claude-opus-4.6', 'anthropic/claude-sonnet-4.6', 'openai/gpt-5.4', 'openai/gpt-4', 'openai/gpt-4o', 'openai/gpt-4o-mini', 'openai/gpt-5.3-codex', 'xiaomi/mimo-v2-pro', 'x-ai/grok-4.1-fast']
+    },
+    prompt: {
+      base_url: '可空，默认 https://openrouter.ai/api'
+    },
+    modelGroup: 'openrouter'
+  },
   22: {
     prompt: {
       key: '按照如下格式输入：APIKey-AppId，例如：fastgpt-0sp2gtvfdgyi4k30jwlgwf1i-64f335d84283f05518e9e041'
     }
   },
   23: {
-    input: {
-      models: ['hunyuan']
+    inputLabel: {
+      base_url: '混元API地址',
+      key: '按照如下格式输入：SecretId|SecretKey'
     },
     prompt: {
-      key: '按照如下格式输入：AppId|SecretId|SecretKey'
+      base_url: '可空，默认 https://hunyuan.tencentcloudapi.com',
+      key: '请输入腾讯云 API 密钥，格式为 SecretId|SecretKey'
     },
     modelGroup: 'tencent'
   },
@@ -152,7 +163,7 @@ const typeConfig = {
   },
   25: {
     input: {
-      models: ['moonshot-v1-8k', 'moonshot-v1-32k', 'moonshot-v1-128k']
+      models: ['kimi-k2.6', 'kimi-k2.5', 'moonshot-v1-auto', 'moonshot-v1-8k', 'moonshot-v1-32k', 'moonshot-v1-128k']
     },
     modelGroup: 'moonshot'
   },
@@ -164,7 +175,7 @@ const typeConfig = {
   },
   27: {
     input: {
-      models: ['abab5.5s-chat', 'abab5.5-chat', 'abab6-chat']
+      models: ['MiniMax-M2.7', 'MiniMax-M2.7-highspeed', 'MiniMax-M2.5', 'MiniMax-M2.5-highspeed']
     },
     modelGroup: 'minimax'
   },
@@ -195,6 +206,15 @@ const typeConfig = {
       }
     },
     modelGroup: 'anthropic'
+  },
+  36: {
+    input: {
+      models: ['deepseek-v4-pro', 'deepseek-v4-flash']
+    },
+    prompt: {
+      base_url: '可空，默认 https://api.deepseek.com'
+    },
+    modelGroup: 'deepseek'
   },
   37: {
     inputLabel: {

@@ -842,5 +842,38 @@
         }
       }
     }
+  },
+  "recharges": {
+    "title": "Gestion des Recharges",
+    "description": "Examiner et traiter les demandes de recharge des utilisateurs",
+    "empty": "Aucune demande de recharge",
+    "columns": {
+      "id": "ID",
+      "user": "Utilisateur",
+      "amount": "Montant",
+      "status": "Statut",
+      "remark": "Remarque",
+      "admin_note": "Note Admin",
+      "created": "Date de création",
+      "actions": "Actions"
+    },
+    "status": {
+      "pending": "En attente",
+      "approved": "Approuvé",
+      "rejected": "Rejeté"
+    },
+    "actions": {
+      "review": "Examiner",
+      "approve_btn": "Approuver",
+      "reject_submit": "Rejeter",
+      "reject_reason_placeholder": "Entrez le motif du rejet (obligatoire)...",
+      "cancel": "Annuler"
+    },
+    "notifications": {
+      "approved": "✅ Demande approuvée ! Le solde de l'utilisateur a été mis à jour.",
+      "rejected": "❌ Demande rejetée.",
+      "failed": "Échec de l'opération. Veuillez réessayer.",
+      "reason_required": "⚠️ Veuillez entrer un motif de rejet."
+    }
   }
 }

@@ -2,6 +2,7 @@ package relay
 
 import (
 	"github.com/songquanpeng/one-api/relay/adaptor"
+	"github.com/songquanpeng/one-api/relay/adaptor/ai360"
 	"github.com/songquanpeng/one-api/relay/adaptor/aiproxy"
 	"github.com/songquanpeng/one-api/relay/adaptor/ali"
 	"github.com/songquanpeng/one-api/relay/adaptor/anthropic"
@@ -15,6 +16,7 @@ import (
 	"github.com/songquanpeng/one-api/relay/adaptor/deepseek"
 	"github.com/songquanpeng/one-api/relay/adaptor/gemini"
 	"github.com/songquanpeng/one-api/relay/adaptor/groq"
+	"github.com/songquanpeng/one-api/relay/adaptor/minimax"
 	"github.com/songquanpeng/one-api/relay/adaptor/mistral"
 	"github.com/songquanpeng/one-api/relay/adaptor/moonshot"
 	"github.com/songquanpeng/one-api/relay/adaptor/ollama"
@@ -34,30 +36,30 @@ import (
 
 func GetAdaptor(apiType int) adaptor.Adaptor {
 	switch apiType {
-	case apitype.AIProxyLibrary:
-		return &aiproxy.Adaptor{}
-	case apitype.Ali:
-		return &ali.Adaptor{}
-	case apitype.Anthropic:
-		return &anthropic.Adaptor{}
-	case apitype.AwsClaude:
-		return &aws.Adaptor{}
-	case apitype.Baidu:
-		return &baidu.Adaptor{}
-	case apitype.Gemini:
-		return &gemini.Adaptor{}
 	case apitype.OpenAI:
 		return &openai.Adaptor{}
+	case apitype.Anthropic:
+		return &anthropic.Adaptor{}
 	case apitype.PaLM:
 		return &palm.Adaptor{}
-	case apitype.Tencent:
-		return &tencent.Adaptor{}
-	case apitype.Xunfei:
-		return &xunfei.Adaptor{}
+	case apitype.Baidu:
+		return &baidu.Adaptor{}
 	case apitype.Zhipu:
 		return &zhipu.Adaptor{}
+	case apitype.Ali:
+		return &ali.Adaptor{}
+	case apitype.Xunfei:
+		return &xunfei.Adaptor{}
+	case apitype.AIProxyLibrary:
+		return &aiproxy.Adaptor{}
+	case apitype.Tencent:
+		return &tencent.Adaptor{}
+	case apitype.Gemini:
+		return &gemini.Adaptor{}
 	case apitype.Ollama:
 		return &ollama.Adaptor{}
+	case apitype.AwsClaude:
+		return &aws.Adaptor{}
 	case apitype.Coze:
 		return &coze.Adaptor{}
 	case apitype.Cohere:
@@ -86,9 +88,18 @@ func GetAdaptor(apiType int) adaptor.Adaptor {
 		return &openrouter.Adaptor{}
 	case apitype.Copilot:
 		return &copilot.Adaptor{}
+	case apitype.Minimax:
+		return &minimax.Adaptor{}
 	}
 
 	return nil
+}
+
+// getAI360Adaptor returns AI360 adaptor (used for pricing/channel testing only)
+// AI360 maps to OpenAI apitype so it goes through openai adaptor by default,
+// but for pricing purposes we expose the specific adaptor.
+func getAI360Adaptor() adaptor.Adaptor {
+	return &ai360.Adaptor{}
 }
 
 // InitializeGlobalPricing initializes the global pricing manager with the GetAdaptor function

@@ -75,6 +75,10 @@
       "user_usage": "Uso por usuario"
     },
     "title": "Panel",
+    "empty": {
+      "title": "Sin datos",
+      "description": "Comienza a realizar solicitudes API para ver estadísticas de uso y gráficos aquí."
+    },
     "top_models": {
       "highest_cost": "Mayor costo",
       "most_requests": "Más solicitudes",

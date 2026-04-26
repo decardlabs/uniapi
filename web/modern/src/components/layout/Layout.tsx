@@ -27,14 +27,12 @@ export function Layout() {
           // Row 2 of grid grows to fill available space
           'w-full min-h-0',
           // Responsive padding and spacing
-          isMobile ? 'px-2 py-4' : 'px-4 py-6',
+          isMobile ? 'px-3 py-4' : 'px-4 py-6',
           // Ensure proper spacing from header
           'mt-0'
         )}
       >
-        <div className="w-full max-w-full">
-          <Outlet />
-        </div>
+        <Outlet />
       </main>
 
       <Footer />

@@ -75,6 +75,10 @@
       "user_usage": "User Usage"
     },
     "title": "Dashboard",
+    "empty": {
+      "title": "No data yet",
+      "description": "Start making API requests to see usage statistics and charts here."
+    },
     "top_models": {
       "highest_cost": "Highest Cost",
       "most_requests": "Most Requests",

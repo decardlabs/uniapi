@@ -9,15 +9,17 @@ import (
 // Model list is derived from the keys of this map, eliminating redundancy
 // Based on official DeepSeek pricing: https://api-docs.deepseek.com/quick_start/pricing
 var ModelRatios = map[string]adaptor.ModelConfig{
-	"deepseek-chat": {
-		Ratio:            0.28 * ratio.MilliTokensUsd,
-		CachedInputRatio: 0.028 * ratio.MilliTokensUsd,
-		CompletionRatio:  0.42 / 0.28,
+	// DeepSeek V4 (2026-04)
+	// Based on https://api-docs.deepseek.com/quick_start/pricing
+	"deepseek-v4-pro": {
+		Ratio:            1.2 * ratio.MilliTokensUsd,
+		CachedInputRatio: 0.12 * ratio.MilliTokensUsd,
+		CompletionRatio:  2.0,
 	},
-	"deepseek-reasoner": {
-		Ratio:            0.28 * ratio.MilliTokensUsd,
-		CachedInputRatio: 0.028 * ratio.MilliTokensUsd,
-		CompletionRatio:  0.42 / 0.28,
+	"deepseek-v4-flash": {
+		Ratio:            0.3 * ratio.MilliTokensUsd,
+		CachedInputRatio: 0.03 * ratio.MilliTokensUsd,
+		CompletionRatio:  2.0,
 	},
 }
 

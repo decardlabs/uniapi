@@ -25,6 +25,22 @@
       "success": "Utilisé avec succès ! Ajout de {{value}} jetons.",
       "title": "Utiliser un code"
     },
+    "request": {
+      "amount_currency_label": "Montant *",
+      "amount_label": "Montant (en unités de quota) *",
+      "amount_placeholder": "Entrez le montant...",
+      "amount_required": "Le montant doit être supérieur à 0",
+      "amount_token_label": "Montant (Tokens) *",
+      "amount_token_placeholder": "Entrez le nombre de tokens...",
+      "description": "Entrez le montant que vous souhaitez recharger. Un administrateur examinera et approuvra votre demande.",
+      "failed": "Échec de l'envoi de la demande",
+      "remark_label": "Remarque (optionnel)",
+      "remark_placeholder": "Notes pour l'administrateur...",
+      "submit": "Soumettre la demande",
+      "submitting": "Envoi en cours...",
+      "success": "Demande de recharge soumise avec succès ! En attente d'approbation.",
+      "title": "Soumettre une demande de recharge"
+    },
     "tips": {
       "content": [
         "Le quota est consommé en fonction de votre utilisation de l'API et des coûts des modèles",

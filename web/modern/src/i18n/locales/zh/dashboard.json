@@ -75,6 +75,10 @@
       "user_usage": "用户用量"
     },
     "title": "仪表盘",
+    "empty": {
+      "title": "暂无数据",
+      "description": "开始调用 API 后，这里将显示使用统计与图表。"
+    },
     "top_models": {
       "highest_cost": "成本最高",
       "most_requests": "请求最多",

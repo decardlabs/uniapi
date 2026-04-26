@@ -43,6 +43,10 @@ export default {
       'high-contrast': { raw: '(prefers-contrast: high)' },
     },
     extend: {
+      fontFamily: {
+        sans: ['Geist Sans', '-apple-system', 'BlinkMacSystemFont', "'Segoe UI'", 'sans-serif'],
+        mono: ['Geist Mono', "'SF Mono'", "'Fira Code'", 'monospace'],
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',

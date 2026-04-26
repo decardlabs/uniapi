@@ -25,6 +25,7 @@
     "title": "About"
   },
   "common": {
+    "app_name": "One API",
     "about": "About",
     "back": "Back",
     "cancel": "Cancel",
@@ -53,7 +54,7 @@
     "password": "Password",
     "playground": "Playground",
     "realtime": "Realtime",
-    "redemptions": "Redemptions",
+    "recharges": "Recharges",
     "register": "Register",
     "remove": "Remove",
     "remove_item": "Remove {{item}}",

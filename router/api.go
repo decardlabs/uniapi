@@ -56,7 +56,7 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.DELETE("/self", controller.DeleteSelf)
 				selfRoute.GET("/token", controller.GenerateAccessToken)
 				selfRoute.GET("/aff", controller.GetAffCode)
-				selfRoute.POST("/topup", controller.TopUp)
+				selfRoute.POST("/recharge", controller.CreateRechargeRequest)
 				selfRoute.GET("/available_models", controller.GetUserAvailableModels)
 				selfRoute.GET("/totp/status", controller.GetTotpStatus)
 				selfRoute.GET("/totp/setup", controller.SetupTotp)
@@ -139,6 +139,19 @@ func SetApiRouter(router *gin.Engine) {
 		{
 			costRoute.GET("/request/:request_id", controller.GetRequestCost)
 		}
+			// Recharge routes (replaces redemption system)
+		rechargeRoute := apiRouter.Group("/recharge")
+		{
+			// User: submit & view own requests
+			rechargeRoute.POST("/", middleware.UserAuth(), controller.CreateRechargeRequest)
+			rechargeRoute.GET("/self", middleware.UserAuth(), controller.GetUserRechargeRequests)
+			// Admin: manage all requests
+			rechargeRoute.GET("/", middleware.AdminAuth(), controller.GetAllRechargeRequests)
+			rechargeRoute.POST("/:id/approve", middleware.AdminAuth(), controller.ApproveRechargeRequest)
+			rechargeRoute.POST("/:id/reject", middleware.AdminAuth(), controller.RejectRechargeRequest)
+		}
+		// Redemption routes (deprecated - hidden)
+		/*
 		redemptionRoute := apiRouter.Group("/redemption")
 		redemptionRoute.Use(middleware.AdminAuth())
 		{
@@ -149,6 +162,7 @@ func SetApiRouter(router *gin.Engine) {
 			redemptionRoute.PUT("/", controller.UpdateRedemption)
 			redemptionRoute.DELETE("/:id", controller.DeleteRedemption)
 		}
+		*/
 		logRoute := apiRouter.Group("/log")
 		logRoute.GET("/", middleware.AdminAuth(), controller.GetAllLogs)
 		logRoute.DELETE("/", middleware.AdminAuth(), controller.DeleteHistoryLogs)

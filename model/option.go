@@ -44,6 +44,7 @@ func InitOptionMap() {
 	config.OptionMap["ApproximateTokenEnabled"] = strconv.FormatBool(config.ApproximateTokenEnabled)
 	config.OptionMap["LogConsumeEnabled"] = strconv.FormatBool(config.IsLogConsumeEnabled())
 	config.OptionMap["DisplayInCurrencyEnabled"] = strconv.FormatBool(config.DisplayInCurrencyEnabled)
+	config.OptionMap["DisplayUnit"] = config.DisplayUnit
 	config.OptionMap["DisplayTokenStatEnabled"] = strconv.FormatBool(config.DisplayTokenStatEnabled)
 	config.OptionMap["ChannelDisableThreshold"] = strconv.FormatFloat(config.ChannelDisableThreshold, 'f', -1, 64)
 	config.OptionMap["EmailDomainRestrictionEnabled"] = strconv.FormatBool(config.EmailDomainRestrictionEnabled)
@@ -165,6 +166,10 @@ func updateOptionMap(key string, value string) (err error) {
 			config.SetLogConsumeEnabled(boolValue)
 		case "DisplayInCurrencyEnabled":
 			config.DisplayInCurrencyEnabled = boolValue
+		case "DisplayUnit":
+			if value == "token" || value == "usd" || value == "cny" {
+				config.DisplayUnit = value
+			}
 		case "DisplayTokenStatEnabled":
 			config.DisplayTokenStatEnabled = boolValue
 		}

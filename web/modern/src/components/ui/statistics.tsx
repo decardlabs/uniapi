@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RefreshCw, Eye, EyeOff, TrendingUp, TrendingDown } from 'lucide-react';
-import { renderQuota } from '@/lib/utils';
+import { renderQuota, renderQuotaWithUsd } from '@/lib/utils';
 
 interface StatisticsData {
   quota: number;
@@ -95,7 +95,7 @@ export function Statistics({
           {/* Primary quota statistic */}
           <div className="flex flex-col">
             <span className="text-sm text-muted-foreground">Total Quota</span>
-            <span className="text-2xl font-semibold text-primary">{renderQuota(data.quota)}</span>
+            <span className="text-2xl font-semibold text-primary">{renderQuotaWithUsd(data.quota)}</span>
           </div>
 
           {/* Token count if available */}

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { AdvancedPagination } from '@/components/ui/advanced-pagination';
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -106,6 +107,54 @@ export function DataTable<TData, TValue>({
     pageCount: Math.ceil(total / pageSize),
   });
 
+  // ── Keyboard row navigation (declared after `table`) ─────
+  const [focusedRowIndex, setFocusedRowIndex] = useState<number>(-1);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const rowCount = table.getRowModel().rows.length;
+
+  // Reset focused row when data changes
+  useEffect(() => {
+    setFocusedRowIndex(-1);
+  }, [data]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (isMobile) return;
+
+      let nextIndex = focusedRowIndex;
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          nextIndex = focusedRowIndex + 1 >= rowCount ? 0 : focusedRowIndex + 1;
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          nextIndex = focusedRowIndex - 1 < 0 ? rowCount - 1 : focusedRowIndex - 1;
+          break;
+        case 'Home':
+          e.preventDefault();
+          nextIndex = 0;
+          break;
+        case 'End':
+          e.preventDefault();
+          nextIndex = rowCount - 1;
+          break;
+        default:
+          return; // Don't prevent default for non-navigation keys
+      }
+      setFocusedRowIndex(nextIndex);
+
+      // Scroll the focused row into view using data attribute
+      requestAnimationFrame(() => {
+        const container = tableContainerRef.current;
+        if (!container) return;
+        const rowEl = container.querySelector<HTMLElement>(`[data-row-index="${nextIndex}"]`);
+        rowEl?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      });
+    },
+    [focusedRowIndex, rowCount, isMobile]
+  );
+
   return (
     <div className="space-y-2">
       <div className="relative">
@@ -143,7 +192,15 @@ export function DataTable<TData, TValue>({
             )}
           </div>
         ) : (
-          <div className="rounded-md border overflow-x-auto">
+          <div
+            ref={tableContainerRef}
+            className="rounded-md border overflow-x-auto"
+            onKeyDown={handleKeyDown}
+            tabIndex={0} // Allow the container to receive keyboard focus
+            role="grid"
+            aria-label="Data table"
+            aria-rowcount={rowCount}
+          >
             <Table className={loading ? 'pointer-events-none opacity-60' : ''}>
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (
@@ -158,8 +215,16 @@ export function DataTable<TData, TValue>({
               </TableHeader>
               <TableBody>
                 {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
+                  table.getRowModel().rows.map((row, index) => (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && 'selected'}
+                      data-row-index={index}
+                      aria-rowindex={index + 1}
+                      className={cn(
+                        focusedRowIndex === index && 'ring-2 ring-primary/40 ring-inset'
+                      )}
+                    >
                       {row.getVisibleCells().map((cell) => {
                         const meta = cell.column.columnDef.meta as { mobileLabel?: string } | undefined;
                         const headerDef = cell.column.columnDef.header;

@@ -842,5 +842,38 @@
         }
       }
     }
+  },
+  "recharges": {
+    "title": "チャージ承認",
+    "description": "ユーザーのチャージ申請を審査・処理します",
+    "empty": "チャージ申請はありません",
+    "columns": {
+      "id": "ID",
+      "user": "ユーザー",
+      "amount": "金額",
+      "status": "ステータス",
+      "remark": "備考",
+      "admin_note": "管理者メモ",
+      "created": "作成日時",
+      "actions": "操作"
+    },
+    "status": {
+      "pending": "審査中",
+      "approved": "承認済み",
+      "rejected": "拒否済み"
+    },
+    "actions": {
+      "review": "審査",
+      "approve_btn": "承認",
+      "reject_submit": "拒否",
+      "reject_reason_placeholder": "拒否理由を入力してください（必須）...",
+      "cancel": "キャンセル"
+    },
+    "notifications": {
+      "approved": "✅ 申請が承認されました！ユーザー残高を更新しました。",
+      "rejected": "❌ 申請が拒否されました。",
+      "failed": "操作に失敗しました。もう一度お試しください。",
+      "reason_required": "⚠️ 拒否理由を入力してください。"
+    }
   }
 }

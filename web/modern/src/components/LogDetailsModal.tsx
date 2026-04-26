@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { api } from '@/lib/api';
 import { LOG_TYPES, getLogTypeLabel } from '@/lib/constants/logs';
 import { useAuthStore } from '@/lib/stores/auth';
-import { cn, renderQuota } from '@/lib/utils';
+import { cn, renderQuota, renderQuotaWithUsd } from '@/lib/utils';
 import type { LogEntry, LogMetadata } from '@/types/log';
 import {
   Activity,
@@ -502,7 +502,7 @@ export function LogDetailsModal({ open, onOpenChange, log }: LogDetailsModalProp
     const cachedCompletionTokens = log.cached_completion_tokens ?? 0;
     const totalTokens = promptTokens + completionTokens;
     const totalCachedTokens = cachedPromptTokens + cachedCompletionTokens;
-    const quotaDisplay = renderQuota(log.quota ?? 0);
+    const quotaDisplay = renderQuotaWithUsd(log.quota ?? 0);
     const rawQuota = Number.isFinite(log.quota) ? log.quota : 0;
     const latencyValue = formatLatency(log.elapsed_time);
     const latencyColor = getLatencyColor(log.elapsed_time);

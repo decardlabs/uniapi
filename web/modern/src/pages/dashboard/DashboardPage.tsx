@@ -9,6 +9,8 @@ import { OverviewCards } from './components/OverviewCards';
 import { TimeSeriesCharts } from './components/TimeSeriesCharts';
 import { TopModels } from './components/TopModels';
 import { UsageCharts } from './components/UsageCharts';
+import { EmptyState } from './components/EmptyState';
+import { DashboardSkeleton } from '@/components/ui/skeleton';
 import { useDashboardCharts } from './hooks/useDashboardCharts';
 import { useDashboardData } from './hooks/useDashboardData';
 
@@ -73,15 +75,13 @@ export function DashboardPage() {
 
   return (
     <ResponsivePageContainer title={t('dashboard.title')} description={t('dashboard.description')}>
-      {loading && (
-        <div className="flex items-center gap-3 mb-4 p-3 rounded-md border bg-muted/30" role="status" aria-live="polite">
-          <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary/20 border-t-primary flex-shrink-0" />
-          <p className="text-sm text-muted-foreground">{t('dashboard.loading')}</p>
-        </div>
+      {/* Skeleton placeholder during initial load */}
+      {loading && rows.length === 0 && (
+        <DashboardSkeleton />
       )}
 
       <DashboardFilter
-        filtersReady={filtersReady}
+        filtersReady={filtersReady || loading} // Show filters during load too
         fromDate={fromDate}
         toDate={toDate}
         dashUser={dashUser}
@@ -112,46 +112,55 @@ export function DashboardPage() {
       )}
 
       <div className="mb-6">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-6">
-          <div>
-            <h2 className="text-xl font-semibold">{t('dashboard.overview.title')}</h2>
-            <p className="text-sm text-muted-foreground">{t('dashboard.overview.subtitle')}</p>
-          </div>
-          {lastUpdated && (
-            <span className="text-xs text-muted-foreground flex items-center gap-1">
-              {t('dashboard.overview.updated')}
-              <TimestampDisplay timestamp={lastUpdated} className="font-mono" />
-            </span>
-          )}
-        </div>
+        {/* Empty state: no data and not loading */}
+        {!loading && rows.length === 0 && !dateError && (
+          <EmptyState />
+        )}
 
-        <OverviewCards
-          totalRequests={rangeTotals.requests}
-          totalQuota={rangeTotals.quota}
-          totalTokens={rangeTotals.tokens}
-          avgDailyRequests={rangeTotals.avgDailyRequests}
-          avgDailyQuotaRaw={rangeTotals.avgDailyQuotaRaw}
-          avgDailyTokens={rangeTotals.avgDailyTokens}
-          avgCostPerRequestRaw={rangeTotals.avgCostPerRequestRaw}
-          avgTokensPerRequest={rangeTotals.avgTokensPerRequest}
-        />
+        {rows.length > 0 && (
+          <>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold">{t('dashboard.overview.title')}</h2>
+                <p className="text-sm text-muted-foreground">{t('dashboard.overview.subtitle')}</p>
+              </div>
+              {lastUpdated && (
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  {t('dashboard.overview.updated')}
+                  <TimestampDisplay timestamp={lastUpdated} className="font-mono" />
+                </span>
+              )}
+            </div>
 
-        <TopModels modelLeaders={modelLeaders} />
+            <OverviewCards
+              totalRequests={rangeTotals.requests}
+              totalQuota={rangeTotals.quota}
+              totalTokens={rangeTotals.tokens}
+              avgDailyRequests={rangeTotals.avgDailyRequests}
+              avgDailyQuotaRaw={rangeTotals.avgDailyQuotaRaw}
+              avgDailyTokens={rangeTotals.avgDailyTokens}
+              avgCostPerRequestRaw={rangeTotals.avgCostPerRequestRaw}
+              avgTokensPerRequest={rangeTotals.avgTokensPerRequest}
+            />
 
-        <Insights rangeInsights={rangeInsights} totalModels={rangeTotals.uniqueModels} totalRequests={rangeTotals.requests} />
+            <TopModels modelLeaders={modelLeaders} />
 
-        <TimeSeriesCharts timeSeries={timeSeries} />
+            <Insights rangeInsights={rangeInsights} totalModels={rangeTotals.uniqueModels} totalRequests={rangeTotals.requests} />
 
-        <UsageCharts
-          modelStackedData={modelStackedData}
-          modelKeys={modelKeys}
-          userStackedData={userStackedData}
-          userKeys={userKeys}
-          tokenStackedData={tokenStackedData}
-          tokenKeys={tokenKeys}
-          statisticsMetric={statisticsMetric}
-          setStatisticsMetric={setStatisticsMetric}
-        />
+            <TimeSeriesCharts timeSeries={timeSeries} />
+
+            <UsageCharts
+              modelStackedData={modelStackedData}
+              modelKeys={modelKeys}
+              userStackedData={userStackedData}
+              userKeys={userKeys}
+              tokenStackedData={tokenStackedData}
+              tokenKeys={tokenKeys}
+              statisticsMetric={statisticsMetric}
+              setStatisticsMetric={setStatisticsMetric}
+            />
+          </>
+        )}
       </div>
     </ResponsivePageContainer>
   );

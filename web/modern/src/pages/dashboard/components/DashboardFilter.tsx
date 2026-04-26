@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { UserOption } from '../types';
@@ -85,19 +86,19 @@ export function DashboardFilter({
           {isAdmin && (
             <div className="flex-1 min-w-0">
               <label className="text-sm font-medium mb-2 block">{t('dashboard.filters.user')}</label>
-              <select
-                className="h-11 sm:h-10 w-full border rounded-md px-3 py-2 text-base sm:text-sm bg-background"
-                value={dashUser}
-                onChange={(e) => setDashUser(e.target.value)}
-                aria-label={t('dashboard.filters.user_aria')}
-              >
-                <option value="all">{t('dashboard.filters.all_users')}</option>
-                {userOptions.map((u) => (
-                  <option key={u.id} value={String(u.id)}>
-                    {u.display_name || u.username}
-                  </option>
-                ))}
-              </select>
+              <Select value={dashUser} onValueChange={setDashUser}>
+                <SelectTrigger className="h-11 sm:h-10 w-full" aria-label={t('dashboard.filters.user_aria')}>
+                  <SelectValue placeholder={t('dashboard.filters.all_users')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('dashboard.filters.all_users')}</SelectItem>
+                  {userOptions.map((u) => (
+                    <SelectItem key={u.id} value={String(u.id)}>
+                      {u.display_name || u.username}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
         </div>

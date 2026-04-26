@@ -842,5 +842,38 @@
         }
       }
     }
+  },
+  "recharges": {
+    "title": "Recharge Management",
+    "description": "Review and process user recharge requests",
+    "empty": "No recharge requests yet",
+    "columns": {
+      "id": "ID",
+      "user": "User",
+      "amount": "Amount",
+      "status": "Status",
+      "remark": "Remark",
+      "admin_note": "Admin Note",
+      "created": "Created At",
+      "actions": "Actions"
+    },
+    "status": {
+      "pending": "Pending Review",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "actions": {
+      "review": "Review",
+      "approve_btn": "Approve",
+      "reject_submit": "Reject",
+      "reject_reason_placeholder": "Enter rejection reason (required)...",
+      "cancel": "Cancel"
+    },
+    "notifications": {
+      "approved": "✅ Request approved! User balance updated.",
+      "rejected": "❌ Request rejected.",
+      "failed": "Operation failed. Please try again.",
+      "reason_required": "⚠️ Please enter a rejection reason."
+    }
   }
 }

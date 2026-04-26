@@ -75,6 +75,10 @@
       "user_usage": "Utilisation par utilisateur"
     },
     "title": "Tableau de bord",
+    "empty": {
+      "title": "Aucune donnée",
+      "description": "Commencez à effectuer des requêtes API pour voir les statistiques d'utilisation et les graphiques ici."
+    },
     "top_models": {
       "highest_cost": "Coût le plus élevé",
       "most_requests": "Plus de requêtes",

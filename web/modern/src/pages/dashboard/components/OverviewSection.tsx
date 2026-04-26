@@ -2,7 +2,7 @@ import type { TFunction } from 'i18next';
 import type { ReactNode } from 'react';
 import { TimestampDisplay } from '@/components/ui/timestamp';
 import { formatNumber } from '@/lib/utils';
-import { renderQuota } from '../services/chartConfig';
+import { renderQuota, renderQuotaWithUsd } from '@/lib/utils';
 
 interface OverviewSectionProps {
   t: TFunction;
@@ -50,9 +50,9 @@ export const OverviewSection = ({ t, lastUpdated, totals, modelLeaders, rangeIns
           value: formatNumber(Math.round(totals.avgDailyRequests || 0)),
         })}
       </Card>
-      <Card title={t('dashboard.cards.quota_used')} value={renderQuota(totals.quota)}>
+      <Card title={t('dashboard.cards.quota_used')} value={renderQuotaWithUsd(totals.quota)}>
         {t('dashboard.cards.avg_daily', {
-          value: renderQuota(totals.avgDailyQuotaRaw),
+          value: renderQuotaWithUsd(totals.avgDailyQuotaRaw),
         })}
       </Card>
       <Card title={t('dashboard.cards.tokens_consumed')} value={formatNumber(totals.tokens)}>
@@ -60,7 +60,7 @@ export const OverviewSection = ({ t, lastUpdated, totals, modelLeaders, rangeIns
           value: formatNumber(Math.round(totals.avgDailyTokens || 0)),
         })}
       </Card>
-      <Card title={t('dashboard.cards.avg_cost')} value={renderQuota(totals.avgCostPerRequestRaw, 4)}>
+      <Card title={t('dashboard.cards.avg_cost')} value={`$${(totals.avgCostPerRequestRaw / 500000).toFixed(4)}`}>
         {t('dashboard.cards.tokens_per_request', {
           value: Math.round(totals.avgTokensPerRequest || 0),
         })}
@@ -98,7 +98,7 @@ export const OverviewSection = ({ t, lastUpdated, totals, modelLeaders, rangeIns
           helper={
             modelLeaders.mostQuota
               ? t('dashboard.labels.quota_consumed', {
-                  value: renderQuota(modelLeaders.mostQuota.quota),
+                  value: renderQuotaWithUsd(modelLeaders.mostQuota.quota),
                 })
               : ''
           }

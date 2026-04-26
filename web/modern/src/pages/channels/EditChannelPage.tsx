@@ -15,7 +15,7 @@ import { ChannelModelSettings } from './components/ChannelModelSettings';
 import { ChannelSpecificConfig } from './components/ChannelSpecificConfig';
 import { ChannelToolingSettings } from './components/ChannelToolingSettings';
 import { ChannelTypeChangeDialog } from './components/ChannelTypeChangeDialog';
-import { CHANNEL_TYPES } from './constants';
+import { CHANNEL_TYPES, MAINSTREAM_MODELS } from './constants';
 import { useChannelForm } from './hooks/useChannelForm';
 
 export function EditChannelPage() {
@@ -72,7 +72,9 @@ export function EditChannelPage() {
     );
   }
 
+  const whitelist = MAINSTREAM_MODELS[normalizedChannelType ?? -1];
   const availableModels = (modelsCatalog[normalizedChannelType ?? -1] ?? [])
+    .filter((model) => !whitelist || whitelist.includes(model))
     .map((model) => ({ id: model, name: model }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
