@@ -1,4 +1,4 @@
-# One API
+# UniAPI
 
 ## Synopsis
 
@@ -13,9 +13,13 @@ Open‑source version of OpenRouter, managed through a unified gateway that hand
 
 ![](https://s3.laisky.com/uploads/2026/02/one-api.png)
 
-Also welcome to register and use my deployed one-api gateway, which supports various mainstream models. For usage instructions, please refer to <https://wiki.laisky.com/projects/gpt/pay/>.
+**UniAPI** is a v3.0 rewrite of the well-known One API project, rebranded with a modern tech stack (React + TypeScript + Tailwind CSS + Go 1.25). It maintains full backward compatibility with One API's data model and API while introducing a redesigned UI, type-safe frontend architecture, and enhanced developer experience.
 
-Try it at <https://oneapi.laisky.com>, login with `test` / `12345678`. 🚀
+## Why UniAPI?
+
+- **Unified**: One gateway for all AI model providers
+- **Inherited**: Built on the battle-tested One API codebase with years of production use
+- **Innovative**: Modern UI (v3.0) with responsive design, dark mode, and improved UX
 
 ```plain
 === One-API Compatibility Matrix 2025-12-12T04:37:09Z ===

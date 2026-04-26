@@ -181,7 +181,7 @@ export function PersonalSettings() {
           margin: 2,
         });
 
-        const systemName = systemStatus.system_name || 'One API';
+        const systemName = systemStatus.system_name || 'UniAPI';
         const compositeImage = await createQRCodeWithText(qrCodeDataURL, systemName);
         setTotpQRCode(compositeImage);
         setShowTotpSetup(true);

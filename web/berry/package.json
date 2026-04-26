@@ -1,5 +1,5 @@
 {
-  "name": "one_api_web",
+  "name": "uniapi_web",
   "version": "1.0.0",
   "proxy": "http://100.113.170.10:3000",
   "private": true,

@@ -1,7 +1,7 @@
 ## syntax=docker/dockerfile:1.7
-# Multi-stage build for one-api with web UI and ffmpeg support
+# Multi-stage build for uniapi with web UI and ffmpeg support
 # Usage examples:
-#   docker buildx build --platform linux/amd64,linux/arm64 -t yourrepo/one-api:latest .
+#   docker buildx build --platform linux/amd64,linux/arm64 -t yourrepo/uniapi:latest .
 
 ARG NODE_IMAGE=node:24-bookworm
 ARG GO_IMAGE=golang:1.25.4-bookworm
@@ -57,17 +57,17 @@ COPY . .
 COPY --from=web-builder /web/build ./web/build
 
 RUN --mount=type=cache,target=/root/.cache/go-build \
-        echo "Building one-api for ${TARGETOS:-linux}/${TARGETARCH:-$(go env GOARCH)}" && \
-        GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-$(go env GOARCH)} \
-        go build -trimpath -ldflags "-s -w" -o /out/one-api
+    echo "Building uniapi for ${TARGETOS:-linux}/${TARGETARCH:-$(go env GOARCH)}" && \
+    GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-$(go env GOARCH)} \
+    go build -trimpath -ldflags "-s -w" -o /out/uniapi
 
 #############################
 # Stage 3: Runtime image    #
 #############################
 FROM ${FFMPEG_IMAGE} AS final
 ARG TARGETARCH
-LABEL org.opencontainers.image.title="one-api" \
-            org.opencontainers.image.source="https://github.com/Laisky/one-api" \
+LABEL org.opencontainers.image.title="uniapi" \
+            org.opencontainers.image.source="https://github.com/decardlabs/uniapi" \
             org.opencontainers.image.licenses="MIT"
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -85,17 +85,17 @@ RUN set -e; \
         ldconfig; \
         rm -rf /var/lib/apt/lists/*
 
-COPY --from=go-builder /out/one-api /one-api
+COPY --from=go-builder /out/uniapi /uniapi
 
 EXPOSE 3000
 
-ARG ONEAPI_UID=10001
-ARG ONEAPI_GID=10001
+ARG UNIAPI_UID=10001
+ARG UNIAPI_GID=10001
 # Create dedicated user with deterministic UID/GID so host can pre‑chown bind mount.
-RUN groupadd --system --gid ${ONEAPI_GID} oneapi && \
-        useradd  --system --no-create-home --home /data --uid ${ONEAPI_UID} --gid ${ONEAPI_GID} \
-                        --shell /usr/sbin/nologin oneapi && \
-        mkdir -p /data && chown oneapi:oneapi /one-api /data
+RUN groupadd --system --gid ${UNIAPI_GID} uniapi && \
+        useradd  --system --no-create-home --home /data --uid ${UNIAPI_UID} --gid ${UNIAPI_GID} \
+                        --shell /usr/sbin/nologin uniapi && \
+        mkdir -p /data && chown uniapi:uniapi /uniapi /data
 
 # Add entrypoint script
 COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh

@@ -1,16 +1,16 @@
-# File path: /etc/systemd/system/one-api.service
+# File path: /etc/systemd/system/uniapi.service
 # sudo systemctl daemon-reload
-# sudo systemctl start one-api
-# sudo systemctl enable one-api
-# sudo systemctl status one-api
+# sudo systemctl start uniapi
+# sudo systemctl enable uniapi
+# sudo systemctl status uniapi
 [Unit]
-Description=One API Service
+Description=UniAPI Service
 After=network.target
 
 [Service]
 User=ubuntu  # Make sure to change the username
-WorkingDirectory=/path/to/one-api  # Make sure to change the path
-ExecStart=/path/to/one-api/one-api --port 3000 --log-dir /path/to/one-api/logs  # Make sure to change the path and port
+WorkingDirectory=/path/to/uniapi  # Make sure to change the path
+ExecStart=/path/to/uniapi/uniapi --port 3000 --log-dir /path/to/uniapi/logs  # Make sure to change the path and port
 Restart=always
 RestartSec=5
 

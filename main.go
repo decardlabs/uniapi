@@ -58,7 +58,7 @@ func main() {
 		otelProviders *telemetry.ProviderBundle
 	)
 
-	logger.Logger.Info("One API started", zap.String("version", common.Version))
+	logger.Logger.Info("UniAPI started", zap.String("version", common.Version))
 
 	if config.GinMode != gin.DebugMode {
 		gin.SetMode(gin.ReleaseMode)

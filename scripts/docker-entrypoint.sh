@@ -3,10 +3,10 @@ set -euo pipefail
 
 # Runtime permission fix for bind-mounted /data.
 # If /data is a bind mount with root-owned content, chown it (best effort) before dropping privileges.
-USER_NAME=oneapi
-USER_ID=${ONEAPI_UID:-10001}
-GROUP_ID=${ONEAPI_GID:-10001}
-APP_BIN=/one-api
+USER_NAME=uniapi
+USER_ID=${UNIAPI_UID:-10001}
+GROUP_ID=${UNIAPI_GID:-10001}
+APP_BIN=/uniapi
 DATA_DIR=/data
 DEFAULT_LOG_DIR="$DATA_DIR/logs"
 
@@ -55,7 +55,7 @@ ensure_dir_owned "$resolved_log_dir" "log directory"
 
 # Ensure SQLite directory exists and is owned by runtime user when SQL_DSN is unset
 if [ -z "${SQL_DSN:-}" ]; then
-  sqlite_path="${SQLITE_PATH:-one-api.db}"
+  sqlite_path="${SQLITE_PATH:-uniapi.db}"
   sqlite_dir=$(dirname "$sqlite_path")
   [ "$sqlite_dir" = "." ] && sqlite_dir="$DATA_DIR"
   ensure_dir_owned "$sqlite_dir" "sqlite directory"

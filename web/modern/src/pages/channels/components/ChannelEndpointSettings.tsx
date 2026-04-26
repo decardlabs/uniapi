@@ -145,7 +145,7 @@ const ENDPOINT_DOCS: Record<string, { description: string; curlExample: string }
   },
   claude_messages: {
     description:
-      "The Claude Messages API is Anthropic's native format for interacting with Claude models. One-API converts this format to work with any supported backend.",
+      "The Claude Messages API is Anthropic's native format for interacting with Claude models. UniAPI converts this format to work with any supported backend.",
     curlExample: `curl https://oneapi.laisky.com/v1/messages \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: YOUR_API_KEY" \\

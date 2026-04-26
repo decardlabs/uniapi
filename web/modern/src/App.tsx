@@ -64,7 +64,7 @@ const initializeSystem = async () => {
     // Set defaults
     localStorage.setItem('quota_per_unit', '500000');
     localStorage.setItem('display_in_currency', 'true');
-    localStorage.setItem('system_name', 'One API');
+    localStorage.setItem('system_name', 'UniAPI');
   }
 };
 

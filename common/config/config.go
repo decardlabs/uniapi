@@ -214,9 +214,9 @@ var (
 	// The file will be created if it doesn't exist.
 	//
 	// Environment variable: SQLITE_PATH
-	// Default: "one-api.db"
-	// Example: "/var/lib/one-api/data.db"
-	SQLitePath = env.String("SQLITE_PATH", "one-api.db")
+	// Default: "uniapi.db"
+	// Example: "/var/lib/uniapi/data.db"
+	SQLitePath = env.String("SQLITE_PATH", "uniapi.db")
 
 	// SQLiteBusyTimeout configures SQLite busy timeout to mitigate locking errors
 	// during concurrent access. Higher values reduce lock errors but increase latency.
@@ -827,8 +827,8 @@ var (
 	// service identifier. This appears in tracing backends and metrics UIs.
 	//
 	// Environment variable: OTEL_SERVICE_NAME
-	// Default: "one-api"
-	OpenTelemetryServiceName = strings.TrimSpace(env.String("OTEL_SERVICE_NAME", "one-api"))
+	// Default: "uniapi"
+	OpenTelemetryServiceName = strings.TrimSpace(env.String("OTEL_SERVICE_NAME", "uniapi"))
 
 	// OpenTelemetryEnvironment labels telemetry with the deployment environment
 	// (e.g., production, staging). Useful for filtering dashboards.
@@ -1092,8 +1092,8 @@ var (
 	// SystemName is displayed in the dashboard header and email templates.
 	//
 	// Runtime variable (set via admin UI)
-	// Default: "One API"
-	SystemName = "One API"
+	// Default: "UniAPI"
+	SystemName = "UniAPI"
 
 	// ServerAddress forms absolute URLs in email templates and redirect flows.
 	// Must include protocol (http:// or https://).

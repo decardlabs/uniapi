@@ -161,7 +161,7 @@ export function OtherSettings() {
                       </FormLabel>
                       <div className="flex gap-2">
                         <FormControl>
-                          <Input placeholder="One API" {...field} />
+                          <Input placeholder="UniAPI" {...field} />
                         </FormControl>
                         <Button onClick={() => submitField('SystemName')}>{t('other_settings.branding.save')}</Button>
                       </div>
