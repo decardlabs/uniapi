@@ -253,7 +253,7 @@ export interface SystemStatus {
 
 export const persistSystemStatus = (data: SystemStatus) => {
   localStorage.setItem('status', JSON.stringify(data));
-  localStorage.setItem('system_name', data.system_name || 'One API');
+  localStorage.setItem('system_name', data.system_name || 'UniAPI');
   localStorage.setItem('logo', data.logo || '');
   localStorage.setItem('footer_html', data.footer_html || '');
   localStorage.setItem('quota_per_unit', data.quota_per_unit || '500000');

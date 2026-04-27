@@ -56,7 +56,7 @@ export function UsersPage() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [sortBy, setSortBy] = useState('');
+  const [sortBy, setSortBy] = useState<string | undefined>(undefined);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [openCreate, setOpenCreate] = useState(false);
   const [openTopup, setOpenTopup] = useState<{
@@ -341,9 +341,13 @@ export function UsersPage() {
       </Button>
       <div className="flex gap-2 w-full">
         <Select
-          value={sortBy}
+          value={sortBy || undefined}
           onValueChange={(value) => {
-            setSortBy(value);
+            if (value === '__none__') {
+              setSortBy(undefined);
+            } else {
+              setSortBy(value);
+            }
             setSortOrder('desc');
           }}
         >
@@ -351,7 +355,7 @@ export function UsersPage() {
             <SelectValue placeholder={tr('toolbar.sort.default', 'Default')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">{tr('toolbar.sort.default', 'Default')}</SelectItem>
+            <SelectItem value="__none__">{tr('toolbar.sort.default', 'Default')}</SelectItem>
             <SelectItem value="quota">{tr('toolbar.sort.quota', 'Remaining Quota')}</SelectItem>
             <SelectItem value="used_quota">{tr('toolbar.sort.used_quota', 'Used Quota')}</SelectItem>
             <SelectItem value="username">{tr('toolbar.sort.username', 'Username')}</SelectItem>
@@ -582,20 +586,43 @@ function TopUpDialog({
   username?: string;
   onDone: () => void;
 }) {
+  const [pools, setPools] = useState<{ id: number; name: string; available_quota: number }[]>([]);
+  const [poolsLoading, setPoolsLoading] = useState(false);
   const schema = z.object({
     quota: z.coerce.number().int(),
     remark: z.string().optional(),
+    pool_id: z.coerce.number().int().optional(),
   });
   type FormT = z.infer<typeof schema>;
   const form = useForm<FormT>({
     resolver: zodResolver(schema),
-    defaultValues: { quota: 0, remark: '' },
+    defaultValues: { quota: 0, remark: '', pool_id: 0 },
   });
+  const watchPoolId = form.watch('pool_id');
   const { t } = useTranslation();
   const tr = useCallback(
     (key: string, defaultValue: string, options?: Record<string, unknown>) => t(`users.dialogs.topup.${key}`, { defaultValue, ...options }),
     [t]
   );
+  const { notify } = useNotifications();
+
+  // Load active pools when dialog opens
+  useEffect(() => {
+    if (!open) return;
+    setPoolsLoading(true);
+    api
+      .get('/api/pool/', { params: { status: 'active', page: 1, page_size: 50 } })
+      .then((res) => {
+        if (res.data?.success) {
+          setPools(res.data.data?.items || []);
+        }
+      })
+      .catch(() => {
+        // Silently fail — pool selection is optional
+      })
+      .finally(() => setPoolsLoading(false));
+  }, [open]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -616,14 +643,53 @@ function TopUpDialog({
                 user_id: userId,
                 quota: values.quota,
                 remark: values.remark,
+                pool_id: values.pool_id || 0,
               });
               if (res.data?.success) {
                 onOpenChange(false);
                 form.reset();
                 onDone();
+              } else {
+                notify({
+                  type: 'error',
+                  title: tr('notifications.error_title', 'Top Up Failed'),
+                  message: res.data?.message || tr('notifications.error_message', 'Operation failed'),
+                });
               }
             })}
           >
+            {/* Pool selection (optional) */}
+            {pools.length > 0 && (
+              <FormField
+                control={form.control}
+                name="pool_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{tr('fields.pool_id.label', 'Source (optional)')}</FormLabel>
+                    <Select value={field.value ? String(field.value) : '0'} onValueChange={(v) => field.onChange(v === '0' ? 0 : Number(v))}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={tr('fields.pool_id.placeholder', 'Direct top-up')} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="0">{tr('fields.pool_id.direct', 'Direct top-up')}</SelectItem>
+                        {pools.map((pool) => (
+                          <SelectItem key={pool.id} value={String(pool.id)}>
+                            {pool.name} ({renderQuota(pool.available_quota)})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {watchPoolId > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {tr('fields.pool_id.hint', 'Quota will be deducted from the selected budget pool')}
+                      </p>
+                    )}
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="quota"

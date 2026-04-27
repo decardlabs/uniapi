@@ -14,6 +14,7 @@ import {
   LogOut,
   Menu,
   MessageSquare,
+  PiggyBank,
   Radio,
   Server,
   Settings,
@@ -54,6 +55,7 @@ const iconMap: Record<string, LucideIcon> = {
   '/logs': FileText,
   '/users': Users,
   '/recharges': Gift,
+  '/pools': PiggyBank,
   '/topup': DollarSign,
   '/models': BarChart3,
   '/chat': MessageSquare,
@@ -83,6 +85,7 @@ export function buildAuthenticatedNavItems(t: any, isAdmin: boolean): NavItem[] 
     { name: t('common.channels'), to: '/channels', show:isAdmin, requiresAdmin: true },
     { name: t('common.mcps'), to: '/mcps', show: isAdmin, requiresAdmin: true },
     { name: t('common.recharges'), to: '/recharges', show: isAdmin, requiresAdmin: true },
+    { name: t('common.pools'), to: '/pools', show: isAdmin, requiresAdmin: true },
     { name: t('common.topup'), to: '/topup', show: true },
     { name: t('common.models'), to: '/models', show: true },
     { name: t('common.tools'), to: '/tools', show: true },
@@ -128,7 +131,7 @@ export function buildPublicNavItems(t: any): NavItem[] {
  */
 export function groupNavItems(items: NavItem[]): NavGroup[] {
   const corePaths = ['/dashboard', '/tokens', '/logs', '/topup', '/models', '/tools', '/status', '/chat', '/playground'];
-  const adminPaths = ['/users', '/channels', '/mcps', '/recharges'];
+  const adminPaths = ['/users', '/channels', '/mcps', '/recharges', '/pools'];
   const systemPaths = ['/about', '/settings'];
 
   const core = items.filter((item) => corePaths.includes(item.to));

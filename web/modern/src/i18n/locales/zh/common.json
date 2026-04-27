@@ -8,7 +8,7 @@
     "cta_models": "查看支持的模型",
     "cta_repo": "GitHub 仓库",
     "default": {
-      "description": "One API 提供统一的接口，可同时访问多个 AI 模型和服务，通过单一且一致的 API 即可整合不同供应商。",
+      "description": "UniAPI 提供统一的接口，可同时访问多个 AI 模型和服务，通过单一且一致的 API 即可整合不同供应商。",
       "features": [
         "面向多家 AI 供应商的统一 API",
         "基于令牌的用量追踪与计费",
@@ -18,14 +18,14 @@
         "配额管理与充值系统"
       ],
       "features_title": "功能",
-      "heading": "欢迎使用 One API"
+      "heading": "欢迎使用 UniAPI"
     },
     "fallback_error": "关于页面内容加载失败。",
     "iframe_title": "关于",
     "title": "关于"
   },
   "common": {
-    "app_name": "One API",
+    "app_name": "UniAPI",
     "about": "关于",
     "back": "返回",
     "cancel": "取消",
@@ -66,13 +66,14 @@
     "tokens": "令牌",
     "tools": "工具",
     "topup": "充值",
+    "pools": "预算池",
     "username": "用户名",
     "users": "用户",
     "version": "版本",
-    "welcome": "欢迎使用 One API"
+    "welcome": "欢迎使用 UniAPI"
   },
   "footer": {
-    "copyright": "© {{year}} One API. 保留所有权利。"
+    "copyright": "© {{year}} UniAPI. 保留所有权利。"
   },
   "header": {
     "confirm_logout": "确认登出",

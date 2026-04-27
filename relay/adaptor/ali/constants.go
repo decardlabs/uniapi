@@ -15,6 +15,47 @@ var ModelRatios = map[string]adaptor.ModelConfig{
 	// Based on https://help.aliyun.com/zh/model-studio/models
 	"qwen3.6-plus":  {Ratio: 0.15 * ratio.MilliTokensUsd, CompletionRatio: 5},
 	"qwen3.6-flash": {Ratio: 0.15 * ratio.MilliTokensUsd, CompletionRatio: 5},
+
+	// Ali Image Generation (Stable Diffusion)
+	// Based on https://help.aliyun.com/zh/model-studio/models
+	"ali-stable-diffusion-xl": {
+		Ratio:           0,
+		CompletionRatio: 1.0,
+		Image: &adaptor.ImagePricingConfig{
+			PricePerImageUsd: 0,
+			DefaultSize:      "1024x1024",
+			DefaultQuality:   "standard",
+			PromptTokenLimit: 4000,
+			MinImages:        1,
+			MaxImages:        4,
+			SizeMultipliers: map[string]float64{
+				"512x1024":  1,
+				"1024x768":  1,
+				"1024x1024": 1,
+				"576x1024":  1,
+				"1024x576":  1,
+			},
+		},
+	},
+	"ali-stable-diffusion-v1.5": {
+		Ratio:           0,
+		CompletionRatio: 1.0,
+		Image: &adaptor.ImagePricingConfig{
+			PricePerImageUsd: 0,
+			DefaultSize:      "1024x1024",
+			DefaultQuality:   "standard",
+			PromptTokenLimit: 4000,
+			MinImages:        1,
+			MaxImages:        4,
+			SizeMultipliers: map[string]float64{
+				"512x1024":  1,
+				"1024x768":  1,
+				"1024x1024": 1,
+				"576x1024":  1,
+				"1024x576":  1,
+			},
+		},
+	},
 }
 
 // AliToolingDefaults notes that Alibaba Model Studio does not expose public built-in tool pricing (retrieved 2025-11-12).

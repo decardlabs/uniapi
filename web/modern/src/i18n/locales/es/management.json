@@ -677,6 +677,12 @@
           "submit": "Enviar"
         },
         "fields": {
+          "pool_id": {
+            "label": "Fuente (opcional)",
+            "placeholder": "Recarga directa",
+            "direct": "Recarga directa",
+            "hint": "La cuota se descontará del pool de presupuesto seleccionado"
+          },
           "quota": {
             "label": "Cuota",
             "placeholder": "Introduce el cambio de cuota"
@@ -685,6 +691,10 @@
             "label": "Observación",
             "placeholder": "Opcional"
           }
+        },
+        "notifications": {
+          "error_title": "Recarga fallida",
+          "error_message": "La operación ha fallado. Inténtalo de nuevo."
         },
         "title": "Recargar {{username}}"
       }

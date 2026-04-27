@@ -8,7 +8,7 @@
     "cta_models": "対応モデルを見る",
     "cta_repo": "GitHub リポジトリ",
     "default": {
-      "description": "One API は単一で一貫した API を通じて複数の AI モデルやサービスへアクセスできる統合インターフェイスを提供します。",
+      "description": "UniAPI は単一で一貫した API を通じて複数の AI モデルやサービスへアクセスできる統合インターフェイスを提供します。",
       "features": [
         "複数の AI プロバイダーに対応した統一 API",
         "トークンベースの利用量追跡と課金",
@@ -18,14 +18,14 @@
         "クォータ管理とチャージシステム"
       ],
       "features_title": "特長",
-      "heading": "One API へようこそ"
+      "heading": "UniAPI へようこそ"
     },
     "fallback_error": "概要ページの読み込みに失敗しました。",
     "iframe_title": "概要",
     "title": "概要"
   },
   "common": {
-    "app_name": "One API",
+    "app_name": "UniAPI",
     "about": "概要",
     "back": "戻る",
     "cancel": "キャンセル",
@@ -66,13 +66,14 @@
     "tokens": "トークン",
     "tools": "ツール",
     "topup": "チャージ",
+    "pools": "予算プール",
     "username": "ユーザー名",
     "users": "ユーザー",
     "version": "バージョン",
-    "welcome": "One APIへようこそ"
+    "welcome": "UniAPIへようこそ"
   },
   "footer": {
-    "copyright": "© {{year}} One API. All rights reserved."
+    "copyright": "© {{year}} UniAPI. All rights reserved."
   },
   "header": {
     "confirm_logout": "ログアウトの確認",

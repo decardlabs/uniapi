@@ -677,6 +677,12 @@
           "submit": "Submit"
         },
         "fields": {
+          "pool_id": {
+            "label": "Source (optional)",
+            "placeholder": "Direct top-up",
+            "direct": "Direct top-up",
+            "hint": "Quota will be deducted from the selected budget pool"
+          },
           "quota": {
             "label": "Quota",
             "placeholder": "Enter quota change"
@@ -685,6 +691,10 @@
             "label": "Remark",
             "placeholder": "Optional"
           }
+        },
+        "notifications": {
+          "error_title": "Top Up Failed",
+          "error_message": "Operation failed. Please try again."
         },
         "title": "Top Up {{username}}"
       }

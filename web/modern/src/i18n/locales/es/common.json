@@ -8,7 +8,7 @@
     "cta_models": "Ver modelos compatibles",
     "cta_repo": "Repositorio de GitHub",
     "default": {
-      "description": "One API ofrece una interfaz unificada para acceder a varios modelos y servicios de IA a través de una única API coherente.",
+      "description": "UniAPI ofrece una interfaz unificada para acceder a varios modelos y servicios de IA a través de una única API coherente.",
       "features": [
         "API unificada para múltiples proveedores de IA",
         "Seguimiento y facturación basados en tokens",
@@ -18,14 +18,14 @@
         "Gestión de cuotas y sistema de recargas"
       ],
       "features_title": "Características",
-      "heading": "Bienvenido a One API"
+      "heading": "Bienvenido a UniAPI"
     },
     "fallback_error": "No se pudo cargar el contenido de la página Acerca de.",
     "iframe_title": "Acerca de",
     "title": "Acerca de"
   },
   "common": {
-    "app_name": "One API",
+    "app_name": "UniAPI",
     "about": "Acerca de",
     "back": "Atrás",
     "cancel": "Cancelar",
@@ -66,13 +66,14 @@
     "tokens": "Tokens",
     "tools": "Tools",
     "topup": "Recargar",
+    "pools": "Pools de presupuesto",
     "username": "Nombre de usuario",
     "users": "Usuarios",
     "version": "Versión",
-    "welcome": "Bienvenido a One API"
+    "welcome": "Bienvenido a UniAPI"
   },
   "footer": {
-    "copyright": "© {{year}} One API. Todos los derechos reservados."
+    "copyright": "© {{year}} UniAPI. Todos los derechos reservados."
   },
   "header": {
     "confirm_logout": "Confirmar cierre de sesión",

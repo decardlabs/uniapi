@@ -84,6 +84,17 @@
       "most_requests": "リクエスト最多",
       "most_tokens": "トークン最多",
       "title": "期間内トップモデル"
+    },
+    "pool_summary": {
+      "title": "予算プール概要",
+      "subtitle": "アクティブな予算プールの割り当てと使用状況",
+      "no_pools": "アクティブな予算プールはありません",
+      "go_to_pools": "予算プール管理へ",
+      "total_budget": "合計予算",
+      "total_allocated": "割り当て済み",
+      "total_available": "利用可能",
+      "pool_count": "アクティブプール",
+      "view_all": "すべて表示"
     }
   }
 }

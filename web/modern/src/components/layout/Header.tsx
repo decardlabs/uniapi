@@ -26,6 +26,10 @@ import { LogOut, Menu, User } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  buildAuthenticatedNavItems,
+  buildPublicNavItems,
+} from './navigation';
 
 export function Header() {
   const { t } = useTranslation();
@@ -40,33 +44,12 @@ export function Header() {
 
   const isAdmin = user?.role >= 10;
 
-  // Build navigation items for mobile drawer (uses shared config)
-  // These must match NavigationDrawer's expected type: { name, href, icon?, isActive? }
-  const rawNavItems = user
-    ? [
-        { name: t('common.dashboard'), to: '/dashboard', show: true },
-        { name: t('common.tokens'), to: '/tokens', show: true },
-        { name: t('common.logs'), to: '/logs', show: true },
-        { name: t('common.users'), to: '/users', show: isAdmin },
-        { name: t('common.channels'), to: '/channels', show: isAdmin },
-        { name: t('common.mcps'), to: '/mcps', show: isAdmin },
-        { name: t('common.recharges'), to: '/recharges', show: isAdmin },
-        { name: t('common.topup'), to: '/topup', show: true },
-        { name: t('common.models'), to: '/models', show: true },
-        { name: t('common.tools'), to: '/tools', show: true },
-        { name: t('common.status'), to: '/status', show: true },
-        { name: t('common.playground'), to: '/chat', show: true },
-        { name: t('common.about'), to: '/about', show: true },
-        { name: t('common.settings'), to: '/settings', show: isAdmin },
-      ]
-    : [
-        { name: t('common.models'), to: '/models', show: true },
-        { name: t('common.tools'), to: '/tools', show: true },
-        { name: t('common.status'), to: '/status', show: true },
-      ];
+  // Build navigation items for mobile drawer (uses shared config from navigation.ts)
+  const navItems = user
+    ? buildAuthenticatedNavItems(t, isAdmin)
+    : buildPublicNavItems(t);
 
-  const navigationItems = rawNavItems
-    .filter((item) => item.show)
+  const navigationItems = navItems
     .map((item) => ({
       ...item,
       href: item.to,
@@ -117,7 +100,7 @@ export function Header() {
                   to="/"
                   className="text-lg font-bold hover:text-primary transition-colors truncate max-w-[50vw]"
                 >
-                  {systemStatus.system_name || t('common.app_name', 'OneAPI')}
+                  {systemStatus.system_name || t('common.app_name', 'UniAPI')}
                 </Link>
               </>
             )}

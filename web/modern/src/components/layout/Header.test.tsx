@@ -24,6 +24,62 @@ vi.mock('@/hooks/useResponsive', () => ({
   useResponsive: () => mockUseResponsive(),
 }));
 
+vi.mock('@/hooks/useSystemStatus', () => ({
+  useSystemStatus: () => ({
+    systemStatus: { system_name: 'OneAPI Test' },
+  }),
+}));
+
+vi.mock('@/components/LanguageSelector', () => ({
+  LanguageSelector: () => null,
+}));
+
+vi.mock('@/components/theme-toggle', () => ({
+  ThemeToggle: () => null,
+}));
+
+vi.mock('@/components/ui/mobile-drawer', () => ({
+  NavigationDrawer: ({ isOpen, onClose, navigationItems, title, footer }: any) =>
+    isOpen ? (
+      <div data-testid="mobile-drawer">
+        <div>{title}</div>
+        {navigationItems?.map((item: any) => (
+          <a key={item.href} href={item.href}>
+            {item.name}
+          </a>
+        ))}
+        {footer}
+      </div>
+    ) : null,
+}));
+
+vi.mock('@/components/ui/dropdown-menu', () => ({
+  DropdownMenu: ({ children }: any) => <>{children}</>,
+  DropdownMenuTrigger: ({ children, asChild, ...props }: any) =>
+    asChild ? <>{children}</> : <button {...props}>{children}</button>,
+  DropdownMenuContent: ({ children }: any) => <div data-testid="dropdown-menu">{children}</div>,
+  DropdownMenuItem: ({ children, onSelect, ...props }: any) => (
+    <div role="menuitem" onClick={onSelect} {...props}>
+      {children}
+    </div>
+  ),
+  DropdownMenuLabel: ({ children }: any) => <div>{children}</div>,
+  DropdownMenuSeparator: () => <hr />,
+}));
+
+vi.mock('@/components/ui/dialog', () => ({
+  Dialog: ({ children, open }: any) => (open ? <>{children}</> : null),
+  DialogContent: ({ children }: any) => <div>{children}</div>,
+  DialogDescription: ({ children }: any) => <div>{children}</div>,
+  DialogFooter: ({ children }: any) => <div>{children}</div>,
+  DialogHeader: ({ children }: any) => <div>{children}</div>,
+  DialogTitle: ({ children }: any) => <div>{children}</div>,
+}));
+
+vi.mock('@/components/ui/button', () => ({
+  Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
+}));
+
 vi.mock('@/lib/api', () => {
   const get = vi.fn();
   return {
@@ -77,7 +133,6 @@ describe('Header logout UX', () => {
     });
 
     localStorage.clear();
-    localStorage.setItem('system_name', 'OneAPI Test');
     (api.get as any).mockReset();
     (api.get as any).mockResolvedValue({ data: { success: true } });
   });
@@ -88,16 +143,19 @@ describe('Header logout UX', () => {
     expect(screen.queryByRole('button', { name: /logout/i })).toBeNull();
   });
 
-  it('confirms logout through the desktop hamburger menu', async () => {
+  it('confirms logout through the desktop dropdown menu', async () => {
     const user = userEvent.setup();
     renderHeader();
 
-    const accountMenuButton = screen.getByLabelText(/open account menu/i);
+    // Click user avatar to open dropdown
+    const accountMenuButton = screen.getByLabelText(/profile/i);
     await user.click(accountMenuButton);
 
+    // Click Logout menu item
     const logoutMenuItem = await screen.findByText('Logout');
     await user.click(logoutMenuItem);
 
+    // Confirm dialog should appear
     await screen.findByText(/confirm logout/i);
 
     const confirmButton = screen.getByRole('button', { name: /log out/i });
@@ -125,9 +183,10 @@ describe('Header logout UX', () => {
 
     expect(screen.queryByRole('button', { name: /logout/i })).toBeNull();
 
-    const mobileMenuButton = screen.getByLabelText(/open navigation menu/i);
+    const mobileMenuButton = screen.getByLabelText(/navigation/i);
     await user.click(mobileMenuButton);
 
+    // The drawer should now be open with a logout button in the footer
     const drawerLogoutButton = await screen.findByRole('button', { name: /logout/i });
     await user.click(drawerLogoutButton);
 

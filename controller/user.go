@@ -1508,6 +1508,7 @@ type adminTopUpRequest struct {
 	UserId int    `json:"user_id"`
 	Quota  int    `json:"quota"`
 	Remark string `json:"remark"`
+	PoolId int    `json:"pool_id"` // optional: allocate from budget pool
 }
 
 func AdminTopUp(c *gin.Context) {
@@ -1521,18 +1522,37 @@ func AdminTopUp(c *gin.Context) {
 		})
 		return
 	}
-	err = model.IncreaseUserQuota(ctx, req.UserId, int64(req.Quota))
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": err.Error(),
-		})
-		return
+
+	if req.PoolId > 0 {
+		// Allocate from budget pool
+		remark := req.Remark
+		if remark == "" {
+			remark = fmt.Sprintf("从预算池分配 %s", common.LogQuota(int64(req.Quota)))
+		}
+		err = model.AllocateFromPool(ctx, req.PoolId, req.UserId, int64(req.Quota), remark)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": err.Error(),
+			})
+			return
+		}
+	} else {
+		// Direct quota increase (original behavior)
+		err = model.IncreaseUserQuota(ctx, req.UserId, int64(req.Quota))
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": err.Error(),
+			})
+			return
+		}
+		if req.Remark == "" {
+			req.Remark = fmt.Sprintf("Recharged via API %s", common.LogQuota(int64(req.Quota)))
+		}
+		model.RecordTopupLog(ctx, req.UserId, req.Remark, req.Quota)
 	}
-	if req.Remark == "" {
-		req.Remark = fmt.Sprintf("Recharged via API %s", common.LogQuota(int64(req.Quota)))
-	}
-	model.RecordTopupLog(ctx, req.UserId, req.Remark, req.Quota)
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",

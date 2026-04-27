@@ -8,7 +8,7 @@
     "cta_models": "View Supported Models",
     "cta_repo": "GitHub Repository",
     "default": {
-      "description": "One API provides a unified interface for accessing multiple AI models and services through a single, consistent API.",
+      "description": "UniAPI provides a unified interface for accessing multiple AI models and services through a single, consistent API.",
       "features": [
         "Unified API for multiple AI providers",
         "Token-based usage tracking and billing",
@@ -18,14 +18,14 @@
         "Quota management and top-up system"
       ],
       "features_title": "Features",
-      "heading": "Welcome to One API"
+      "heading": "Welcome to UniAPI"
     },
     "fallback_error": "About content failed to load.",
     "iframe_title": "About",
     "title": "About"
   },
   "common": {
-    "app_name": "One API",
+    "app_name": "UniAPI",
     "about": "About",
     "back": "Back",
     "cancel": "Cancel",
@@ -66,13 +66,14 @@
     "tokens": "Tokens",
     "tools": "Tools",
     "topup": "Top Up",
+    "pools": "Budget Pools",
     "username": "Username",
     "users": "Users",
     "version": "Version",
-    "welcome": "Welcome to One API"
+    "welcome": "Welcome to UniAPI"
   },
   "footer": {
-    "copyright": "© {{year}} One API. All rights reserved."
+    "copyright": "© {{year}} UniAPI. All rights reserved."
   },
   "header": {
     "confirm_logout": "Confirm logout",

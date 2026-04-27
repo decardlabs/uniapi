@@ -8,24 +8,24 @@
     "cta_models": "Voir les modèles pris en charge",
     "cta_repo": "Dépôt GitHub",
     "default": {
-      "description": "One API fournit une interface unifiée pour accéder à plusieurs modèles et services d’IA via une API unique et cohérente.",
+      "description": "UniAPI fournit une interface unifiée pour accéder à plusieurs modèles et services d'IA via une API unique et cohérente.",
       "features": [
-        "API unifiée pour de multiples fournisseurs d’IA",
-        "Suivi d’utilisation et facturation basés sur les jetons",
-        "Gestion des utilisateurs et contrôles d’accès par rôle",
+        "API unifiée pour de multiples fournisseurs d'IA",
+        "Suivi d'utilisation et facturation basés sur les jetons",
+        "Gestion des utilisateurs et contrôles d'accès par rôle",
         "Gestion centralisée des canaux pour différents fournisseurs",
         "Journalisation et supervision complètes",
         "Gestion des quotas et système de recharge"
       ],
       "features_title": "Fonctionnalités",
-      "heading": "Bienvenue sur One API"
+      "heading": "Bienvenue sur UniAPI"
     },
-    "fallback_error": "Le contenu de la page À propos n’a pas pu être chargé.",
+    "fallback_error": "Le contenu de la page À propos n'a pas pu être chargé.",
     "iframe_title": "À propos",
     "title": "À propos"
   },
   "common": {
-    "app_name": "One API",
+    "app_name": "UniAPI",
     "about": "À propos",
     "back": "Retour",
     "cancel": "Annuler",
@@ -66,13 +66,14 @@
     "tokens": "Jetons",
     "tools": "Outils",
     "topup": "Recharger",
+    "pools": "Pools budgétaires",
     "username": "Nom d'utilisateur",
     "users": "Utilisateurs",
     "version": "Version",
-    "welcome": "Bienvenue sur One API"
+    "welcome": "Bienvenue sur UniAPI"
   },
   "footer": {
-    "copyright": "© {{year}} One API. Tous droits réservés."
+    "copyright": "© {{year}} UniAPI. Tous droits réservés."
   },
   "header": {
     "confirm_logout": "Confirmer la déconnexion",
@@ -87,9 +88,9 @@
     "iframe_title": "Accueil"
   },
   "notFound": {
-    "go_home": "Retourner à l’accueil",
+    "go_home": "Retourner à l'accueil",
     "message": "Page introuvable",
-    "redirecting": "Redirection vers l’accueil dans {{seconds}} s...",
+    "redirecting": "Redirection vers l'accueil dans {{seconds}} s...",
     "stay_here": "Rester sur cette page"
   },
   "passkey_prompt": {
@@ -113,7 +114,7 @@
       "response_time": "Temps de réponse"
     },
     "empty": {
-      "none": "Aucun canal n’est configuré dans le système",
+      "none": "Aucun canal n'est configuré dans le système",
       "search": "Aucun canal ne correspond à votre recherche \"{{term}}\"",
       "title": "Aucun canal trouvé"
     },
@@ -151,7 +152,7 @@
       "found": "Résultats",
       "total": "Canaux au total"
     },
-    "subtitle": "Surveillez l’état et les performances de tous les canaux",
+    "subtitle": "Surveillez l'état et les performances de tous les canaux",
     "title": "Statut des canaux"
   },
   "theme": {

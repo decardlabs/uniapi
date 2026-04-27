@@ -150,6 +150,22 @@ func SetApiRouter(router *gin.Engine) {
 			rechargeRoute.POST("/:id/approve", middleware.AdminAuth(), controller.ApproveRechargeRequest)
 			rechargeRoute.POST("/:id/reject", middleware.AdminAuth(), controller.RejectRechargeRequest)
 		}
+		// Budget pool management routes
+		poolRoute := apiRouter.Group("/pool")
+		poolRoute.Use(middleware.AdminAuth())
+		{
+			poolRoute.GET("/", controller.GetAllPools)
+			poolRoute.POST("/", controller.CreatePool)
+			poolRoute.GET("/:id", controller.GetPool)
+			poolRoute.POST("/:id/purchase", controller.PurchaseToPool)
+			poolRoute.POST("/:id/allocate", controller.AllocateFromPool)
+			poolRoute.POST("/:id/recall", controller.RecallFromPool)
+			poolRoute.GET("/:id/allocations", controller.GetPoolAllocations)
+			poolRoute.GET("/:id/transactions", controller.GetPoolTransactions)
+			poolRoute.GET("/:id/reconciliation", controller.GetPoolReconciliation)
+			poolRoute.POST("/:id/close", controller.ClosePool)
+			poolRoute.POST("/:id/rollover", controller.RollOverPool)
+		}
 		// Redemption routes (deprecated - hidden)
 		/*
 		redemptionRoute := apiRouter.Group("/redemption")

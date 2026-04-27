@@ -677,6 +677,12 @@
           "submit": "Soumettre"
         },
         "fields": {
+          "pool_id": {
+            "label": "Source (facultatif)",
+            "placeholder": "Recharge directe",
+            "direct": "Recharge directe",
+            "hint": "Le quota sera déduit du pool budgétaire sélectionné"
+          },
           "quota": {
             "label": "Quota",
             "placeholder": "Entrez le changement de quota"
@@ -685,6 +691,10 @@
             "label": "Remarque",
             "placeholder": "Facultatif"
           }
+        },
+        "notifications": {
+          "error_title": "Échec de la recharge",
+          "error_message": "L'opération a échoué. Veuillez réessayer."
         },
         "title": "Recharger {{username}}"
       }

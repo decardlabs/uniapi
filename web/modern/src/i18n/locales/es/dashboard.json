@@ -84,6 +84,17 @@
       "most_requests": "Más solicitudes",
       "most_tokens": "Más tokens",
       "title": "Modelos destacados del período"
+    },
+    "pool_summary": {
+      "title": "Resumen de Pools de Presupuesto",
+      "subtitle": "Asignación y uso de los pools de presupuesto activos",
+      "no_pools": "No hay pools de presupuesto activos",
+      "go_to_pools": "Ir a Pools de Presupuesto",
+      "total_budget": "Presupuesto Total",
+      "total_allocated": "Asignado",
+      "total_available": "Disponible",
+      "pool_count": "Pools Activos",
+      "view_all": "Ver Todo"
     }
   }
 }

@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { DashboardFilter } from './components/DashboardFilter';
 import { Insights } from './components/Insights';
 import { OverviewCards } from './components/OverviewCards';
+import { PoolSummaryCards } from './components/PoolSummaryCards';
 import { TimeSeriesCharts } from './components/TimeSeriesCharts';
 import { TopModels } from './components/TopModels';
 import { UsageCharts } from './components/UsageCharts';
@@ -142,6 +143,8 @@ export function DashboardPage() {
               avgCostPerRequestRaw={rangeTotals.avgCostPerRequestRaw}
               avgTokensPerRequest={rangeTotals.avgTokensPerRequest}
             />
+
+            {isAdmin && <PoolSummaryCards />}
 
             <TopModels modelLeaders={modelLeaders} />
 

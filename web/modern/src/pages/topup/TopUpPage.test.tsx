@@ -17,6 +17,16 @@ vi.mock('@/lib/api', () => {
   };
 });
 
+vi.mock('@/components/ui/notifications', () => ({
+  useNotifications: () => ({ notify: vi.fn() }),
+}));
+
+vi.mock('@/hooks/useDisplayUnit', () => ({
+  useDisplayUnit: () => ({
+    renderQuota: (quota: number) => `$${(quota / 500000).toFixed(2)}`,
+  }),
+}));
+
 describe('TopUpPage', () => {
   beforeEach(() => {
     // Reset store
@@ -39,10 +49,6 @@ describe('TopUpPage', () => {
 
     // Clear and set localStorage defaults used by the page
     localStorage.clear();
-    localStorage.setItem('quota_per_unit', '500000');
-    localStorage.setItem('display_in_currency', 'true');
-
-    // Mock system status with a payment link
     localStorage.setItem('status', JSON.stringify({ top_up_link: 'https://pay.example.com' }));
 
     // Reset API mocks
@@ -54,28 +60,16 @@ describe('TopUpPage', () => {
         data: { id: 1, username: 'testuser', quota: 1000 },
       },
     });
-    (api.post as any).mockResolvedValue({ data: { success: true, data: 500 } });
-  });
-
-  it('renders and redeems a code', async () => {
-    render(<TopUpPage />);
-
-    // Field should be present
-    const input = await screen.findByPlaceholderText(/enter your redemption code/i);
-
-    // Type code and submit
-    fireEvent.change(input, { target: { value: 'ABC-123' } });
-    const redeemBtn = screen.getByRole('button', { name: /redeem code/i });
-    fireEvent.click(redeemBtn);
-
-    await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith('/api/user/topup', {
-        key: 'ABC-123',
+    // Recharge self list returns empty
+    (api.get as any).mockImplementation((url: string) => {
+      if (url.includes('/api/recharge/')) {
+        return Promise.resolve({ data: { success: true, data: [] } });
+      }
+      return Promise.resolve({
+        data: { success: true, data: { id: 1, username: 'testuser', quota: 1000 } },
       });
     });
-
-    // Success message should appear
-    await screen.findByText(/successfully redeemed/i);
+    (api.post as any).mockResolvedValue({ data: { success: true, data: 500 } });
   });
 
   it('loads user quota on mount', async () => {
@@ -85,7 +79,60 @@ describe('TopUpPage', () => {
       expect(api.get).toHaveBeenCalledWith('/api/user/self');
     });
 
-    // Shows current balance text
+    // Shows current balance section
     await screen.findByText(/current balance/i);
+  });
+
+  it('renders the recharge request form', async () => {
+    render(<TopUpPage />);
+
+    // Should show the recharge form title (use heading role for precision)
+    const heading = await screen.findByRole('heading', { name: /submit recharge request/i });
+    expect(heading).toBeInTheDocument();
+
+    // Should have an amount input
+    const amountInput = screen.getByPlaceholderText(/enter token count/i);
+    expect(amountInput).toBeInTheDocument();
+
+    // Should have a remark textarea
+    const remarkInput = screen.getByPlaceholderText(/notes for the admin/i);
+    expect(remarkInput).toBeInTheDocument();
+
+    // Should have submit button
+    const submitBtn = screen.getByRole('button', { name: /submit request/i });
+    expect(submitBtn).toBeInTheDocument();
+  });
+
+  it('submits a recharge request', async () => {
+    render(<TopUpPage />);
+
+    // Wait for mount — use heading role to avoid matching description text
+    await screen.findByRole('heading', { name: /submit recharge request/i });
+
+    // Fill in amount
+    const amountInput = screen.getByPlaceholderText(/enter token count/i);
+    fireEvent.change(amountInput, { target: { value: '1' } });
+
+    // Fill in remark
+    const remarkInput = screen.getByPlaceholderText(/notes for the admin/i);
+    fireEvent.change(remarkInput, { target: { value: 'Test recharge' } });
+
+    // Submit
+    const submitBtn = screen.getByRole('button', { name: /submit request/i });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/api/recharge/', {
+        amount: 1000000,
+        remark: 'Test recharge',
+      });
+    });
+  });
+
+  it('shows online payment link when top_up_link is set', async () => {
+    render(<TopUpPage />);
+
+    await screen.findByText(/online payment/i);
+    await screen.findByText(/open payment portal/i);
   });
 });

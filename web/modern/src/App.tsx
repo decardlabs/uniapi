@@ -25,6 +25,7 @@ const EditMCPServerPage = lazy(() => import('@/pages/mcp/EditMCPServerPage').the
 const MCPServersPage = lazy(() => import('@/pages/mcp/MCPServersPage').then((m) => ({ default: m.MCPServersPage })));
 const ModelsPage = lazy(() => import('@/pages/models/ModelsPage'));
 const RechargesPage = lazy(() => import('@/pages/recharges/RechargesPage'));
+const BudgetPoolsPage = lazy(() => import('@/pages/pools/BudgetPoolsPage'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
 const StatusPage = lazy(() => import('@/pages/status/StatusPage'));
 const EditTokenPage = lazy(() => import('@/pages/tokens/EditTokenPage'));
@@ -116,6 +117,8 @@ function App() {
                     <Route path="mcps/edit/:id" element={<EditMCPServerPage />} />
                     {/* Recharge management (replaces redemption system) */}
                     <Route path="recharges" element={<RechargesPage />} />
+                    {/* Budget pool management */}
+                    <Route path="pools" element={<BudgetPoolsPage />} />
                     <Route path="about" element={<AboutPage />} />
                     <Route path="settings" element={<SettingsPage />} />
                     <Route path="topup" element={<TopUpPage />} />

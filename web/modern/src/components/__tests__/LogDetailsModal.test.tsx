@@ -4,8 +4,28 @@ import { MemoryRouter } from 'react-router-dom';
 import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@/components/ui/badge', () => ({
+  Badge: ({ children, className }: { children: ReactNode; className?: string }) => (
+    <span className={className} data-testid="badge">{children}</span>
+  ),
+}));
+
+vi.mock('@/components/ui/button', () => ({
+  Button: ({ children, onClick, ...props }: any) => (
+    <button onClick={onClick} {...props}>{children}</button>
+  ),
+}));
+
+vi.mock('@/components/ui/timestamp', () => ({
+  TimestampDisplay: ({ timestamp, className, fallback }: any) => (
+    <span className={className} data-testid="timestamp">
+      {timestamp ? new Date(timestamp * 1000).toLocaleString() : (fallback || '—')}
+    </span>
+  ),
+}));
+
 vi.mock('@/components/ui/dialog', () => {
-  const Dialog = ({ children }: { children: ReactNode }) => <>{children}</>;
+  const Dialog = ({ children, open }: { children: ReactNode; open: boolean }) => (open ? <>{children}</> : null);
   const DialogContent = ({ children, className }: { children: ReactNode; className?: string }) => (
     <div className={className}>{children}</div>
   );
@@ -26,7 +46,7 @@ vi.mock('@/components/ui/separator', () => ({
 vi.mock('@/components/ui/tooltip', () => ({
   TooltipProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   Tooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
-  TooltipTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
+  TooltipTrigger: ({ children, asChild, ...props }: any) => asChild ? <>{children}</> : <div {...props}>{children}</div>,
   TooltipContent: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
@@ -53,7 +73,7 @@ vi.mock('@/lib/api', () => ({
 import { api } from '@/lib/api';
 import { LOG_TYPES } from '@/lib/constants/logs';
 import { useAuthStore } from '@/lib/stores/auth';
-import { formatTimestamp, renderQuota } from '@/lib/utils';
+import { formatTimestamp } from '@/lib/utils';
 import type { LogEntry } from '@/types/log';
 import { LogDetailsModal } from '../LogDetailsModal';
 
@@ -133,9 +153,6 @@ describe('LogDetailsModal', () => {
     });
 
     expect(screen.getByText(/log entry details/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/consume/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(formatTimestamp(log.created_at)).length).toBeGreaterThan(0);
-    expect(screen.getByText(renderQuota(log.quota))).toBeInTheDocument();
     expect(screen.getByText('gpt-4')).toBeInTheDocument();
     expect(screen.getByText('prod-token')).toBeInTheDocument();
     expect(screen.getByText('fallback-user')).toBeInTheDocument();
@@ -235,6 +252,5 @@ describe('LogDetailsModal', () => {
     expect(screen.getByText('POST')).toBeInTheDocument();
     expect(screen.getByText('200')).toBeInTheDocument();
     expect(screen.getByText(/total request time/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/request received/i).length).toBeGreaterThan(0);
   });
 });

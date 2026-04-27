@@ -677,6 +677,12 @@
           "submit": "提交"
         },
         "fields": {
+          "pool_id": {
+            "label": "来源（可选）",
+            "placeholder": "直接充值",
+            "direct": "直接充值",
+            "hint": "额度将从所选预算池中扣除"
+          },
           "quota": {
             "label": "额度",
             "placeholder": "输入额度变更"
@@ -685,6 +691,10 @@
             "label": "备注",
             "placeholder": "可选"
           }
+        },
+        "notifications": {
+          "error_title": "充值失败",
+          "error_message": "操作失败，请稍后重试"
         },
         "title": "充值 {{username}}"
       }

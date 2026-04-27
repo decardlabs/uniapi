@@ -60,7 +60,7 @@ export function Sidebar({ navGroups, collapsed, onToggle }: SidebarProps) {
           O
         </div>
         {!collapsed && (
-          <span className="text-lg font-bold truncate">One API</span>
+          <span className="text-lg font-bold truncate">UniAPI</span>
         )}
       </div>
 

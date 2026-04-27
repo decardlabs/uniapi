@@ -84,6 +84,17 @@
       "most_requests": "Plus de requêtes",
       "most_tokens": "Plus de tokens",
       "title": "Meilleurs modèles de la période"
+    },
+    "pool_summary": {
+      "title": "Aperçu des Pools Budgétaires",
+      "subtitle": "Allocation et utilisation des pools budgétaires actifs",
+      "no_pools": "Aucun pool budgétaire actif",
+      "go_to_pools": "Aller aux Pools Budgétaires",
+      "total_budget": "Budget Total",
+      "total_allocated": "Alloué",
+      "total_available": "Disponible",
+      "pool_count": "Pools Actifs",
+      "view_all": "Voir Tout"
     }
   }
 }

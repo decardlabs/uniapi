@@ -327,6 +327,15 @@ func migrateDB() error {
 	if err = DB.AutoMigrate(&RechargeRequest{}); err != nil {
 		return errors.Wrapf(err, "failed to migrate RechargeRequest")
 	}
+	if err = DB.AutoMigrate(&GlobalPool{}); err != nil {
+		return errors.Wrapf(err, "failed to migrate GlobalPool")
+	}
+	if err = DB.AutoMigrate(&PoolAllocation{}); err != nil {
+		return errors.Wrapf(err, "failed to migrate PoolAllocation")
+	}
+	if err = DB.AutoMigrate(&PoolTransaction{}); err != nil {
+		return errors.Wrapf(err, "failed to migrate PoolTransaction")
+	}
 	return nil
 }
 

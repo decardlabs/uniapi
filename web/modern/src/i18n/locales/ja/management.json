@@ -677,6 +677,12 @@
           "submit": "送信"
         },
         "fields": {
+          "pool_id": {
+            "label": "ソース（任意）",
+            "placeholder": "直接チャージ",
+            "direct": "直接チャージ",
+            "hint": "選択した予算プールからクォータを差し引きます"
+          },
           "quota": {
             "label": "クォータ",
             "placeholder": "クォータ変更を入力"
@@ -685,6 +691,10 @@
             "label": "備考",
             "placeholder": "任意"
           }
+        },
+        "notifications": {
+          "error_title": "チャージ失敗",
+          "error_message": "操作に失敗しました。後でもう一度お試しください。"
         },
         "title": "{{username}} にチャージ"
       }

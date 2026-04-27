@@ -84,6 +84,17 @@
       "most_requests": "请求最多",
       "most_tokens": "Token 消耗最多",
       "title": "本期热门模型"
+    },
+    "pool_summary": {
+      "title": "预算池概览",
+      "subtitle": "活跃预算池的额度分配与使用情况",
+      "no_pools": "暂无活跃的预算池",
+      "go_to_pools": "前往预算池管理",
+      "total_budget": "采购总额",
+      "total_allocated": "已分配",
+      "total_available": "可用余额",
+      "pool_count": "活跃池数",
+      "view_all": "查看全部"
     }
   }
 }

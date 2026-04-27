@@ -84,6 +84,17 @@
       "most_requests": "Most Requests",
       "most_tokens": "Most Tokens",
       "title": "Top Models This Period"
+    },
+    "pool_summary": {
+      "title": "Budget Pool Overview",
+      "subtitle": "Allocation and usage across active budget pools",
+      "no_pools": "No active budget pools",
+      "go_to_pools": "Go to Budget Pools",
+      "total_budget": "Total Budget",
+      "total_allocated": "Allocated",
+      "total_available": "Available",
+      "pool_count": "Active Pools",
+      "view_all": "View All"
     }
   }
 }
