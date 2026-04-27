@@ -95,6 +95,11 @@ func (a *Adaptor) ConvertRequest(c *gin.Context, relayMode int, request *model.G
 
 	normalizeDeepSeekThinkingConfig(c, request)
 
+	// DeepSeek requires reasoning_content (not reasoning/thinking) for assistant messages.
+	// When a client sends back reasoning in OpenRouter/thinking format, DeepSeek will
+	// reject it. Convert reasoning → reasoning_content and thinking → reasoning_content.
+	normalizeDeepSeekReasoningFields(c, request)
+
 	normalizeDeepSeekToolMessageContent(c, request)
 
 	if request.ResponseFormat != nil {
@@ -127,6 +132,54 @@ func normalizeDeepSeekThinkingConfig(c *gin.Context, request *model.GeneralOpenA
 		zap.String("normalized_type", normalizedType),
 		zap.Intp("budget_tokens", request.Thinking.BudgetTokens),
 	)
+}
+
+// normalizeDeepSeekReasoningFields converts reasoning/thinking fields to reasoning_content
+// for assistant messages. DeepSeek only accepts reasoning_content; if a client sends back
+// reasoning (OpenRouter format) or thinking (Anthropic format), DeepSeek rejects the request.
+func normalizeDeepSeekReasoningFields(c *gin.Context, request *model.GeneralOpenAIRequest) {
+	lg := gmw.GetLogger(c)
+	normalizedCount := 0
+
+	for i := range request.Messages {
+		msg := &request.Messages[i]
+		if msg.Role != "assistant" {
+			continue
+		}
+		// Already has reasoning_content — nothing to do
+		if msg.ReasoningContent != nil {
+			continue
+		}
+
+		// reasoning (OpenRouter format) → reasoning_content
+		if msg.Reasoning != nil {
+			msg.ReasoningContent = msg.Reasoning
+			msg.Reasoning = nil
+			msg.Thinking = nil
+			normalizedCount++
+			lg.Debug("converted reasoning → reasoning_content for deepseek",
+				zap.Int("message_index", i),
+			)
+			continue
+		}
+
+		// thinking (Anthropic format) → reasoning_content
+		if msg.Thinking != nil {
+			msg.ReasoningContent = msg.Thinking
+			msg.Thinking = nil
+			msg.Reasoning = nil
+			normalizedCount++
+			lg.Debug("converted thinking → reasoning_content for deepseek",
+				zap.Int("message_index", i),
+			)
+		}
+	}
+
+	if normalizedCount > 0 {
+		lg.Debug("normalized reasoning fields for deepseek compatibility",
+			zap.Int("normalized_count", normalizedCount),
+		)
+	}
 }
 
 // normalizeDeepSeekToolMessageContent converts non-string tool message content into strings for DeepSeek compatibility.
