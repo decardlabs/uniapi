@@ -454,18 +454,18 @@ export function ChannelsPage() {
           .map((m) => m.trim())
           .filter(Boolean)
           .sort();
-        const value = ch.testing_model ?? ''; // empty => Auto (cheapest)
+        const value = ch.testing_model ?? '__auto__'; // empty => Auto (cheapest)
         return (
           <div className="w-[140px] md:w-[160px] max-w-[220px]">
             <Select
               value={value}
-              onValueChange={(v) => updateTestingModel(ch.id, v === '' ? null : v)}
+              onValueChange={(v) => updateTestingModel(ch.id, v === '__auto__' ? null : v)}
             >
               <SelectTrigger className="w-full text-sm" aria-label={t('channels.columns.testing_model')}>
                 <SelectValue placeholder={t('channels.testing.auto')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">{t('channels.testing.auto')}</SelectItem>
+                <SelectItem value="__auto__">{t('channels.testing.auto')}</SelectItem>
                 {models.map((m) => (
                   <SelectItem key={m} value={m}>
                     {m}

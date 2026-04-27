@@ -75,8 +75,8 @@ export default function BudgetPoolsPage() {
   const initializedRef = useRef(false);
 
   // Filter state
-  const [filterPeriod, setFilterPeriod] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterPeriod, setFilterPeriod] = useState('__all__');
+  const [filterStatus, setFilterStatus] = useState('__all__');
 
   // Dialog state
   const [createOpen, setCreateOpen] = useState(false);
@@ -129,8 +129,8 @@ export default function BudgetPoolsPage() {
           page: p + 1,
           page_size: size,
         };
-        if (filterPeriod) params.period_type = filterPeriod;
-        if (filterStatus) params.status = filterStatus;
+        if (filterPeriod && filterPeriod !== '__all__') params.period_type = filterPeriod;
+        if (filterStatus && filterStatus !== '__all__') params.status = filterStatus;
 
         const res = await api.get('/api/pool/', { params });
         if (res.data?.success) {
@@ -582,7 +582,7 @@ export default function BudgetPoolsPage() {
       >
         {/* Filter bar */}
         <div className="flex items-center gap-3">
-          <Select value={filterPeriod} onValueChange={(v) => { setFilterPeriod(v === '__all__' ? '' : v); }}>
+          <Select value={filterPeriod} onValueChange={setFilterPeriod}>
             <SelectTrigger className="w-[160px]">
               <SelectValue placeholder={tr('filter_period_type', 'All Periods')} />
             </SelectTrigger>
@@ -594,7 +594,7 @@ export default function BudgetPoolsPage() {
               <SelectItem value="oneoff">{tr('period_oneoff', 'One-off')}</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v === '__all__' ? '' : v); }}>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-[160px]">
               <SelectValue placeholder={tr('filter_status', 'All Status')} />
             </SelectTrigger>
