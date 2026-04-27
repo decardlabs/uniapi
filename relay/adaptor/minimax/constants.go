@@ -9,7 +9,7 @@ import (
 // Default: input $0.30/M tokens, output $1.50/M tokens (USD)
 var ModelRatios = map[string]adaptor.ModelConfig{
 	// MiniMax M2 series (2026-04)
-	// Based on https://api.minimaxi.com/v1
+	// Based on https://api.minimax.chat/v1
 	"MiniMax-M2.7":            {Ratio: 0.15 * ratio.MilliTokensUsd, CompletionRatio: 5},
 	"MiniMax-M2.7-highspeed": {Ratio: 0.15 * ratio.MilliTokensUsd, CompletionRatio: 5},
 	"MiniMax-M2.5":            {Ratio: 0.15 * ratio.MilliTokensUsd, CompletionRatio: 5},

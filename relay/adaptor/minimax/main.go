@@ -11,7 +11,7 @@ import (
 
 func GetRequestURL(meta *meta.Meta) (string, error) {
 	if meta.Mode == relaymode.ChatCompletions {
-		return fmt.Sprintf("%s/v1/text/chatcompletion_v2", meta.BaseURL), nil
+		return fmt.Sprintf("%s/v1/chat/completions", meta.BaseURL), nil
 	}
 	return "", errors.Errorf("unsupported relay mode %d for minimax", meta.Mode)
 }
