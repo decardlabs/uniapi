@@ -118,7 +118,13 @@ export function usePlaygroundChat({
         messages: (() => {
           const filteredMessages = newMessages
             .filter((msg) => msg.role !== 'error')
-            .map((msg) => ({ role: msg.role, content: msg.content }));
+            .map((msg) => ({
+              role: msg.role,
+              content: msg.content,
+              ...(msg.role === 'assistant' && msg.reasoning_content
+                ? { reasoning_content: msg.reasoning_content }
+                : {}),
+            }));
           if (systemMessage.trim()) {
             const hasSystemMessage = filteredMessages.some((msg) => msg.role === 'system');
             if (!hasSystemMessage) {
@@ -216,7 +222,13 @@ export function usePlaygroundChat({
         messages: (() => {
           const filteredMessages = existingMessages
             .filter((msg) => msg.role !== 'error')
-            .map((msg) => ({ role: msg.role, content: msg.content }));
+            .map((msg) => ({
+              role: msg.role,
+              content: msg.content,
+              ...(msg.role === 'assistant' && msg.reasoning_content
+                ? { reasoning_content: msg.reasoning_content }
+                : {}),
+            }));
           if (systemMessage.trim()) {
             const hasSystemMessage = filteredMessages.some((msg) => msg.role === 'system');
             if (!hasSystemMessage) {

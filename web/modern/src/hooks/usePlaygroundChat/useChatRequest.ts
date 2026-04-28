@@ -51,7 +51,13 @@ export const useChatRequest = (config: ChatRequestConfig) => {
               // Filter out error messages
               const filteredMessages = messages
                 .filter((msg) => msg.role !== 'error')
-                .map((msg) => ({ role: msg.role, content: msg.content }));
+                .map((msg) => ({
+                  role: msg.role,
+                  content: msg.content,
+                  ...(msg.role === 'assistant' && msg.reasoning_content
+                    ? { reasoning_content: msg.reasoning_content }
+                    : {}),
+                }));
 
               // Prepend system message if it exists and isn't already at the start
               if (systemMessage.trim()) {
