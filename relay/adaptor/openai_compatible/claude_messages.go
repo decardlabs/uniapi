@@ -228,6 +228,12 @@ func buildToolUseNames(messages []model.ClaudeMessage) map[string]string {
 			}
 			id, _ := block["id"].(string)
 			name, _ := block["name"].(string)
+			// DEBUG: print full block when name is empty
+			if id != "" && name == "" {
+				if b, err := json.Marshal(block); err == nil {
+					fmt.Printf("[BUILD-DEBUG] tool_use with empty name, full block: %s\n", string(b))
+				}
+			}
 			fmt.Printf("[BUILD-DEBUG] found %s: id=%q name=%q in role=%s\n", bt, id, name, msg.Role)
 			if id != "" && name != "" {
 				m[id] = name
