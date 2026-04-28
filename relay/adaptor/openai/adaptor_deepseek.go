@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/Laisky/zap"
+	gmw "github.com/Laisky/gin-middlewares/v7"
+	"github.com/gin-gonic/gin"
 
 	"github.com/songquanpeng/one-api/relay/adaptor/common/deepseekcompat"
 	"github.com/songquanpeng/one-api/relay/channeltype"
@@ -126,5 +128,43 @@ func normalizeClaudeThinkingForDeepSeek(lg deepSeekThinkingNormalizeLogger, requ
 			zap.String("normalized_type", normalizedType),
 			zap.Intp("budget_tokens", request.Thinking.BudgetTokens),
 		)
+	}
+}
+
+// injectMissingReasoningContentForClaudePath ensures all assistant messages have reasoning_content
+// when thinking mode is active. This is the Claude Messages API path variant — it lives in the
+// openai package because the deepseek package's ConvertRequest is not called for Claude Messages.
+func injectMissingReasoningContentForClaudePath(c *gin.Context, request *model.GeneralOpenAIRequest) {
+	lg := gmw.GetLogger(c)
+	for i := range request.Messages {
+		msg := &request.Messages[i]
+		if msg.Role != "assistant" {
+			continue
+		}
+		if msg.ReasoningContent != nil {
+			continue
+		}
+		// Convert reasoning (OpenRouter format) or thinking (Anthropic format)
+		if msg.Reasoning != nil {
+			msg.ReasoningContent = msg.Reasoning
+			msg.Reasoning = nil
+			msg.Thinking = nil
+			lg.Debug("claude-path: converted reasoning → reasoning_content",
+				zap.Int("msg_index", i))
+			continue
+		}
+		if msg.Thinking != nil {
+			msg.ReasoningContent = msg.Thinking
+			msg.Thinking = nil
+			msg.Reasoning = nil
+			lg.Debug("claude-path: converted thinking → reasoning_content",
+				zap.Int("msg_index", i))
+			continue
+		}
+		// No reasoning content at all — inject empty string
+		empty := ""
+		msg.ReasoningContent = &empty
+		lg.Debug("claude-path: injected empty reasoning_content for deepseek",
+			zap.Int("msg_index", i))
 	}
 }
