@@ -378,6 +378,17 @@ func convertClaudeBlocks(role string, blocks []any, toolUseNames map[string]stri
 						toolMsg.Name = &nameCopy
 					}
 				}
+				if toolMsg.Name == nil {
+					// TEMP DEBUG: log unbackfilled tool messages
+					_ = fmt.Sprintf("DEBUG tool_result missing name: ToolCallId=%q, map_keys=%v", toolMsg.ToolCallId, func() []string {
+						keys := make([]string, 0, len(toolUseNames))
+						for k := range toolUseNames {
+							keys = append(keys, k)
+						}
+						return keys
+					}())
+					fmt.Printf("[CLAUDE-DEBUG] tool_result missing name: ToolCallId=%q role=%s\n", toolMsg.ToolCallId, toolMsg.Role)
+				}
 				result = append(result, *toolMsg)
 			}
 		default:
