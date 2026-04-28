@@ -137,9 +137,16 @@ func normalizeDeepSeekThinkingConfig(c *gin.Context, request *model.GeneralOpenA
 // normalizeDeepSeekReasoningFields converts reasoning/thinking fields to reasoning_content
 // for assistant messages. DeepSeek only accepts reasoning_content; if a client sends back
 // reasoning (OpenRouter format) or thinking (Anthropic format), DeepSeek rejects the request.
+//
+// When thinking mode is enabled (request.Thinking != nil) but an assistant message has
+// none of reasoning_content/reasoning/thinking, it means the client (e.g. Claude Code)
+// did not replay the reasoning content from a previous turn. DeepSeek requires
+// reasoning_content on all assistant messages when thinking mode is active, so we inject
+// an empty reasoning_content to avoid a 400 error.
 func normalizeDeepSeekReasoningFields(c *gin.Context, request *model.GeneralOpenAIRequest) {
 	lg := gmw.GetLogger(c)
 	normalizedCount := 0
+	thinkingEnabled := request.Thinking != nil
 
 	for i := range request.Messages {
 		msg := &request.Messages[i]
@@ -170,6 +177,21 @@ func normalizeDeepSeekReasoningFields(c *gin.Context, request *model.GeneralOpen
 			msg.Reasoning = nil
 			normalizedCount++
 			lg.Debug("converted thinking → reasoning_content for deepseek",
+				zap.Int("message_index", i),
+			)
+			continue
+		}
+
+		// Thinking mode is enabled but this assistant message has no reasoning content at all.
+		// This typically happens when an external client (e.g. Claude Code) does not replay
+		// reasoning_content from a previous turn. DeepSeek will reject the request with:
+		// "The reasoning_content in the thinking mode must be passed back to the API."
+		// Inject an empty reasoning_content to satisfy DeepSeek's requirement.
+		if thinkingEnabled {
+			empty := ""
+			msg.ReasoningContent = &empty
+			normalizedCount++
+			lg.Debug("injected empty reasoning_content for deepseek assistant message (thinking mode active, client did not replay reasoning)",
 				zap.Int("message_index", i),
 			)
 		}
