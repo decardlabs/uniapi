@@ -103,9 +103,15 @@ func ConvertClaudeRequest(c *gin.Context, request *model.ClaudeRequest) (any, er
 		}
 	}
 
+	// Pre-scan all Claude messages to build a global tool_use id→name mapping.
+	// Claude puts tool_use (with name) in assistant messages and tool_result
+	// (needing name) in subsequent user messages, so the mapping must span
+	// the entire request rather than a single message.
+	toolUseNames := buildToolUseNames(request.Messages)
+
 	// Convert messages
 	for _, msg := range request.Messages {
-		converted := convertClaudeMessageToOpenAI(msg)
+		converted := convertClaudeMessageToOpenAI(msg, toolUseNames)
 		openaiRequest.Messages = append(openaiRequest.Messages, converted...)
 	}
 
@@ -195,12 +201,43 @@ type pendingOpenAIMessage struct {
 	contentParts []model.MessageContent
 }
 
-func convertClaudeMessageToOpenAI(msg model.ClaudeMessage) []model.Message {
+// buildToolUseNames pre-scans all Claude messages and returns a map from
+// tool_use id → function name. This mapping is needed because Claude places
+// tool_use blocks (which carry the name) in assistant messages and the
+// corresponding tool_result blocks (which lack a name) in subsequent user
+// messages — they never appear in the same call to convertClaudeBlocks.
+func buildToolUseNames(messages []model.ClaudeMessage) map[string]string {
+	m := make(map[string]string)
+	for _, msg := range messages {
+		blocks, ok := msg.Content.([]any)
+		if !ok {
+			continue
+		}
+		for _, raw := range blocks {
+			block, ok := raw.(map[string]any)
+			if !ok {
+				continue
+			}
+			bt, _ := block["type"].(string)
+			if bt != "tool_use" && bt != "server_tool_use" {
+				continue
+			}
+			id, _ := block["id"].(string)
+			name, _ := block["name"].(string)
+			if id != "" && name != "" {
+				m[id] = name
+			}
+		}
+	}
+	return m
+}
+
+func convertClaudeMessageToOpenAI(msg model.ClaudeMessage, toolUseNames map[string]string) []model.Message {
 	switch content := msg.Content.(type) {
 	case string:
 		return []model.Message{{Role: msg.Role, Content: content}}
 	case []any:
-		return convertClaudeBlocks(msg.Role, content)
+		return convertClaudeBlocks(msg.Role, content, toolUseNames)
 	default:
 		if b, err := json.Marshal(content); err == nil {
 			return []model.Message{{Role: msg.Role, Content: string(b)}}
@@ -209,11 +246,10 @@ func convertClaudeMessageToOpenAI(msg model.ClaudeMessage) []model.Message {
 	}
 }
 
-func convertClaudeBlocks(role string, blocks []any) []model.Message {
+func convertClaudeBlocks(role string, blocks []any, toolUseNames map[string]string) []model.Message {
 	var (
-		result      []model.Message
-		pending     *pendingOpenAIMessage
-		toolUseNames map[string]string // tool_use id -> function name, for backfilling tool_result name
+		result  []model.Message
+		pending *pendingOpenAIMessage
 	)
 
 	flush := func() {
@@ -281,10 +317,7 @@ func convertClaudeBlocks(role string, blocks []any) []model.Message {
 		case "tool_use":
 			id, _ := blockMap["id"].(string)
 			name, _ := blockMap["name"].(string)
-			if id != "" && name != "" {
-				if toolUseNames == nil {
-					toolUseNames = make(map[string]string)
-				}
+			if id != "" && name != "" && toolUseNames != nil {
 				toolUseNames[id] = name
 			}
 			msg := ensurePending()
@@ -305,10 +338,7 @@ func convertClaudeBlocks(role string, blocks []any) []model.Message {
 		case "server_tool_use":
 			id, _ := blockMap["id"].(string)
 			name, _ := blockMap["name"].(string)
-			if id != "" && name != "" {
-				if toolUseNames == nil {
-					toolUseNames = make(map[string]string)
-				}
+			if id != "" && name != "" && toolUseNames != nil {
 				toolUseNames[id] = name
 			}
 			msg := ensurePending()
@@ -339,9 +369,9 @@ func convertClaudeBlocks(role string, blocks []any) []model.Message {
 			flush()
 			if toolMsg := convertClaudeToolResultBlock(blockMap); toolMsg != nil {
 				// Claude's tool_result block does not contain a "name" field;
-				// backfill it from the tool_use id→name mapping so that providers
-				// like DeepSeek and MiniMax (which require "name" on role:"tool"
-				// messages) don't reject the request.
+				// backfill it from the global tool_use id→name mapping so that
+				// providers like DeepSeek and MiniMax (which require "name" on
+				// role:"tool" messages) don't reject the request.
 				if toolMsg.Name == nil && toolUseNames != nil {
 					if fnName, ok := toolUseNames[toolMsg.ToolCallId]; ok && fnName != "" {
 						nameCopy := fnName
