@@ -12,6 +12,7 @@ import (
 	"github.com/Laisky/zap"
 	"github.com/gin-gonic/gin"
 
+	"github.com/songquanpeng/one-api/common/ctxkey"
 	"github.com/songquanpeng/one-api/relay/adaptor"
 	"github.com/songquanpeng/one-api/relay/adaptor/common/deepseekcompat"
 	"github.com/songquanpeng/one-api/relay/adaptor/common/structuredjson"
@@ -93,14 +94,21 @@ func (a *Adaptor) ConvertRequest(c *gin.Context, relayMode int, request *model.G
 		request.ReasoningEffort = nil
 	}
 
-	normalizeDeepSeekThinkingConfig(c, request)
+	// Remove top-level Thinking field (not supported by DeepSeek's OpenAI-compatible API)
+	// after extracting whether thinking mode is enabled.
+	thinkingEnabled := request.Thinking != nil
+	request.Thinking = nil
 
-	// DeepSeek requires reasoning_content (not reasoning/thinking) for assistant messages.
-	// When a client sends back reasoning in OpenRouter/thinking format, DeepSeek will
-	// reject it. Convert reasoning → reasoning_content and thinking → reasoning_content.
-	normalizeDeepSeekReasoningFields(c, request)
+	normalizeDeepSeekThinkingConfigFromOriginal(c, request)
 
 	normalizeDeepSeekToolMessageContent(c, request)
+
+	// DeepSeek requires reasoning_content on all assistant messages when thinking mode is active.
+	// Claude Code does not replay reasoning_content from previous turns, so we inject empty
+	// values to avoid "The reasoning_content in the thinking mode must be passed back to the API."
+	if thinkingEnabled {
+		injectMissingReasoningContent(c, request)
+	}
 
 	if request.ResponseFormat != nil {
 		if request.ResponseFormat.JsonSchema != nil {
@@ -112,47 +120,63 @@ func (a *Adaptor) ConvertRequest(c *gin.Context, relayMode int, request *model.G
 	return request, nil
 }
 
-// normalizeDeepSeekThinkingConfig coerces thinking.type into values accepted by DeepSeek.
-// DeepSeek chat completion currently supports only enabled/disabled.
-func normalizeDeepSeekThinkingConfig(c *gin.Context, request *model.GeneralOpenAIRequest) {
-	if request == nil || request.Thinking == nil {
+// normalizeDeepSeekThinkingConfigFromOriginal reads the original ClaudeRequest from context
+// to normalize thinking.type for DeepSeek. The ClaudeRequest.Thinking field is not
+// propagated to GeneralOpenAIRequest (to avoid sending it to providers that don't support it),
+// so we read it from the original request stored in context.
+func normalizeDeepSeekThinkingConfigFromOriginal(c *gin.Context, request *model.GeneralOpenAIRequest) {
+	if request == nil {
 		return
 	}
 
-	originalType := request.Thinking.Type
-	normalizedType, changed := deepseekcompat.NormalizeThinkingType(originalType, request.Thinking.BudgetTokens)
+	// Try to get the original ClaudeRequest from context
+	var claudeThinking *model.Thinking
+	if raw, exists := c.Get(ctxkey.OriginalClaudeRequest); exists {
+		if originalReq, ok := raw.(*model.ClaudeRequest); ok && originalReq.Thinking != nil {
+			claudeThinking = originalReq.Thinking
+		}
+	}
+
+	if claudeThinking == nil {
+		return
+	}
+
+	normalizedType, changed := deepseekcompat.NormalizeThinkingType(claudeThinking.Type, claudeThinking.BudgetTokens)
 	if !changed {
 		return
 	}
 
-	request.Thinking.Type = normalizedType
-	gmw.GetLogger(c).Debug("normalized deepseek thinking type for provider compatibility",
+	// Store the normalized thinking config back in the OpenAI request so DeepSeek
+	// can receive it as a top-level parameter it understands.
+	request.Thinking = &model.Thinking{
+		Type:         normalizedType,
+		BudgetTokens: claudeThinking.BudgetTokens,
+	}
+	gmw.GetLogger(c).Debug("normalized deepseek thinking type from original ClaudeRequest",
 		zap.String("model", request.Model),
-		zap.String("original_type", originalType),
+		zap.String("original_type", claudeThinking.Type),
 		zap.String("normalized_type", normalizedType),
-		zap.Intp("budget_tokens", request.Thinking.BudgetTokens),
+		zap.Intp("budget_tokens", claudeThinking.BudgetTokens),
 	)
 }
 
-// normalizeDeepSeekReasoningFields converts reasoning/thinking fields to reasoning_content
-// for assistant messages. DeepSeek only accepts reasoning_content; if a client sends back
-// reasoning (OpenRouter format) or thinking (Anthropic format), DeepSeek rejects the request.
+// injectMissingReasoningContent ensures all assistant messages have reasoning_content when
+// thinking mode is active. DeepSeek rejects requests where any assistant message lacks
+// reasoning_content with: "The reasoning_content in the thinking mode must be passed back to the API."
 //
-// When thinking mode is enabled (request.Thinking != nil) but an assistant message has
-// none of reasoning_content/reasoning/thinking, it means the client (e.g. Claude Code)
-// did not replay the reasoning content from a previous turn. DeepSeek requires
-// reasoning_content on all assistant messages when thinking mode is active, so we inject
-// an empty reasoning_content to avoid a 400 error.
-func normalizeDeepSeekReasoningFields(c *gin.Context, request *model.GeneralOpenAIRequest) {
+// This handles cases where external clients (e.g. Claude Code) do not replay reasoning_content
+// from previous turns. It also converts reasoning (OpenRouter format) and thinking (Anthropic
+// format from Claude message blocks) to reasoning_content.
+func injectMissingReasoningContent(c *gin.Context, request *model.GeneralOpenAIRequest) {
 	lg := gmw.GetLogger(c)
-	normalizedCount := 0
-	thinkingEnabled := request.Thinking != nil
+	injectedCount := 0
 
 	for i := range request.Messages {
 		msg := &request.Messages[i]
 		if msg.Role != "assistant" {
 			continue
 		}
+
 		// Already has reasoning_content — nothing to do
 		if msg.ReasoningContent != nil {
 			continue
@@ -163,43 +187,37 @@ func normalizeDeepSeekReasoningFields(c *gin.Context, request *model.GeneralOpen
 			msg.ReasoningContent = msg.Reasoning
 			msg.Reasoning = nil
 			msg.Thinking = nil
-			normalizedCount++
+			injectedCount++
 			lg.Debug("converted reasoning → reasoning_content for deepseek",
 				zap.Int("message_index", i),
 			)
 			continue
 		}
 
-		// thinking (Anthropic format) → reasoning_content
+		// thinking (Anthropic format, from Claude message blocks) → reasoning_content
 		if msg.Thinking != nil {
 			msg.ReasoningContent = msg.Thinking
 			msg.Thinking = nil
 			msg.Reasoning = nil
-			normalizedCount++
+			injectedCount++
 			lg.Debug("converted thinking → reasoning_content for deepseek",
 				zap.Int("message_index", i),
 			)
 			continue
 		}
 
-		// Thinking mode is enabled but this assistant message has no reasoning content at all.
-		// This typically happens when an external client (e.g. Claude Code) does not replay
-		// reasoning_content from a previous turn. DeepSeek will reject the request with:
-		// "The reasoning_content in the thinking mode must be passed back to the API."
-		// Inject an empty reasoning_content to satisfy DeepSeek's requirement.
-		if thinkingEnabled {
-			empty := ""
-			msg.ReasoningContent = &empty
-			normalizedCount++
-			lg.Debug("injected empty reasoning_content for deepseek assistant message (thinking mode active, client did not replay reasoning)",
-				zap.Int("message_index", i),
-			)
-		}
+		// Thinking mode active but no reasoning content at all — inject empty string
+		empty := ""
+		msg.ReasoningContent = &empty
+		injectedCount++
+		lg.Debug("injected empty reasoning_content for deepseek assistant message (thinking mode active)",
+			zap.Int("message_index", i),
+		)
 	}
 
-	if normalizedCount > 0 {
+	if injectedCount > 0 {
 		lg.Debug("normalized reasoning fields for deepseek compatibility",
-			zap.Int("normalized_count", normalizedCount),
+			zap.Int("injected_count", injectedCount),
 		)
 	}
 }

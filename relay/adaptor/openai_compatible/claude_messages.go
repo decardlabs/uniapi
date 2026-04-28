@@ -40,7 +40,6 @@ func ConvertClaudeRequest(c *gin.Context, request *model.ClaudeRequest) (any, er
 		TopP:                request.TopP,
 		Stream:              request.Stream != nil && *request.Stream,
 		Stop:                request.StopSequences,
-		Thinking:            request.Thinking,
 	}
 
 	schemaName, schemaPayload, schemaDescription, promoteStructured := detectStructuredToolSchema(request)
