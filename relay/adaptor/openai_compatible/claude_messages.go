@@ -211,6 +211,10 @@ func buildToolUseNames(messages []model.ClaudeMessage) map[string]string {
 	for _, msg := range messages {
 		blocks, ok := msg.Content.([]any)
 		if !ok {
+			// DEBUG: log non-array content types
+			if msg.Role == "assistant" {
+				fmt.Printf("[BUILD-DEBUG] skip non-array content in %s message: %T\n", msg.Role, msg.Content)
+			}
 			continue
 		}
 		for _, raw := range blocks {
@@ -224,11 +228,19 @@ func buildToolUseNames(messages []model.ClaudeMessage) map[string]string {
 			}
 			id, _ := block["id"].(string)
 			name, _ := block["name"].(string)
+			fmt.Printf("[BUILD-DEBUG] found %s: id=%q name=%q in role=%s\n", bt, id, name, msg.Role)
 			if id != "" && name != "" {
 				m[id] = name
 			}
 		}
 	}
+	fmt.Printf("[BUILD-DEBUG] total tool_use entries: %d, keys=%v\n", len(m), func() []string {
+		keys := make([]string, 0, len(m))
+		for k := range m {
+			keys = append(keys, k)
+		}
+		return keys
+	}())
 	return m
 }
 
