@@ -211,8 +211,9 @@ func convertClaudeMessageToOpenAI(msg model.ClaudeMessage) []model.Message {
 
 func convertClaudeBlocks(role string, blocks []any) []model.Message {
 	var (
-		result  []model.Message
-		pending *pendingOpenAIMessage
+		result      []model.Message
+		pending     *pendingOpenAIMessage
+		toolUseNames map[string]string // tool_use id -> function name, for backfilling tool_result name
 	)
 
 	flush := func() {
@@ -280,6 +281,12 @@ func convertClaudeBlocks(role string, blocks []any) []model.Message {
 		case "tool_use":
 			id, _ := blockMap["id"].(string)
 			name, _ := blockMap["name"].(string)
+			if id != "" && name != "" {
+				if toolUseNames == nil {
+					toolUseNames = make(map[string]string)
+				}
+				toolUseNames[id] = name
+			}
 			msg := ensurePending()
 			var argsStr string
 			if input := blockMap["input"]; input != nil {
@@ -298,6 +305,12 @@ func convertClaudeBlocks(role string, blocks []any) []model.Message {
 		case "server_tool_use":
 			id, _ := blockMap["id"].(string)
 			name, _ := blockMap["name"].(string)
+			if id != "" && name != "" {
+				if toolUseNames == nil {
+					toolUseNames = make(map[string]string)
+				}
+				toolUseNames[id] = name
+			}
 			msg := ensurePending()
 			var argsStr string
 			if input := blockMap["input"]; input != nil {
@@ -325,6 +338,16 @@ func convertClaudeBlocks(role string, blocks []any) []model.Message {
 		case "tool_result":
 			flush()
 			if toolMsg := convertClaudeToolResultBlock(blockMap); toolMsg != nil {
+				// Claude's tool_result block does not contain a "name" field;
+				// backfill it from the tool_use id→name mapping so that providers
+				// like DeepSeek and MiniMax (which require "name" on role:"tool"
+				// messages) don't reject the request.
+				if toolMsg.Name == nil && toolUseNames != nil {
+					if fnName, ok := toolUseNames[toolMsg.ToolCallId]; ok && fnName != "" {
+						nameCopy := fnName
+						toolMsg.Name = &nameCopy
+					}
+				}
 				result = append(result, *toolMsg)
 			}
 		default:
