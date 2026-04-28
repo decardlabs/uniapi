@@ -442,10 +442,14 @@ func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, request *model.ClaudeRequ
 	isDeepSeek := shouldNormalizeToolMessageContentForDeepSeek(metaInfo, openaiRequest)
 	if isDeepSeek {
 		normalizeClaudeThinkingForDeepSeek(gmw.GetLogger(c), openaiRequest)
-		// DeepSeek requires reasoning_content on all assistant messages when
-		// thinking mode is active. Claude Code does not replay reasoning_content
-		// from previous turns, so inject empty values.
-		if openaiRequest.Thinking != nil && openaiRequest.Thinking.Type != "disabled" {
+		// DeepSeek V4 enables thinking mode by default even when the request
+		// omits the "thinking" field entirely. Claude Code never replays
+		// reasoning_content from previous turns, so we must always inject
+		// missing reasoning_content for DeepSeek to avoid 400 errors.
+		//
+		// We only skip injection when thinking is explicitly disabled.
+		thinkingDisabled := openaiRequest.Thinking != nil && openaiRequest.Thinking.Type == "disabled"
+		if !thinkingDisabled {
 			injectMissingReasoningContentForClaudePath(c, openaiRequest)
 		}
 	}
