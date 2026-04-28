@@ -4,7 +4,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/Laisky/errors/v2"
 	"github.com/gin-gonic/gin"
 
 	"github.com/songquanpeng/one-api/relay/adaptor"
@@ -38,8 +37,7 @@ func (a *Adaptor) ConvertImageRequest(c *gin.Context, request *model.ImageReques
 }
 
 func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, request *model.ClaudeRequest) (any, error) {
-	// Minimax adapter is not fully implemented yet
-	return nil, errors.New("Claude Messages API not implemented for Minimax adapter")
+	return openai_compatible.ConvertClaudeRequest(c, request)
 }
 
 func (a *Adaptor) DoRequest(c *gin.Context, meta *meta.Meta, requestBody io.Reader) (*http.Response, error) {
@@ -47,13 +45,12 @@ func (a *Adaptor) DoRequest(c *gin.Context, meta *meta.Meta, requestBody io.Read
 }
 
 func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, meta *meta.Meta) (usage *model.Usage, err *model.ErrorWithStatusCode) {
-	// MiniMax uses OpenAI-compatible response format (supports both stream & non-stream)
-	if meta.IsStream {
-		err, usage = openai_compatible.StreamHandler(c, resp, meta.PromptTokens, meta.ActualModelName)
-	} else {
-		err, usage = openai_compatible.Handler(c, resp, meta.PromptTokens, meta.ActualModelName)
-	}
-	return
+	return openai_compatible.HandleClaudeMessagesResponse(c, resp, meta, func(c *gin.Context, resp *http.Response, promptTokens int, modelName string) (*model.ErrorWithStatusCode, *model.Usage) {
+		if meta.IsStream {
+			return openai_compatible.StreamHandler(c, resp, promptTokens, modelName)
+		}
+		return openai_compatible.Handler(c, resp, promptTokens, modelName)
+	})
 }
 
 func (a *Adaptor) GetModelList() []string {
