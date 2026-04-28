@@ -279,8 +279,35 @@ func (a *Adaptor) ConvertImageRequest(c *gin.Context, request *model.ImageReques
 }
 
 func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, request *model.ClaudeRequest) (any, error) {
-	// Use the shared OpenAI-compatible Claude Messages conversion
-	return openai_compatible.ConvertClaudeRequest(c, request)
+	// 1. Shared Claude Messages → OpenAI conversion
+	converted, err := openai_compatible.ConvertClaudeRequest(c, request)
+	if err != nil {
+		return nil, errors.Wrap(err, "convert claude request")
+	}
+
+	openaiReq, ok := converted.(*model.GeneralOpenAIRequest)
+	if !ok {
+		return converted, nil
+	}
+
+	// 2. DeepSeek-specific: normalize thinking config from original Claude request
+	normalizeDeepSeekThinkingConfigFromOriginal(c, openaiReq)
+
+	// 3. DeepSeek-specific: normalize tool message content to strings
+	normalizeDeepSeekToolMessageContent(c, openaiReq)
+
+	// 4. DeepSeek V4 enables thinking mode by default even when the request
+	// omits the "thinking" field entirely. We only skip injection when thinking
+	// is explicitly set to "disabled".
+	thinkingDisabled := openaiReq.Thinking != nil && openaiReq.Thinking.Type == "disabled"
+	if !thinkingDisabled {
+		injectMissingReasoningContent(c, openaiReq)
+	}
+
+	// 5. Remove top-level Thinking field (not a valid OpenAI Chat Completions param)
+	openaiReq.Thinking = nil
+
+	return openaiReq, nil
 }
 
 func (a *Adaptor) DoRequest(c *gin.Context, meta *meta.Meta, requestBody io.Reader) (*http.Response, error) {
