@@ -211,10 +211,6 @@ func buildToolUseNames(messages []model.ClaudeMessage) map[string]string {
 	for _, msg := range messages {
 		blocks, ok := msg.Content.([]any)
 		if !ok {
-			// DEBUG: log non-array content types
-			if msg.Role == "assistant" {
-				fmt.Printf("[BUILD-DEBUG] skip non-array content in %s message: %T\n", msg.Role, msg.Content)
-			}
 			continue
 		}
 		for _, raw := range blocks {
@@ -228,25 +224,11 @@ func buildToolUseNames(messages []model.ClaudeMessage) map[string]string {
 			}
 			id, _ := block["id"].(string)
 			name, _ := block["name"].(string)
-			// DEBUG: print full block when name is empty
-			if id != "" && name == "" {
-				if b, err := json.Marshal(block); err == nil {
-					fmt.Printf("[BUILD-DEBUG] tool_use with empty name, full block: %s\n", string(b))
-				}
-			}
-			fmt.Printf("[BUILD-DEBUG] found %s: id=%q name=%q in role=%s\n", bt, id, name, msg.Role)
 			if id != "" && name != "" {
 				m[id] = name
 			}
 		}
 	}
-	fmt.Printf("[BUILD-DEBUG] total tool_use entries: %d, keys=%v\n", len(m), func() []string {
-		keys := make([]string, 0, len(m))
-		for k := range m {
-			keys = append(keys, k)
-		}
-		return keys
-	}())
 	return m
 }
 
@@ -338,6 +320,12 @@ func convertClaudeBlocks(role string, blocks []any, toolUseNames map[string]stri
 			if id != "" && name != "" && toolUseNames != nil {
 				toolUseNames[id] = name
 			}
+			// Skip tool_use blocks with empty name — they are not real function
+			// calls (e.g. Claude Code internal placeholders like tool_2) and
+			// OpenAI format requires a function name on every tool_call.
+			if name == "" {
+				continue
+			}
 			msg := ensurePending()
 			var argsStr string
 			if input := blockMap["input"]; input != nil {
@@ -358,6 +346,9 @@ func convertClaudeBlocks(role string, blocks []any, toolUseNames map[string]stri
 			name, _ := blockMap["name"].(string)
 			if id != "" && name != "" && toolUseNames != nil {
 				toolUseNames[id] = name
+			}
+			if name == "" {
+				continue
 			}
 			msg := ensurePending()
 			var argsStr string
@@ -396,18 +387,13 @@ func convertClaudeBlocks(role string, blocks []any, toolUseNames map[string]stri
 						toolMsg.Name = &nameCopy
 					}
 				}
-				if toolMsg.Name == nil {
-					// TEMP DEBUG: log unbackfilled tool messages
-					_ = fmt.Sprintf("DEBUG tool_result missing name: ToolCallId=%q, map_keys=%v", toolMsg.ToolCallId, func() []string {
-						keys := make([]string, 0, len(toolUseNames))
-						for k := range toolUseNames {
-							keys = append(keys, k)
-						}
-						return keys
-					}())
-					fmt.Printf("[CLAUDE-DEBUG] tool_result missing name: ToolCallId=%q role=%s\n", toolMsg.ToolCallId, toolMsg.Role)
+				// Skip tool messages without a name — they correspond to
+				// internal placeholders (e.g. Claude Code's empty-name
+				// tool_use) that have no real function name and would cause
+				// upstream providers to reject the request.
+				if toolMsg.Name != nil {
+					result = append(result, *toolMsg)
 				}
-				result = append(result, *toolMsg)
 			}
 		default:
 			// Preserve unexpected blocks as JSON text to avoid silent data loss
