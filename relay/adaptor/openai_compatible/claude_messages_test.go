@@ -513,7 +513,7 @@ func TestConvertClaudeBlocks_ThinkingMappedToReasoning(t *testing.T) {
 		},
 	}
 
-	messages := convertClaudeBlocks("assistant", blocks)
+	messages := convertClaudeBlocks("assistant", blocks, nil)
 	require.Len(t, messages, 1)
 
 	msg := messages[0]
@@ -545,7 +545,7 @@ func TestConvertClaudeBlocks_RedactedThinkingHandled(t *testing.T) {
 		},
 	}
 
-	messages := convertClaudeBlocks("assistant", blocks)
+	messages := convertClaudeBlocks("assistant", blocks, nil)
 	require.Len(t, messages, 1)
 
 	msg := messages[0]
@@ -574,7 +574,7 @@ func TestConvertClaudeBlocks_ThinkingWithToolUse(t *testing.T) {
 		},
 	}
 
-	messages := convertClaudeBlocks("assistant", blocks)
+	messages := convertClaudeBlocks("assistant", blocks, nil)
 	require.Len(t, messages, 1)
 
 	msg := messages[0]
