@@ -147,10 +147,10 @@ func TestConvertRequest_ConvertsReasoningToReasoningContent(t *testing.T) {
 
 	converted, ok := convertedAny.(*model.GeneralOpenAIRequest)
 	require.True(t, ok)
-	// reasoning should be converted to reasoning_content
-	require.Nil(t, converted.Messages[1].Reasoning)
-	require.NotNil(t, converted.Messages[1].ReasoningContent)
-	require.Equal(t, reasoningText, *converted.Messages[1].ReasoningContent)
+	// thinking mode is not active here, so reasoning fields are preserved
+	require.NotNil(t, converted.Messages[1].Reasoning)
+	require.Nil(t, converted.Messages[1].ReasoningContent)
+	require.Equal(t, reasoningText, *converted.Messages[1].Reasoning)
 }
 
 func TestConvertRequest_ConvertsThinkingToReasoningContent(t *testing.T) {
@@ -179,10 +179,10 @@ func TestConvertRequest_ConvertsThinkingToReasoningContent(t *testing.T) {
 
 	converted, ok := convertedAny.(*model.GeneralOpenAIRequest)
 	require.True(t, ok)
-	// thinking should be converted to reasoning_content
-	require.Nil(t, converted.Messages[1].Thinking)
-	require.NotNil(t, converted.Messages[1].ReasoningContent)
-	require.Equal(t, thinkingText, *converted.Messages[1].ReasoningContent)
+	// thinking mode is not active here, so thinking fields are preserved
+	require.NotNil(t, converted.Messages[1].Thinking)
+	require.Nil(t, converted.Messages[1].ReasoningContent)
+	require.Equal(t, thinkingText, *converted.Messages[1].Thinking)
 }
 
 func TestConvertRequest_PreservesExistingReasoningContent(t *testing.T) {

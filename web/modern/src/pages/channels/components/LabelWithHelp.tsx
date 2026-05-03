@@ -2,9 +2,9 @@ import { Info } from 'lucide-react';
 import { FormLabel } from '@/components/ui/form';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
-export const LabelWithHelp = ({ label, help }: { label: string; help: string }) => (
+export const LabelWithHelp = ({ label, help, htmlFor }: { label: string; help: string; htmlFor?: string }) => (
   <div className="flex items-center gap-1">
-    <FormLabel>{label}</FormLabel>
+    <FormLabel htmlFor={htmlFor}>{label}</FormLabel>
     <Tooltip>
       <TooltipTrigger asChild>
         <Info className="h-4 w-4 text-muted-foreground cursor-help" aria-label={`Help: ${label}`} />

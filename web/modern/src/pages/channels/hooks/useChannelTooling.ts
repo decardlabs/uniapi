@@ -114,7 +114,11 @@ export const useChannelTooling = (
       collectPricingKeys(parsedToolingConfig.pricing);
     }
 
-    return Array.from(defaults).sort((a, b) => a.localeCompare(b));
+    return Array.from(defaults).sort((a, b) => {
+      const aStr = typeof a === 'string' ? a : '';
+      const bStr = typeof b === 'string' ? b : '';
+      return aStr.localeCompare(bStr);
+    });
   }, [parsedDefaultTooling, parsedToolingConfig]);
 
   const toolEditorDisabled = parsedToolingConfig === null;

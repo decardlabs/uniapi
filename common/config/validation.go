@@ -89,11 +89,11 @@ func ValidateLogRotationInterval(value string) error {
 }
 
 // ValidateTheme validates the THEME environment variable.
-// Allowed values: "berry", "air", "modern".
-// Note: "default" is accepted for backward compatibility and redirected to "modern".
+// Allowed values: "modern".
+// Note: "default", "air", and "berry" are accepted for backward compatibility and redirected to "modern".
 func ValidateTheme(value string) error {
-	// Accept "default" for backward compatibility (will be redirected to "modern")
-	if value == "default" {
+	// Accept legacy values for backward compatibility (will be redirected to "modern")
+	if value == "default" || value == "air" || value == "berry" {
 		return nil
 	}
 	if !ValidThemes[value] {

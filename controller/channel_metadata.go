@@ -36,6 +36,10 @@ func GetChannelMetadata(c *gin.Context) {
 	}
 
 	config := channeltype.GetChannelBaseURLConfig(channelType)
+	baseURLEditable := config.Editable
+	if config.URL != "" {
+		baseURLEditable = true
+	}
 	defaultEndpoints := channeltype.DefaultEndpointNamesForChannelType(channelType)
 	allEndpoints := channeltype.AllEndpoints()
 
@@ -44,7 +48,7 @@ func GetChannelMetadata(c *gin.Context) {
 		"message": "",
 		"data": gin.H{
 			"default_base_url":  config.URL,
-			"base_url_editable": config.Editable,
+			"base_url_editable": baseURLEditable,
 			"default_endpoints": defaultEndpoints,
 			"all_endpoints":     allEndpoints,
 		},

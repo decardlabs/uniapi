@@ -53,7 +53,7 @@ export function TopModels({ modelLeaders }: TopModelsProps) {
         {t('dashboard.top_models.title')}
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {items.map((item) => (
+        {(Array.isArray(items) ? items : []).map((item) => (
           <div key={item.label} className={`rounded-lg border border-l-4 ${item.accent} bg-card/70 p-4`}>
             <div className="flex items-center gap-2 mb-2">
               <div className={`p-1.5 rounded-md ${item.iconBg}`}>

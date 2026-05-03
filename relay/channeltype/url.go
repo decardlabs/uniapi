@@ -27,8 +27,8 @@ var ChannelBaseURLConfigs = []ChannelBaseURLConfig{
 	{URL: "https://api.aigc2d.com", Editable: true},                                    // 13 AIGC2D
 	{URL: "https://api.anthropic.com", Editable: true},                                 // 14 Anthropic
 	{URL: "https://aip.baidubce.com", Editable: false},                                 // 15 Baidu
-	{URL: "https://open.bigmodel.cn/api/paas/v4", Editable: false},                    // 16 Zhipu
-	{URL: "https://dashscope.aliyuncs.com/compatible-mode/v1", Editable: false},         // 17 Ali
+	{URL: "https://open.bigmodel.cn/api/paas/v4", Editable: false},                     // 16 Zhipu
+	{URL: "https://dashscope.aliyuncs.com/compatible-mode/v1", Editable: false},        // 17 Ali
 	{URL: "", Editable: false},                                                         // 18 Xunfei
 	{URL: "https://ai.360.cn", Editable: false},                                        // 19 AI360
 	{URL: "https://openrouter.ai/api", Editable: true},                                 // 20 OpenRouter
@@ -38,7 +38,7 @@ var ChannelBaseURLConfigs = []ChannelBaseURLConfig{
 	{URL: "https://generativelanguage.googleapis.com", Editable: false},                // 24 Gemini
 	{URL: "https://api.moonshot.cn/v1", Editable: false},                               // 25 Moonshot
 	{URL: "https://api.baichuan-ai.com", Editable: false},                              // 26 Baichuan
-	{URL: "https://api.minimax.chat", Editable: true},                                // 27 Minimax
+	{URL: "https://api.minimaxi.com/v1", Editable: true},                               // 27 Minimax
 	{URL: "https://api.mistral.ai", Editable: false},                                   // 28 Mistral
 	{URL: "https://api.groq.com/openai", Editable: false},                              // 29 Groq
 	{URL: "http://localhost:11434", Editable: true},                                    // 30 Ollama - often self-hosted
@@ -48,6 +48,7 @@ var ChannelBaseURLConfigs = []ChannelBaseURLConfig{
 	{URL: "https://api.coze.com", Editable: true},                                      // 34 Coze
 	{URL: "https://api.cohere.ai", Editable: false},                                    // 35 Cohere
 	{URL: "https://api.deepseek.com", Editable: false},                                 // 36 DeepSeek
+	{URL: "https://open.bigmodel.cn/api/paas/v4", Editable: false},                     // 37 GLM
 	{URL: "https://api.cloudflare.com", Editable: false},                               // 37 Cloudflare
 	{URL: "https://api-free.deepl.com", Editable: true},                                // 38 DeepL
 	{URL: "https://api.together.xyz", Editable: false},                                 // 39 TogetherAI

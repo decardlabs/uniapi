@@ -80,7 +80,7 @@ export function OverviewCards({
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
-      {cards.map((card) => (
+      {(Array.isArray(cards) ? cards : []).map((card) => (
         <div key={card.title} className={cn(
           'bg-card rounded-lg border border-l-4 p-4 transition-shadow hover:shadow-sm',
           card.accent,

@@ -46,8 +46,8 @@ func UpdateOption(c *gin.Context) {
 	}
 	switch option.Key {
 	case "Theme":
-		// Backward compatibility: redirect "default" to "modern"
-		if option.Value == "default" {
+		// Backward compatibility: redirect legacy themes to modern.
+		if option.Value == "default" || option.Value == "air" || option.Value == "berry" {
 			option.Value = "modern"
 		}
 		if !config.ValidThemes[option.Value] {

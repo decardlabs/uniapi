@@ -103,7 +103,7 @@ export function UsageCharts({
           >
             {label}
           </div>
-          {filtered.map((entry, index) => (
+          {(Array.isArray(filtered) ? filtered : []).map((entry, index) => (
             <div
               key={`${entry.name ?? 'series'}-${index}`}
               style={{
@@ -157,7 +157,7 @@ export function UsageCharts({
             <YAxis tickLine={false} axisLine={false} width={60} fontSize={12} tickFormatter={formatStackedTick} />
             <Tooltip content={stackedTooltip} />
             <Legend wrapperStyle={{ maxHeight: 80, overflowY: 'auto' }} />
-            {modelKeys.map((m, idx) => (
+            {(Array.isArray(modelKeys) ? modelKeys : []).map((m, idx) => (
               <Bar key={m} dataKey={m} stackId="statistics-models" fill={barColor(idx)} radius={[2, 2, 0, 0]} />
             ))}
           </BarChart>
@@ -176,7 +176,7 @@ export function UsageCharts({
             <YAxis tickLine={false} axisLine={false} width={60} fontSize={12} tickFormatter={formatStackedTick} />
             <Tooltip content={stackedTooltip} />
             <Legend wrapperStyle={{ maxHeight: 80, overflowY: 'auto' }} />
-            {userKeys.map((userKey, idx) => (
+            {(Array.isArray(userKeys) ? userKeys : []).map((userKey, idx) => (
               <Bar key={userKey} dataKey={userKey} stackId="statistics-users" fill={barColor(idx)} radius={[2, 2, 0, 0]} />
             ))}
           </BarChart>
@@ -195,7 +195,7 @@ export function UsageCharts({
             <YAxis tickLine={false} axisLine={false} width={60} fontSize={12} tickFormatter={formatStackedTick} />
             <Tooltip content={stackedTooltip} />
             <Legend wrapperStyle={{ maxHeight: 80, overflowY: 'auto' }} />
-            {tokenKeys.map((tokenKey, idx) => (
+            {(Array.isArray(tokenKeys) ? tokenKeys : []).map((tokenKey, idx) => (
               <Bar key={tokenKey} dataKey={tokenKey} stackId="statistics-tokens" fill={barColor(idx)} radius={[2, 2, 0, 0]} />
             ))}
           </BarChart>

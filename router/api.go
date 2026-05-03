@@ -110,6 +110,9 @@ func SetApiRouter(router *gin.Engine) {
 			channelRoute.DELETE("/disabled", controller.DeleteDisabledChannel)
 			channelRoute.DELETE("/:id", controller.DeleteChannel)
 		}
+
+		// 新增：渠道类型动态接口（无需鉴权，便于前端页面加载）
+		apiRouter.GET("/channel/types", controller.GetChannelTypes)
 		debugRoute := apiRouter.Group("/debug")
 		debugRoute.Use(middleware.AdminAuth())
 		{
@@ -139,7 +142,7 @@ func SetApiRouter(router *gin.Engine) {
 		{
 			costRoute.GET("/request/:request_id", controller.GetRequestCost)
 		}
-			// Recharge routes (replaces redemption system)
+		// Recharge routes (replaces redemption system)
 		rechargeRoute := apiRouter.Group("/recharge")
 		{
 			// User: submit & view own requests
@@ -168,16 +171,16 @@ func SetApiRouter(router *gin.Engine) {
 		}
 		// Redemption routes (deprecated - hidden)
 		/*
-		redemptionRoute := apiRouter.Group("/redemption")
-		redemptionRoute.Use(middleware.AdminAuth())
-		{
-			redemptionRoute.GET("/", controller.GetAllRedemptions)
-			redemptionRoute.GET("/search", controller.SearchRedemptions)
-			redemptionRoute.GET("/:id", controller.GetRedemption)
-			redemptionRoute.POST("/", controller.AddRedemption)
-			redemptionRoute.PUT("/", controller.UpdateRedemption)
-			redemptionRoute.DELETE("/:id", controller.DeleteRedemption)
-		}
+			redemptionRoute := apiRouter.Group("/redemption")
+			redemptionRoute.Use(middleware.AdminAuth())
+			{
+				redemptionRoute.GET("/", controller.GetAllRedemptions)
+				redemptionRoute.GET("/search", controller.SearchRedemptions)
+				redemptionRoute.GET("/:id", controller.GetRedemption)
+				redemptionRoute.POST("/", controller.AddRedemption)
+				redemptionRoute.PUT("/", controller.UpdateRedemption)
+				redemptionRoute.DELETE("/:id", controller.DeleteRedemption)
+			}
 		*/
 		logRoute := apiRouter.Group("/log")
 		logRoute.GET("/", middleware.AdminAuth(), controller.GetAllLogs)

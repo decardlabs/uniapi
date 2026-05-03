@@ -34,7 +34,7 @@ func TestGetChannelMetadata(t *testing.T) {
 		require.True(t, data["base_url_editable"].(bool))
 	})
 
-	t.Run("returns non-editable for fixed base URL channels", func(t *testing.T) {
+	t.Run("returns editable when fixed default base URL exists", func(t *testing.T) {
 		t.Parallel()
 		// Channel type 11 (PaLM) has a fixed base URL
 		req, _ := http.NewRequest(http.MethodGet, "/api/channel/metadata?type=11", nil)
@@ -50,7 +50,7 @@ func TestGetChannelMetadata(t *testing.T) {
 		require.True(t, response["success"].(bool))
 		data := response["data"].(map[string]interface{})
 		require.Equal(t, "https://generativelanguage.googleapis.com", data["default_base_url"])
-		require.False(t, data["base_url_editable"].(bool))
+		require.True(t, data["base_url_editable"].(bool))
 	})
 
 	t.Run("returns editable base URL for MiniMax", func(t *testing.T) {
@@ -106,6 +106,25 @@ func TestGetChannelMetadata(t *testing.T) {
 	t.Run("returns empty values for out-of-range type", func(t *testing.T) {
 		t.Parallel()
 		req, _ := http.NewRequest(http.MethodGet, "/api/channel/metadata?type=9999", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+
+		var response map[string]interface{}
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		require.NoError(t, err)
+
+		require.True(t, response["success"].(bool))
+		data := response["data"].(map[string]interface{})
+		require.Equal(t, "", data["default_base_url"])
+		require.False(t, data["base_url_editable"].(bool))
+	})
+
+	t.Run("keeps editable false when no default URL exists and provider is non-editable", func(t *testing.T) {
+		t.Parallel()
+		// Channel type 33 (AwsClaude) has no default URL and should stay non-editable.
+		req, _ := http.NewRequest(http.MethodGet, "/api/channel/metadata?type=33", nil)
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 

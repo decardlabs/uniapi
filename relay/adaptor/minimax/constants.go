@@ -6,13 +6,16 @@ import (
 )
 
 // ModelRatios contains all supported models and their pricing ratios
-// Default: input $0.30/M tokens, output $1.50/M tokens (USD)
+// Source: https://platform.minimaxi.com/document/price
 var ModelRatios = map[string]adaptor.ModelConfig{
-	// MiniMax M2 series (2026-04)
-	// Based on https://api.minimax.chat/v1
-	"MiniMax-M2.7":            {Ratio: 0.15 * ratio.MilliTokensUsd, CompletionRatio: 5},
+	// MiniMax-Text-01: ¥0.6/M input, ¥3/M output
+	"MiniMax-Text-01": {Ratio: 0.6 * ratio.MilliTokensRmb, CompletionRatio: 5},
+	// MiniMax-M1 (reasoning model): ¥2.5/M input, ¥10/M output
+	"MiniMax-M1": {Ratio: 2.5 * ratio.MilliTokensRmb, CompletionRatio: 4},
+	// MiniMax M2 series (2026-04) — pricing TBD, placeholder values
+	"MiniMax-M2.7":           {Ratio: 0.15 * ratio.MilliTokensUsd, CompletionRatio: 5},
 	"MiniMax-M2.7-highspeed": {Ratio: 0.15 * ratio.MilliTokensUsd, CompletionRatio: 5},
-	"MiniMax-M2.5":            {Ratio: 0.15 * ratio.MilliTokensUsd, CompletionRatio: 5},
+	"MiniMax-M2.5":           {Ratio: 0.15 * ratio.MilliTokensUsd, CompletionRatio: 5},
 	"MiniMax-M2.5-highspeed": {Ratio: 0.15 * ratio.MilliTokensUsd, CompletionRatio: 5},
 }
 

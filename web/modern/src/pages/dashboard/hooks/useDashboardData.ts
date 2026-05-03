@@ -124,9 +124,9 @@ export const useDashboardData = () => {
 
       const { success, data, message } = res.data;
       if (success) {
-        const logs = data?.logs || data || [];
-        const userLogs = data?.user_logs || [];
-        const tokenLogs = data?.token_logs || [];
+        const logs = Array.isArray(data?.logs) ? data.logs : Array.isArray(data) ? data : [];
+        const userLogs = Array.isArray(data?.user_logs) ? data.user_logs : [];
+        const tokenLogs = Array.isArray(data?.token_logs) ? data.token_logs : [];
         setRows(
           logs.map((row: any) => ({
             day: row.Day,

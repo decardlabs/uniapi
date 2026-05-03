@@ -100,7 +100,7 @@ export function OtherSettings() {
 
   const checkUpdate = async () => {
     try {
-      const res = await fetch('https://api.github.com/repos/Laisky/one-api/releases/latest');
+      const res = await fetch('https://api.github.com/repos/decardlabs/uniapi/releases/latest');
       const data = await res.json();
       if (data.tag_name) {
         setUpdateData(data);
@@ -111,7 +111,7 @@ export function OtherSettings() {
   };
 
   const openGitHubRelease = () => {
-    window.open('https://github.com/Laisky/one-api/releases/latest', '_blank');
+    window.open('https://github.com/decardlabs/uniapi/releases/latest', '_blank');
   };
 
   useEffect(() => {

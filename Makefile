@@ -1,3 +1,15 @@
+# Version from git tag (e.g. v1.2.3), falls back to commit hash if no tag
+GIT_TAG    := $(shell git describe --tags --always 2>/dev/null || echo "dev")
+GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+BUILD_TIME := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+LDFLAGS    := -X github.com/songquanpeng/one-api/common.Version=$(GIT_TAG) \
+              -X github.com/songquanpeng/one-api/common.BuildCommit=$(GIT_COMMIT) \
+              -X github.com/songquanpeng/one-api/common.BuildTime=$(BUILD_TIME)
+
+.PHONY: build
+build:
+	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o uniapi .
+
 .PHONY: install
 install:
 	# https://golangci-lint.run/docs/welcome/install/local/
@@ -20,71 +32,42 @@ lint:
 	golangci-lint run -c .golangci.yml
 	govulncheck ./...
 
-# Development targets - Template specific
-.PHONY: dev-air dev-berry dev-modern
-dev-air:
-	@./web/air/dev.sh dev
-
-dev-berry:
-	@./web/berry/dev.sh dev
-
+# Development targets
+.PHONY: dev-modern
 dev-modern:
-	@cd web/modern && npm run dev
+	@cd web/modern && yarn dev
 
 # Default dev target
 .PHONY: dev
 dev: dev-modern
 
-# Build targets - Template specific
-.PHONY: build-frontend-air build-frontend-berry build-frontend-modern
-build-frontend-air:
-	@./web/air/dev.sh build
-
-build-frontend-berry:
-	@./web/berry/dev.sh build
-
+# Build targets
+.PHONY: build-frontend-modern
 build-frontend-modern:
-	@cd web/modern && yarn && yarn build
+	@cd web/modern && yarn && VITE_APP_VERSION=$(GIT_TAG) yarn build
 
 # Default build target
 .PHONY: build-frontend
 build-frontend: build-frontend-modern
 
-# Build development versions - Template specific
-.PHONY: build-frontend-dev-air build-frontend-dev-berry build-frontend-dev-modern
-build-frontend-dev-air:
-	@./web/air/dev.sh build-dev
-
-build-frontend-dev-berry:
-	@./web/berry/dev.sh build-dev
-
+# Build development version
+.PHONY: build-frontend-dev-modern
 build-frontend-dev-modern:
-	@cd web/modern && npm run build
+	@cd web/modern && yarn build
 
 # Default dev build target
 .PHONY: build-frontend-dev
 build-frontend-dev: build-frontend-dev-modern
 
-# Build all templates
-.PHONY: build-all-templates
-build-all-templates: build-frontend-air build-frontend-berry build-frontend-modern
-
 # Help target
 .PHONY: help-dev
 help-dev:
 	@echo "Development targets:"
-	@echo "  dev-air           Start air template development server (port 3002)"
-	@echo "  dev-berry         Start berry template development server (port 3003)"
-	@echo "  dev-modern        Start modern template development server (port 3001)"
+	@echo "  dev-modern        Start modern template development server"
 	@echo "  dev               Start modern template development server (default)"
 	@echo ""
 	@echo "Build targets:"
-	@echo "  build-frontend-air         Build air template for production"
-	@echo "  build-frontend-berry       Build berry template for production"
 	@echo "  build-frontend-modern      Build modern template for production"
-	@echo "  build-all-templates        Build all templates for production"
 	@echo ""
 	@echo "Development build targets:"
-	@echo "  build-frontend-dev-air     Build air template for development"
-	@echo "  build-frontend-dev-berry   Build berry template for development"
 	@echo "  build-frontend-dev-modern  Build modern template for development"

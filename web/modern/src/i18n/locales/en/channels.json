@@ -1,0 +1,18 @@
+{
+  "edit": {
+    "template": {
+      "api_key": {
+        "label": "API Key",
+        "help": "The API key for authentication with the provider."
+      },
+      "region": {
+        "label": "Region",
+        "help": "The region for the cloud provider."
+      },
+      "custom_field": {
+        "label": "Custom Field",
+        "help": "A custom field for demonstration."
+      }
+    }
+  }
+}

@@ -12,64 +12,21 @@ export interface Model {
   name: string;
 }
 
-export const CHANNEL_TYPES: ChannelType[] = [
-  {
-    key: 20,
-    text: 'OpenRouter',
-    value: 20,
-    color: 'black',
-    description: 'OpenRouter aggregated model marketplace.',
-  },
-  {
-    key: 36,
-    text: 'DeepSeek',
-    value: 36,
-    color: 'blue',
-    description: 'DeepSeek native API (deepseek-v4-pro, deepseek-v4-flash).',
-  },
-  {
-    key: 23,
-    text: 'Tencent Hunyuan (腾讯混元)',
-    value: 23,
-    color: 'blue',
-    description: 'Tencent Hunyuan native API.',
-  },
-  {
-    key: 16,
-    text: 'Zhipu GLM',
-    value: 16,
-    color: 'violet',
-    description: 'Zhipu GLM (智谱) native API — glm-5.1.',
-  },
-  {
-    key: 25,
-    text: 'Moonshot AI (KIMI)',
-    value: 25,
-    color: 'black',
-    description: 'Moonshot/Kimi native API — kimi-k2.6.',
-  },
-  {
-    key: 27,
-    text: 'MiniMax',
-    value: 27,
-    color: 'red',
-    description: 'MiniMax M2 series (MiniMax-M2.7, MiniMax-M2.5).',
-  },
-  {
-    key: 17,
-    text: 'Alibaba Tongyi Qianwen (Qwen)',
-    value: 17,
-    color: 'orange',
-    description: 'DashScope Qwen API — qwen3.6-plus, qwen3.6-flash.',
-  },
-  {
-    key: 50,
-    text: 'OpenAI Compatible',
-    value: 50,
-    color: 'olive',
-    description: 'Custom api_base; OpenAI-style API with ChatCompletion or Response API payloads.',
-  },
-];
+
+import api from '@/lib/api';
+
+/**
+ * Fetch channel types from backend API.
+ * Returns: Promise<ChannelType[]>
+ */
+export async function fetchChannelTypes(): Promise<ChannelType[]> {
+  const res = await api.get('/api/channel/types');
+  // API returns { success: true, data: [...] }
+  if (res.data && Array.isArray(res.data.data)) {
+    return res.data.data;
+  }
+  throw new Error('Failed to fetch channel types');
+}
 
 export const CHANNEL_TYPES_WITH_DEDICATED_BASE_URL = new Set<number>([50]);
 export const CHANNEL_TYPES_WITH_CUSTOM_KEY_FIELD = new Set<number>();
@@ -100,7 +57,7 @@ export const MAINSTREAM_MODELS: Record<number, string[]> = {
   // Moonshot / Kimi
   25: ['kimi-k2.6'],
   // MiniMax
-  27: ['MiniMax-M2.7', 'MiniMax-M2.7-highspeed', 'MiniMax-M2.5', 'MiniMax-M2.5-highspeed'],
+  27: ['MiniMax-Text-01', 'MiniMax-M1', 'MiniMax-M2.7', 'MiniMax-M2.7-highspeed', 'MiniMax-M2.5', 'MiniMax-M2.5-highspeed'],
   // Alibaba Qwen
   17: ['qwen3.6-plus', 'qwen3.6-flash'],
   // OpenAI Compatible (no whitelist — user defines their own models)

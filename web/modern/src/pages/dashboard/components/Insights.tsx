@@ -46,7 +46,7 @@ export function Insights({ rangeInsights, totalModels, totalRequests }: Insights
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-      {items.map((item) => (
+      {(Array.isArray(items) ? items : []).map((item) => (
         <div key={item.label} className={`bg-card rounded-lg border border-l-4 ${item.accent} p-4`}>
           <div className="flex items-center gap-2 mb-2">
             <div className={`p-1.5 rounded-md ${item.iconBg}`}>

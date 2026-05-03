@@ -24,7 +24,26 @@ import (
 
 type channelPayload struct {
 	*model.Channel
+	Other   json.RawMessage `json:"other"`
 	Tooling json.RawMessage `json:"tooling"`
+}
+
+func populateDefaultBaseURL(channel *model.Channel) {
+	if channel == nil || channel.Type < 0 {
+		return
+	}
+	if channel.BaseURL != nil && strings.TrimSpace(*channel.BaseURL) != "" {
+		return
+	}
+	if channel.Type >= len(channeltype.ChannelBaseURLs) {
+		return
+	}
+	defaultURL := strings.TrimSpace(channeltype.ChannelBaseURLs[channel.Type])
+	if defaultURL == "" {
+		return
+	}
+	v := strings.TrimRight(defaultURL, "/")
+	channel.BaseURL = &v
 }
 
 func bindChannelPayload(c *gin.Context) (*model.Channel, json.RawMessage, error) {
@@ -32,7 +51,38 @@ func bindChannelPayload(c *gin.Context) (*model.Channel, json.RawMessage, error)
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		return nil, nil, err
 	}
+
+	if normalizedOther, provided, err := normalizeOtherPayload(payload.Other); err != nil {
+		return nil, nil, err
+	} else if provided {
+		payload.Channel.Other = normalizedOther
+	}
+
 	return payload.Channel, payload.Tooling, nil
+}
+
+func normalizeOtherPayload(raw json.RawMessage) (*string, bool, error) {
+	if raw == nil {
+		return nil, false, nil
+	}
+
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
+		empty := ""
+		return &empty, true, nil
+	}
+
+	var asString string
+	if err := json.Unmarshal(trimmed, &asString); err == nil {
+		return &asString, true, nil
+	}
+
+	if json.Valid(trimmed) {
+		serialized := string(trimmed)
+		return &serialized, true, nil
+	}
+
+	return nil, true, json.Unmarshal(trimmed, &asString)
 }
 
 func parseToolingConfigPayload(raw json.RawMessage) (*model.ChannelToolingConfig, bool, error) {
@@ -217,6 +267,14 @@ func AddChannel(c *gin.Context) {
 		})
 		return
 	}
+	populateDefaultBaseURL(channel)
+	if err := ValidateChannelParamsByTemplate(channel); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
 
 	// Disallow empty channel name
 	if strings.TrimSpace(channel.Name) == "" {
@@ -282,17 +340,7 @@ func AddChannel(c *gin.Context) {
 		}
 		localChannel := *channel
 		localChannel.Key = key
-		// Auto-populate default BaseURL on creation if blank and default exists
-		if (localChannel.BaseURL == nil || *localChannel.BaseURL == "") && localChannel.Type >= 0 {
-			// Defensive bounds check against channeltype.ChannelBaseURLs
-			if localChannel.Type < len(channeltype.ChannelBaseURLs) {
-				def := channeltype.ChannelBaseURLs[localChannel.Type]
-				if strings.TrimSpace(def) != "" {
-					v := strings.TrimRight(def, "/")
-					localChannel.BaseURL = &v
-				}
-			}
-		}
+		populateDefaultBaseURL(&localChannel)
 		channels = append(channels, localChannel)
 	}
 	err = model.BatchInsertChannels(channels)
@@ -346,10 +394,30 @@ func DeleteDisabledChannel(c *gin.Context) {
 
 // UpdateChannel updates the channel configuration or status based on the posted payload.
 func UpdateChannel(c *gin.Context) {
-	lg := gmw.GetLogger(c)
-	statusOnly := c.Query("status_only")
 	channel, toolingRaw, err := bindChannelPayload(c)
 	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+	lg := gmw.GetLogger(c)
+	statusOnly := c.Query("status_only")
+
+	// Handle status-only update early, before full validation which requires channel type.
+	if statusOnly != "" {
+		if channel.Id == 0 {
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": "Channel id is required"})
+			return
+		}
+		model.UpdateChannelStatusById(channel.Id, channel.Status)
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
+		return
+	}
+
+	populateDefaultBaseURL(channel)
+	if err := ValidateChannelParamsByTemplate(channel); err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": err.Error(),
@@ -367,17 +435,6 @@ func UpdateChannel(c *gin.Context) {
 			})
 			return
 		}
-	}
-
-	if statusOnly != "" {
-		// Only update status safely
-		if channel.Id == 0 {
-			c.JSON(http.StatusOK, gin.H{"success": false, "message": "Channel id is required"})
-			return
-		}
-		model.UpdateChannelStatusById(channel.Id, channel.Status)
-		c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
-		return
 	}
 
 	// Disallow empty name on full update

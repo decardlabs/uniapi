@@ -1,28 +1,17 @@
 package openai
 
 import (
-	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/Laisky/zap"
-	gmw "github.com/Laisky/gin-middlewares/v7"
 	"github.com/gin-gonic/gin"
 
+	"github.com/songquanpeng/one-api/common/ctxkey"
 	"github.com/songquanpeng/one-api/relay/adaptor/common/deepseekcompat"
 	"github.com/songquanpeng/one-api/relay/channeltype"
 	"github.com/songquanpeng/one-api/relay/meta"
 	"github.com/songquanpeng/one-api/relay/model"
 )
-
-type deepSeekToolNormalizeLogger interface {
-	Debug(msg string, fields ...zap.Field)
-}
-
-// deepSeekThinkingNormalizeLogger defines the logger interface used by DeepSeek thinking normalization.
-type deepSeekThinkingNormalizeLogger interface {
-	Debug(msg string, fields ...zap.Field)
-}
 
 // shouldNormalizeToolMessageContentForDeepSeek reports whether tool message content should
 // be normalized to string for DeepSeek-compatible upstreams.
@@ -48,68 +37,9 @@ func shouldNormalizeToolMessageContentForDeepSeek(metaInfo *meta.Meta, request *
 	return false
 }
 
-// normalizeDeepSeekToolMessageContent converts non-string tool message content into strings.
-func normalizeDeepSeekToolMessageContent(lg deepSeekToolNormalizeLogger, request *model.GeneralOpenAIRequest) {
-	if request == nil {
-		return
-	}
-
-	toolMessageCount := 0
-	normalizedCount := 0
-
-	for idx := range request.Messages {
-		message := &request.Messages[idx]
-		if message.Role != "tool" {
-			continue
-		}
-
-		toolMessageCount++
-		if _, ok := message.Content.(string); ok {
-			continue
-		}
-
-		normalized := message.StringContent()
-		if normalized == "" {
-			if message.Content == nil {
-				normalized = ""
-			} else {
-				encoded, err := json.Marshal(message.Content)
-				if err != nil {
-					normalized = fmt.Sprintf("%v", message.Content)
-					if lg != nil {
-						lg.Debug("deepseek tool message fallback marshal failed",
-							zap.Int("message_index", idx),
-							zap.String("original_content_type", fmt.Sprintf("%T", message.Content)),
-							zap.Error(err),
-						)
-					}
-				} else {
-					normalized = string(encoded)
-				}
-			}
-		}
-
-		message.Content = normalized
-		normalizedCount++
-		if lg != nil {
-			lg.Debug("normalized deepseek tool message content",
-				zap.Int("message_index", idx),
-				zap.Int("normalized_content_length", len(normalized)),
-			)
-		}
-	}
-
-	if lg != nil && toolMessageCount > 0 {
-		lg.Debug("deepseek tool message normalization summary",
-			zap.Int("tool_message_count", toolMessageCount),
-			zap.Int("normalized_count", normalizedCount),
-		)
-	}
-}
-
 // normalizeClaudeThinkingForDeepSeek coerces Claude thinking payloads into DeepSeek-compatible values.
-// DeepSeek currently accepts only `enabled` or `disabled` for thinking.type.
-func normalizeClaudeThinkingForDeepSeek(lg deepSeekThinkingNormalizeLogger, request *model.GeneralOpenAIRequest) {
+// DeepSeek currently accepts only enabled or disabled for thinking.type.
+func normalizeClaudeThinkingForDeepSeek(c *gin.Context, request *model.GeneralOpenAIRequest) {
 	if request == nil || request.Thinking == nil {
 		return
 	}
@@ -121,50 +51,36 @@ func normalizeClaudeThinkingForDeepSeek(lg deepSeekThinkingNormalizeLogger, requ
 	}
 
 	request.Thinking.Type = normalizedType
-	if lg != nil {
-		lg.Debug("normalized claude thinking type for deepseek compatibility",
-			zap.String("model", request.Model),
-			zap.String("original_type", originalType),
-			zap.String("normalized_type", normalizedType),
-			zap.Intp("budget_tokens", request.Thinking.BudgetTokens),
-		)
-	}
 }
 
-// injectMissingReasoningContentForClaudePath ensures all assistant messages have reasoning_content
-// when thinking mode is active. This is the Claude Messages API path variant — it lives in the
-// openai package because the deepseek package's ConvertRequest is not called for Claude Messages.
-func injectMissingReasoningContentForClaudePath(c *gin.Context, request *model.GeneralOpenAIRequest) {
-	lg := gmw.GetLogger(c)
-	for i := range request.Messages {
-		msg := &request.Messages[i]
-		if msg.Role != "assistant" {
-			continue
+// isDeepSeekClaudeThinkingEnabled checks whether thinking mode should be treated as active
+// for DeepSeek in the Claude Messages conversion path.
+// DeepSeek V4 enables thinking mode by default; we only skip injection when thinking
+// is explicitly disabled.
+func isDeepSeekClaudeThinkingEnabled(c *gin.Context, request *model.GeneralOpenAIRequest) bool {
+	// If the original ClaudeRequest has thinking set to "disabled", skip injection.
+	if raw, exists := c.Get(ctxkey.OriginalClaudeRequest); exists {
+		if originalReq, ok := raw.(*model.ClaudeRequest); ok && originalReq.Thinking != nil {
+			if originalReq.Thinking.Type == "disabled" {
+				return false
+			}
 		}
-		if msg.ReasoningContent != nil {
-			continue
-		}
-		// Convert reasoning (OpenRouter format) or thinking (Anthropic format)
-		if msg.Reasoning != nil {
-			msg.ReasoningContent = msg.Reasoning
-			msg.Reasoning = nil
-			msg.Thinking = nil
-			lg.Debug("claude-path: converted reasoning → reasoning_content",
-				zap.Int("msg_index", i))
-			continue
-		}
-		if msg.Thinking != nil {
-			msg.ReasoningContent = msg.Thinking
-			msg.Thinking = nil
-			msg.Reasoning = nil
-			lg.Debug("claude-path: converted thinking → reasoning_content",
-				zap.Int("msg_index", i))
-			continue
-		}
-		// No reasoning content at all — inject empty string
-		empty := ""
-		msg.ReasoningContent = &empty
-		lg.Debug("claude-path: injected empty reasoning_content for deepseek",
-			zap.Int("msg_index", i))
 	}
+
+	// If the OpenAI request has thinking set to "disabled", skip injection.
+	if request.Thinking != nil && request.Thinking.Type == "disabled" {
+		return false
+	}
+
+	return true
+}
+
+// deepSeekThinkingNormalizeLogger defines the logger interface used by DeepSeek thinking normalization.
+type deepSeekThinkingNormalizeLogger interface {
+	Debug(msg string, fields ...zap.Field)
+}
+
+// deepSeekToolNormalizeLogger defines the logger interface used by DeepSeek tool normalization.
+type deepSeekToolNormalizeLogger interface {
+	Debug(msg string, fields ...zap.Field)
 }

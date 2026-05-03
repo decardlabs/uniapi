@@ -5,7 +5,7 @@ import { ResponsivePageContainer } from '@/components/ui/responsive-container';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { logEditPageLayout } from '@/dev/layout-debug';
 import { AlertCircle, Info } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { ChannelAdvancedSettings } from './components/ChannelAdvancedSettings';
 import { ChannelBasicInfo } from './components/ChannelBasicInfo';
@@ -15,7 +15,8 @@ import { ChannelModelSettings } from './components/ChannelModelSettings';
 import { ChannelSpecificConfig } from './components/ChannelSpecificConfig';
 import { ChannelToolingSettings } from './components/ChannelToolingSettings';
 import { ChannelTypeChangeDialog } from './components/ChannelTypeChangeDialog';
-import { CHANNEL_TYPES, MAINSTREAM_MODELS } from './constants';
+import { ChannelDynamicParams } from './components/ChannelDynamicParams';
+import { MAINSTREAM_MODELS } from './constants';
 import { useChannelForm } from './hooks/useChannelForm';
 
 export function EditChannelPage() {
@@ -46,22 +47,34 @@ export function EditChannelPage() {
     cancelTypeChange,
   } = useChannelForm();
 
-  const selectedChannelType = CHANNEL_TYPES.find((t) => t.value === normalizedChannelType);
-  const shouldShowLoading = loading || (isEdit && !formInitialized);
-
-  // Layout diagnostics
+  // 动态获取当前选中类型的详细信息（含 template 字段）
+  const [channelTypes, setChannelTypes] = useState<any[]>([]);
+  // 热更新参数模板，定时轮询
   useEffect(() => {
-    if (!shouldShowLoading) {
-      logEditPageLayout('EditChannelPage');
+    let cancelled = false;
+    let timer: any;
+    async function fetchTypes() {
+      try {
+        const { fetchChannelTypes } = await import('./constants');
+        const types = await fetchChannelTypes();
+        if (!cancelled) setChannelTypes(types);
+      } catch {
+        if (!cancelled) setChannelTypes([]);
+      }
+      timer = setTimeout(fetchTypes, 10000); // 10秒轮询
     }
-  }, [shouldShowLoading, watchType]);
+    fetchTypes();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, []);
 
+  const selectedChannelType = channelTypes.find((t) => t.value === normalizedChannelType) || undefined;
+  const shouldShowLoading = loading || (isEdit && !formInitialized);
   if (shouldShowLoading) {
     return (
-      <ResponsivePageContainer
-        title={isEdit ? tr('title.edit', 'Edit Channel') : tr('title.create', 'Create Channel')}
-        description={isEdit ? tr('description.edit', 'Update channel configuration') : tr('description.create', 'Create a new API channel')}
-      >
+      <ResponsivePageContainer>
         <Card className="border-0 shadow-none md:border md:shadow-sm">
           <CardContent className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -72,11 +85,21 @@ export function EditChannelPage() {
     );
   }
 
+
+  const rawModels = Array.isArray(modelsCatalog[normalizedChannelType ?? -1]) ? modelsCatalog[normalizedChannelType ?? -1] : [];
   const whitelist = MAINSTREAM_MODELS[normalizedChannelType ?? -1];
-  const availableModels = (modelsCatalog[normalizedChannelType ?? -1] ?? [])
-    .filter((model) => !whitelist || whitelist.includes(model))
-    .map((model) => ({ id: model, name: model }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const availableModels = rawModels
+    .filter((model) => typeof model === 'string' && !!model && (!whitelist || whitelist.includes(model)))
+    .map((model) => ({ id: model, name: String(model) }))
+    .filter((m) => typeof m.name === 'string' && m.name)
+    .sort((a, b) => {
+      const aName = typeof a?.name === 'string' ? a.name : '';
+      const bName = typeof b?.name === 'string' ? b.name : '';
+      if (!aName && !bName) return 0;
+      if (!aName) return 1;
+      if (!bName) return -1;
+      return aName.localeCompare(bName);
+    });
 
   const currentCatalogModels = modelsCatalog[normalizedChannelType ?? -1] ?? [];
 
@@ -97,10 +120,8 @@ export function EditChannelPage() {
   };
 
   // Get type names for the confirmation dialog
-  const getTypeName = (typeValue: number) => {
-    const type = CHANNEL_TYPES.find((t) => t.value === typeValue);
-    return type?.text || `Type ${typeValue}`;
-  };
+  // Now just fallback to value, since type names are dynamic and handled in ChannelBasicInfo
+  const getTypeName = (typeValue: number) => `Type ${typeValue}`;
 
   return (
     <ResponsivePageContainer
@@ -147,6 +168,16 @@ export function EditChannelPage() {
                   tr={tr}
                   onTypeChange={requestTypeChange}
                 />
+
+
+                {/* 动态参数模板表单（如有） */}
+                {selectedChannelType?.template && (
+                  <ChannelDynamicParams
+                    form={form}
+                    template={selectedChannelType.template}
+                    tr={tr}
+                  />
+                )}
 
                 <ChannelSpecificConfig
                   form={form}

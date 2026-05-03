@@ -46,6 +46,8 @@ func TestUpdateChannelToolingLifecycle(t *testing.T) {
 		"id":        channel.Id,
 		"name":      channel.Name,
 		"type":      channel.Type,
+		"key":       channel.Key,
+		"base_url":  "https://api.openai.com/v1",
 		"models":    channel.Models,
 		"group":     channel.Group,
 		"config":    channel.Config,
@@ -109,6 +111,122 @@ func TestUpdateChannelToolingLifecycle(t *testing.T) {
 	refreshed, err := model.GetChannelById(channel.Id, true)
 	require.NoError(t, err)
 	require.Nil(t, refreshed.GetToolingConfig())
+}
+
+func TestAddChannelAcceptsObjectOtherField(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	model.InitDB()
+
+	originalMemoryCache := config.MemoryCacheEnabled
+	config.MemoryCacheEnabled = false
+	t.Cleanup(func() { config.MemoryCacheEnabled = originalMemoryCache })
+
+	router := gin.New()
+	router.POST("/api/channel/", AddChannel)
+
+	addPayload := map[string]any{
+		"name":      "add-channel-other-object",
+		"type":      1,
+		"key":       "sk-test",
+		"base_url":  "https://api.openai.com/v1",
+		"models":    "gpt-4",
+		"group":     "default",
+		"config":    "{}",
+		"other":     map[string]any{"example": "value"},
+		"status":    model.ChannelStatusEnabled,
+		"priority":  0,
+		"weight":    0,
+		"ratelimit": 0,
+	}
+
+	body, err := json.Marshal(addPayload)
+	require.NoError(t, err)
+
+	req, err := http.NewRequest(http.MethodPost, "/api/channel/", bytes.NewReader(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var resp struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.True(t, resp.Success, resp.Message)
+
+	var created model.Channel
+	err = model.DB.Where("name = ? AND `key` = ?", "add-channel-other-object", "sk-test").Order("id desc").First(&created).Error
+	require.NoError(t, err)
+
+	createdID := created.Id
+	t.Cleanup(func() {
+		model.DB.Exec("DELETE FROM abilities WHERE channel_id = ?", createdID)
+		model.DB.Exec("DELETE FROM channels WHERE id = ?", createdID)
+	})
+
+	persisted, err := model.GetChannelById(createdID, false)
+	require.NoError(t, err)
+	require.NotNil(t, persisted.Other)
+	require.JSONEq(t, `{"example":"value"}`, *persisted.Other)
+}
+
+func TestAddChannelUsesDefaultBaseURLWhenReadonlyTypeOmitsBaseURL(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	model.InitDB()
+
+	originalMemoryCache := config.MemoryCacheEnabled
+	config.MemoryCacheEnabled = false
+	t.Cleanup(func() { config.MemoryCacheEnabled = originalMemoryCache })
+
+	router := gin.New()
+	router.POST("/api/channel/", AddChannel)
+
+	addPayload := map[string]any{
+		"name":      "add-channel-default-base-url",
+		"type":      36,
+		"key":       "sk-test",
+		"models":    "deepseek-chat",
+		"group":     "default",
+		"config":    "{}",
+		"status":    model.ChannelStatusEnabled,
+		"priority":  0,
+		"weight":    0,
+		"ratelimit": 0,
+	}
+
+	body, err := json.Marshal(addPayload)
+	require.NoError(t, err)
+
+	req, err := http.NewRequest(http.MethodPost, "/api/channel/", bytes.NewReader(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var resp struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.True(t, resp.Success, resp.Message)
+
+	var created model.Channel
+	err = model.DB.Where("name = ? AND `key` = ?", "add-channel-default-base-url", "sk-test").Order("id desc").First(&created).Error
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		model.DB.Exec("DELETE FROM abilities WHERE channel_id = ?", created.Id)
+		model.DB.Exec("DELETE FROM channels WHERE id = ?", created.Id)
+	})
+
+	require.NotNil(t, created.BaseURL)
+	require.Equal(t, "https://api.deepseek.com", *created.BaseURL)
 }
 
 func TestGetChannelIncludesToolingField(t *testing.T) {

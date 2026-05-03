@@ -21,7 +21,7 @@ const baseDefaults: ChannelForm = {
   type: 1,
   key: '',
   base_url: '',
-  other: '',
+  other: {},
   models: [],
   model_mapping: '',
   model_configs: '',

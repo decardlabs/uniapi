@@ -78,7 +78,7 @@ func TestSpecificAdapterPricing(t *testing.T) {
 		require.NotNil(t, adaptor, "Ali adaptor not found")
 
 		// Verify adapter pricing matches the authoritative ModelRatios table.
-		testModels := []string{"qwen-turbo", "qwen-plus", "qwen-max"}
+		testModels := []string{"qwen3.6-plus", "qwen3.6-flash"}
 
 		for _, model := range testModels {
 			expectedConfig, ok := ali.ModelRatios[model]

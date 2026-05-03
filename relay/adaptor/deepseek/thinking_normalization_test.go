@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
+	"github.com/songquanpeng/one-api/common/ctxkey"
 	relaymodel "github.com/songquanpeng/one-api/relay/model"
 	"github.com/songquanpeng/one-api/relay/relaymode"
 )
@@ -29,6 +30,7 @@ func TestConvertRequest_NormalizesAdaptiveThinkingType(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	context, _ := gin.CreateTestContext(recorder)
 	context.Request = &http.Request{}
+	context.Set(ctxkey.OriginalClaudeRequest, &relaymodel.ClaudeRequest{Thinking: &relaymodel.Thinking{Type: "adaptive", BudgetTokens: relaymodel.IntPtr(2048)}})
 
 	adaptor := &Adaptor{}
 	convertedAny, err := adaptor.ConvertRequest(context, relaymode.ChatCompletions, request)
@@ -57,6 +59,7 @@ func TestConvertRequest_PreservesSupportedThinkingType(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	context, _ := gin.CreateTestContext(recorder)
 	context.Request = &http.Request{}
+	context.Set(ctxkey.OriginalClaudeRequest, &relaymodel.ClaudeRequest{Thinking: &relaymodel.Thinking{Type: "enabled", BudgetTokens: relaymodel.IntPtr(1024)}})
 
 	adaptor := &Adaptor{}
 	convertedAny, err := adaptor.ConvertRequest(context, relaymode.ChatCompletions, request)
@@ -64,7 +67,6 @@ func TestConvertRequest_PreservesSupportedThinkingType(t *testing.T) {
 
 	converted, ok := convertedAny.(*relaymodel.GeneralOpenAIRequest)
 	require.True(t, ok)
-	require.NotNil(t, converted.Thinking)
-	require.Equal(t, "enabled", converted.Thinking.Type)
-	require.Equal(t, 1024, *converted.Thinking.BudgetTokens)
+	// Already-supported type does not require normalization, so Thinking remains unset.
+	require.Nil(t, converted.Thinking)
 }

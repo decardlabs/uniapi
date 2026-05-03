@@ -8,6 +8,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { CHANNEL_TYPES_WITH_DEDICATED_BASE_URL } from '../constants';
 import { isValidJSON, normalizeChannelType, stringifyToolingConfig, toInt, validateModelConfigs } from '../helpers';
 import { type ChannelConfigForm, type ChannelForm, type EndpointInfo, channelSchema } from '../schemas';
+import { useRef } from 'react';
+import { zodSchemaFromTemplate } from '../utils/zodTemplate';
 
 export const useChannelForm = () => {
   const params = useParams();
@@ -39,14 +41,33 @@ export const useChannelForm = () => {
     toType: number;
   } | null>(null);
 
+  // 动态参数模板 schema
+  const templateRef = useRef<any>(null);
+  const [templateSchema, setTemplateSchema] = useState<any>(null);
+
   const form = useForm<ChannelForm>({
-    resolver: zodResolver(channelSchema),
+    resolver: async (values, context, options) => {
+      // 先用主 schema 校验
+      const mainResult = await zodResolver(channelSchema)(values, context, options);
+      // 动态参数模板校验
+      if (templateSchema && values.other && typeof values.other === 'object') {
+        const result = templateSchema.safeParse(values.other);
+        if (!result.success) {
+          // 合并错误
+          mainResult.errors = {
+            ...mainResult.errors,
+            other: { message: result.error.errors.map(e => e.message).join('; ') }
+          };
+        }
+      }
+      return mainResult;
+    },
     defaultValues: {
       name: '',
       type: isEdit ? 1 : (undefined as unknown as number),
       key: '',
       base_url: '',
-      other: '',
+      other: {},
       models: [],
       model_mapping: '',
       model_configs: '',
@@ -71,6 +92,27 @@ export const useChannelForm = () => {
       inference_profile_arn_map: '',
     },
   });
+
+  // 监听类型变化，动态生成参数模板 schema
+  useEffect(() => {
+    let cancelled = false;
+    async function updateTemplateSchema() {
+      // 获取类型模板
+      let template = null;
+      try {
+        const { fetchChannelTypes } = await import('../constants');
+        const types = await fetchChannelTypes();
+        const type = types.find((t) => t.value === normalizeChannelType(form.getValues('type')));
+        template = (type as any)?.template || null;
+      } catch {}
+      if (!cancelled) {
+        templateRef.current = template;
+        setTemplateSchema(zodSchemaFromTemplate(template));
+      }
+    }
+    updateTemplateSchema();
+    return () => { cancelled = true; };
+  }, [form.watch('type')]);
 
   const watchType = form.watch('type');
   const watchConfig = form.watch('config');
@@ -583,7 +625,7 @@ export const useChannelForm = () => {
       });
       // Clear related fields that may not be compatible with the new type
       setValue('base_url', '');
-      setValue('other', '');
+      setValue('other', {});
       setPendingTypeChange(null);
     }
   }, [pendingTypeChange, setValue]);

@@ -116,17 +116,11 @@ CREATE INDEX idx_logs_trace_id ON logs(trace_id);
 
 ### 4. Frontend Components
 
-#### Berry Template (`web/berry/src/views/Log/`)
+#### Modern Template (`web/modern/src/components/`)
 
-- `TracingModal.js` - Material-UI based modal
-- `TableRow.js` - Clickable rows with hover effects
-- Chinese localization and modern design
-
-#### Air Template (`web/air/src/components/`)
-
-- `TracingModal.js` - Semi-UI based modal
-- `LogsTable.js` - Semi Design table integration
-- Consistent API integration across templates
+- `LogDetailsModal.tsx` - Unified log details modal with tracing summary and timeline
+- `__tests__/LogDetailsModal.test.tsx` - Coverage for trace loading and rendering behavior
+- Localized tracing labels and interactions via Modern i18n resources
 
 ## API Endpoints
 

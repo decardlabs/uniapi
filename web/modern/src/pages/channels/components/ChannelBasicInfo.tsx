@@ -7,9 +7,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { Check, ChevronsUpDown } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
-import { CHANNEL_TYPES, CHANNEL_TYPES_WITH_CUSTOM_KEY_FIELD } from '../constants';
+import { CHANNEL_TYPES_WITH_CUSTOM_KEY_FIELD, fetchChannelTypes, ChannelType } from '../constants';
 import { getKeyPrompt } from '../helpers';
 import type { ChannelForm } from '../schemas';
 import { resolveChannelColor } from '../utils/colorGenerator';
@@ -24,13 +24,45 @@ interface ChannelBasicInfoProps {
   onTypeChange?: (newType: number) => void;
 }
 
-export const ChannelBasicInfo = ({ form, groups, normalizedChannelType, tr, onTypeChange }: ChannelBasicInfoProps) => {
+export function ChannelBasicInfo({ form, groups, normalizedChannelType, tr, onTypeChange }: ChannelBasicInfoProps) {
   const [typePopoverOpen, setTypePopoverOpen] = useState(false);
+  const [channelTypes, setChannelTypes] = useState<ChannelType[]>([]);
+  const [loadingTypes, setLoadingTypes] = useState(true);
   const watchType = form.watch('type');
   const channelTypeOverridesKeyField = normalizedChannelType !== null && CHANNEL_TYPES_WITH_CUSTOM_KEY_FIELD.has(normalizedChannelType);
 
+  // Fetch channel types from backend on mount
+  useEffect(() => {
+    let mounted = true;
+    setLoadingTypes(true);
+    fetchChannelTypes()
+      .then((types) => {
+        if (mounted) {
+          // 只保留 text 为 string 的类型，防止排序崩溃
+          setChannelTypes(Array.isArray(types) ? types.filter(t => t && typeof t.text === 'string') : []);
+        }
+      })
+      .catch(() => {
+        if (mounted) setChannelTypes([]);
+      })
+      .finally(() => {
+        if (mounted) setLoadingTypes(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   // Sort channel types alphabetically by text
-  const sortedChannelTypes = useMemo(() => [...CHANNEL_TYPES].sort((a, b) => a.text.localeCompare(b.text)), []);
+  const sortedChannelTypes = useMemo(
+    () =>
+      [...channelTypes].sort((a, b) => {
+        const aText = typeof a?.text === 'string' ? a.text : '';
+        const bText = typeof b?.text === 'string' ? b.text : '';
+        return aText.localeCompare(bText);
+      }),
+    [channelTypes]
+  );
 
   const fieldHasError = (name: string) => !!(form.formState.errors as any)?.[name];
   const errorClass = (name: string) => (fieldHasError(name) ? 'border-destructive focus-visible:ring-destructive' : '');
@@ -87,6 +119,7 @@ export const ChannelBasicInfo = ({ form, groups, normalizedChannelType, tr, onTy
         control={form.control}
         name="type"
         render={({ field }) => {
+
           const selectedType = sortedChannelTypes.find((t) => t.value === field.value);
           const selectedColorValue = selectedType ? resolveChannelColor(selectedType.color, selectedType.value) : undefined;
 
@@ -104,8 +137,11 @@ export const ChannelBasicInfo = ({ form, groups, normalizedChannelType, tr, onTy
                     role="combobox"
                     aria-expanded={typePopoverOpen}
                     className={cn('w-full justify-between font-normal', !field.value && 'text-muted-foreground', errorClass('type'))}
+                    disabled={loadingTypes}
                   >
-                    {selectedType ? (
+                    {loadingTypes ? (
+                      <span>{tr('type.loading', 'Loading...')}</span>
+                    ) : selectedType ? (
                       <span className="flex items-center gap-2">
                         <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: selectedColorValue }} />
                         {selectedType.text}
@@ -241,4 +277,4 @@ export const ChannelBasicInfo = ({ form, groups, normalizedChannelType, tr, onTy
       )}
     </div>
   );
-};
+}

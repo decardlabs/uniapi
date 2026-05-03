@@ -95,8 +95,8 @@ func TestValidateTheme(t *testing.T) {
 		wantErr bool
 	}{
 		{"default accepted for backward compat", "default", false},
-		{"berry is valid", "berry", false},
-		{"air is valid", "air", false},
+		{"berry accepted for backward compat", "berry", false},
+		{"air accepted for backward compat", "air", false},
 		{"modern is valid", "modern", false},
 		{"invalid theme", "dark", true},
 		{"empty is invalid", "", true},

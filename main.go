@@ -272,18 +272,14 @@ func main() {
 }
 
 func isThemeValid() error {
-	// Backward compatibility: redirect "default" to "modern"
-	if config.Theme == "default" {
-		logger.Logger.Warn("the 'default' theme has been removed, automatically switching to 'modern'")
+	// Backward compatibility: redirect legacy themes to modern.
+	if config.Theme == "default" || config.Theme == "air" || config.Theme == "berry" {
+		logger.Logger.Warn("legacy theme is no longer supported, automatically switching to 'modern'", zap.String("legacy_theme", config.Theme))
 		config.Theme = "modern"
 	}
 
 	if !config.ValidThemes[config.Theme] {
 		return errors.Errorf("invalid theme: %s", config.Theme)
-	}
-
-	if config.Theme != "modern" {
-		logger.Logger.Warn("recommend using the modern theme, as the other themes are no longer being actively maintained.")
 	}
 
 	return nil

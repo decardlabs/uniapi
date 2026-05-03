@@ -1,6 +1,6 @@
 # Agent Instructions
 
-- **English only:** Always output **English** for all code, comments, chat, documents, logs, and UI text regardless of input language.
+
 - **Project purpose:** one‑api must let users call ChatCompletion API, Response API, or Claude Messages API formats and transparently convert among these three formats; ensure all adapters support conversion between the three.
 - **Sensitive local info:** Local tools and debugging sensitive information is stored in `.github/instructions/laisky.instructions.md`; treat it as sensitive and never leak it.
 - **Package manager:** Use **yarn** for package management; avoid `npm` to prevent `yarn.lock` conflicts.
@@ -46,3 +46,4 @@
 - **Completeness:** Exhaustively incorporate requirements and options; resolve conflicts by rule priority and avoid premature conclusions.
 - **Persistence and retries:** Persist intelligently; retry transient errors until a reasonable limit, and change strategy for non‑transient failures.
 - **Action finality:** Only take actions after completing the above reasoning; actions are final once executed.
+- **Language:** Output can be in **English** or **Chinese** for all code, comments, chat, documents, logs, and UI text, according to user preference.

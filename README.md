@@ -13,13 +13,15 @@ Open‑source version of OpenRouter, managed through a unified gateway that hand
 
 ![](https://s3.laisky.com/uploads/2026/02/one-api.png)
 
-**UniAPI** is a v3.0 rewrite of the well-known One API project, rebranded with a modern tech stack (React + TypeScript + Tailwind CSS + Go 1.25). It maintains full backward compatibility with One API's data model and API while introducing a redesigned UI, type-safe frontend architecture, and enhanced developer experience.
 
-## Why UniAPI?
+**UniAPI** 是 One API 项目的现代化重构，仅保留 Modern 前端模板和主线功能，采用 React + TypeScript + Tailwind CSS + Go 1.25 技术栈。已移除 Berry/Air/Default 等旧模板和无关功能，所有文档与代码保持一致。
 
-- **Unified**: One gateway for all AI model providers
-- **Inherited**: Built on the battle-tested One API codebase with years of production use
-- **Innovative**: Modern UI (v3.0) with responsive design, dark mode, and improved UX
+
+## 为什么选择 UniAPI？
+
+- **统一**：一个网关聚合所有主流 AI 模型服务商
+- **稳定**：基于 One API 多年生产实践，主线功能可靠
+- **现代**：仅保留 Modern UI，响应式设计、深色模式、极致体验
 
 ```plain
 === One-API Compatibility Matrix 2025-12-12T04:37:09Z ===
@@ -71,95 +73,33 @@ Skipped (unsupported combinations):
 
 ```
 
-### Why this fork exists
 
-The original author stopped maintaining the project, leaving critical PRs and new features unaddressed. As a long‑time contributor, I’ve forked the repository and rebuilt the core to keep the ecosystem alive and evolving.
+### 关于本分支
+
+本分支已对原项目进行精简，仅保留主线功能和 Modern 前端，所有说明文档与实际代码保持一致。历史设计、升级、版本文档已归档至 docs/legacy/，如需参考请前往该目录。
 
 - [One API](#one-api)
   - [Synopsis](#synopsis)
-    - [Why this fork exists](#why-this-fork-exists)
-  - [Tutorial](#tutorial)
-    - [Docker Compose Deployment](#docker-compose-deployment)
-    - [Kubernetes Deployment](#kubernetes-deployment)
-  - [Contributors](#contributors)
-  - [New Features](#new-features)
-    - [Universal Features](#universal-features)
-      - [I18n Support](#i18n-support)
-      - [Unified Billing System](#unified-billing-system)
-      - [Support Open Telemetry](#support-open-telemetry)
-      - [Support channel's built-in tooling configuration](#support-channels-built-in-tooling-configuration)
-      - [Support update user's remained quota](#support-update-users-remained-quota)
-      - [Get request's cost](#get-requests-cost)
-      - [Support Tracing info in logs](#support-tracing-info-in-logs)
-      - [Support Cached Input](#support-cached-input)
-        - [Support Anthropic Prompt caching](#support-anthropic-prompt-caching)
-      - [Automatically Enable Thinking and Customize Reasoning Format via URL Parameters](#automatically-enable-thinking-and-customize-reasoning-format-via-url-parameters)
-        - [Reasoning Format - reasoning-content](#reasoning-format---reasoning-content)
-        - [Reasoning Format - reasoning](#reasoning-format---reasoning)
-        - [Reasoning Format - thinking](#reasoning-format---thinking)
-      - [MCP Aggregators](#mcp-aggregators)
-    - [OpenAI Features](#openai-features)
-      - [Support whisper](#support-whisper)
-      - [Support openai images edits](#support-openai-images-edits)
-      - [Support OpenAI o1/o1-mini/o1-preview](#support-openai-o1o1-minio1-preview)
-      - [Support gpt-4o-audio](#support-gpt-4o-audio)
-      - [Support OpenAI web search models](#support-openai-web-search-models)
-      - [Support gpt-image family for image generation \& edits](#support-gpt-image-family-for-image-generation--edits)
-      - [Support o3-mini \& o3 \& o4-mini \& gpt-4.1 \& o3-pro \& reasoning content](#support-o3-mini--o3--o4-mini--gpt-41--o3-pro--reasoning-content)
-      - [Support OpenAI Response API](#support-openai-response-api)
-      - [Support gpt-5 family](#support-gpt-5-family)
-      - [Support o3-deep-research \& o4-mini-deep-research](#support-o3-deep-research--o4-mini-deep-research)
-      - [Support Codex Cli](#support-codex-cli)
-      - [Support Sora](#support-sora)
-    - [Anthropic (Claude) Features](#anthropic-claude-features)
-      - [(Merged) Support aws claude](#merged-support-aws-claude)
-      - [Support claude-3-7-sonnet \& thinking](#support-claude-3-7-sonnet--thinking)
-        - [Stream](#stream)
-        - [Non-Stream](#non-stream)
-      - [Support /v1/messages Claude Messages API](#support-v1messages-claude-messages-api)
-        - [Support Claude Code](#support-claude-code)
-    - [Support Claude 4.x Models](#support-claude-4x-models)
-    - [Google (Gemini \& Vertex) Features](#google-gemini--vertex-features)
-      - [Support gemini-2.0-flash-exp](#support-gemini-20-flash-exp)
-      - [Support gemini-2.0-flash](#support-gemini-20-flash)
-      - [Support gemini-2.0-flash-thinking-exp-01-21](#support-gemini-20-flash-thinking-exp-01-21)
-      - [Support Vertex Imagen3](#support-vertex-imagen3)
-      - [Support gemini multimodal output #2197](#support-gemini-multimodal-output-2197)
-      - [Support gemini-2.5-pro](#support-gemini-25-pro)
-      - [Support GCP Vertex gloabl region and gemini-2.5-pro-preview-06-05](#support-gcp-vertex-gloabl-region-and-gemini-25-pro-preview-06-05)
-      - [Support gemini-2.5-flash-image-preview \& imagen-4 series](#support-gemini-25-flash-image-preview--imagen-4-series)
-      - [Support gemini-3 family](#support-gemini-3-family)
-    - [OpenCode Support](#opencode-support)
-    - [AWS Features](#aws-features)
-      - [Support AWS cross-region inferences](#support-aws-cross-region-inferences)
-      - [Support AWS BedRock Inference Profile](#support-aws-bedrock-inference-profile)
-    - [Replicate Features](#replicate-features)
-      - [Support replicate flux \& remix](#support-replicate-flux--remix)
-      - [Support replicate chat models](#support-replicate-chat-models)
-    - [DeepSeek Features](#deepseek-features)
-      - [Support deepseek-reasoner](#support-deepseek-reasoner)
-    - [OpenRouter Features](#openrouter-features)
-      - [Support OpenRouter's reasoning content](#support-openrouters-reasoning-content)
-    - [Cohere](#cohere)
-      - [Support Cohere Command R \& Rerank](#support-cohere-command-r--rerank)
-    - [Coze Features](#coze-features)
-      - [Support coze oauth authentication](#support-coze-oauth-authentication)
-    - [Moonshot Features](#moonshot-features)
-      - [Support kimi-k2 Family](#support-kimi-k2-family)
-    - [GLM Features](#glm-features)
-      - [Flagship Models - Text](#flagship-models---text)
-      - [Flagship Models - Visual](#flagship-models---visual)
-      - [Language Models](#language-models)
-      - [Reasoning Models](#reasoning-models)
-      - [Multimodal Models](#multimodal-models)
-      - [Image Generation Models](#image-generation-models)
-      - [Other Models](#other-models)
-      - [GLM OCR](#glm-ocr)
-    - [XAI / Grok Features](#xai--grok-features)
-      - [Support XAI/Grok Text \& Image Models](#support-xaigrok-text--image-models)
-    - [Black Forest Labs Features](#black-forest-labs-features)
-      - [Support black-forest-labs/flux-kontext-pro](#support-black-forest-labsflux-kontext-pro)
-  - [Bug Fixes \& Enterprise-Grade Improvements (Including Security Enhancements)](#bug-fixes--enterprise-grade-improvements-including-security-enhancements)
+
+## 快速开始
+
+1. 后端：
+   ```sh
+   go build -o one-api main.go
+   ./one-api
+   ```
+2. 前端（Modern模板）：
+   ```sh
+   cd web/modern
+   yarn install && yarn build
+   cd ../../web/build/modern
+   python3 -m http.server 8080
+   ```
+3. 浏览器访问 http://localhost:8080，注册并登录，体验全部功能。
+
+详细环境搭建与部署见 DEV_SETUP_GUIDE.md。
+
+> 历史设计、升级、版本等文档已归档至 docs/legacy/，如需参考请前往该目录。
 
 ## Tutorial
 
@@ -199,6 +139,99 @@ oneapi:
 The Kubernetes deployment guide has been moved into a dedicated document:
 
 - [docs/manuals/k8s.md](docs/manuals/k8s.md)
+
+
+## Channel Parameter Template Mechanism & Extension
+
+### Overview
+
+UniAPI supports a fully backend-driven, extensible parameter template mechanism for channel configuration. This enables:
+
+- **Dynamic channel type registry**: All available channel types and their parameter templates are provided by the backend via `/api/channel/types`.
+- **Template-driven UI & validation**: The Modern frontend dynamically renders channel parameter forms and validation schemas based on the backend template, supporting grouping, dependencies, and hot-reload.
+- **Extensibility**: New channel types and parameters can be added or updated in the backend without frontend code changes.
+
+---
+
+### Backend: Channel Type & Parameter Template API
+
+- **Endpoint**: `GET /api/channel/types`
+- **Response**: Returns a list of channel types, each with:
+  - `name`, `label`, `group` (for UI grouping)
+  - `params`: array of parameter definitions (name, label, type, required, default, description, group, dependencies, etc.)
+  - `param_groups`: optional, for grouping parameters in the UI
+
+**Example response:**
+
+```
+[
+  {
+    "name": "openai",
+    "label": "OpenAI",
+    "group": "Official",
+    "params": [
+      { "name": "api_key", "label": "API Key", "type": "string", "required": true, "description": "Your OpenAI API key." },
+      { "name": "base_url", "label": "Base URL", "type": "string", "required": false, "default": "https://api.openai.com" }
+    ],
+    "param_groups": [
+      { "name": "auth", "label": "Authentication", "params": ["api_key"] },
+      { "name": "advanced", "label": "Advanced", "params": ["base_url"] }
+    ]
+  },
+  ...
+]
+```
+
+**How to extend:**
+- Add new channel types or parameters in the backend registry/config.
+- Update parameter definitions to add new fields, groups, or dependencies.
+- No frontend code changes required for new types/fields.
+
+---
+
+### Frontend: Dynamic Template-Driven UI & Validation
+
+- The Modern frontend fetches `/api/channel/types` and renders the channel type select and parameter form dynamically.
+- Parameter fields are rendered by `ChannelDynamicParams`, supporting:
+  - Grouping/collapse (via `param_groups`)
+  - Field-level help/tooltips (from `description`)
+  - Accessibility: labels are associated with inputs, tooltips use accessible context
+  - Hot-reload: the template is polled and updated without page reload
+- Validation is generated from the backend template using Zod, ensuring the UI and backend are always in sync.
+- All UI strings (labels, descriptions, group names) are passed through i18n and must be present in `web/modern/src/i18n/locales/`.
+
+**How to extend:**
+- Add new parameters or groups in the backend template; the frontend will render them automatically.
+- To add new input types or custom widgets, extend the `ChannelDynamicParams` field renderer and ensure accessibility/i18n.
+
+---
+
+### Developer Hooks & Best Practices
+
+- **i18n**: All user-facing strings must be internationalized. Add new keys to all locale files.
+- **Accessibility**: Use `htmlFor` on labels, ensure tooltips are accessible, and test with screen readers.
+- **Testing**: Add/extend tests in `ChannelDynamicParams.test.tsx` for new parameter types, groups, and validation logic.
+- **Hot-reload**: The frontend will automatically pick up backend template changes; no manual reload required.
+- **Validation**: All validation logic should be described in the backend template (type, required, min/max, etc.).
+- **Grouping**: Use `param_groups` to organize parameters for better UX.
+
+---
+
+### Example: Adding a New Channel Type
+
+1. Update the backend channel type registry/config to add a new type and its parameter template.
+2. Add i18n keys for all new labels/descriptions/groups.
+3. (Optional) Extend frontend field renderer if a new input type is needed.
+4. The new channel type and parameters will appear in the UI automatically, with validation and grouping.
+
+---
+
+**See also:**
+- [web/modern/src/constants.ts](web/modern/src/constants.ts) (fetch logic)
+- [web/modern/src/pages/channel/EditChannelPage.tsx](web/modern/src/pages/channel/EditChannelPage.tsx) (page orchestration)
+- [web/modern/src/components/channel/ChannelDynamicParams.tsx](web/modern/src/components/channel/ChannelDynamicParams.tsx) (dynamic form rendering)
+- [web/modern/src/components/channel/ChannelDynamicParams.test.tsx](web/modern/src/components/channel/ChannelDynamicParams.test.tsx) (tests)
+- [web/modern/src/i18n/locales/](web/modern/src/i18n/locales/) (i18n)
 
 ## Contributors
 

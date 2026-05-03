@@ -16,6 +16,7 @@ import (
 	"github.com/songquanpeng/one-api/relay/adaptor"
 	"github.com/songquanpeng/one-api/relay/adaptor/alibailian"
 	"github.com/songquanpeng/one-api/relay/adaptor/baiduv2"
+	"github.com/songquanpeng/one-api/relay/adaptor/common/deepseekcompat"
 	"github.com/songquanpeng/one-api/relay/adaptor/doubao"
 	"github.com/songquanpeng/one-api/relay/adaptor/geminiOpenaiCompatible"
 	"github.com/songquanpeng/one-api/relay/adaptor/minimax"
@@ -204,8 +205,8 @@ func (a *Adaptor) ConvertRequest(c *gin.Context, relayMode int, request *model.G
 	metaInfo := meta.GetByContext(c)
 	lg := gmw.GetLogger(c)
 	if shouldNormalizeToolMessageContentForDeepSeek(metaInfo, request) {
-		normalizeClaudeThinkingForDeepSeek(lg, request)
-		normalizeDeepSeekToolMessageContent(lg, request)
+		normalizeClaudeThinkingForDeepSeek(c, request)
+		deepseekcompat.NormalizeToolMessageContent(lg, request)
 	}
 
 	if config.DebugEnabled {
@@ -441,7 +442,7 @@ func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, request *model.ClaudeRequ
 	metaInfo := meta.GetByContext(c)
 	isDeepSeek := shouldNormalizeToolMessageContentForDeepSeek(metaInfo, openaiRequest)
 	if isDeepSeek {
-		normalizeClaudeThinkingForDeepSeek(gmw.GetLogger(c), openaiRequest)
+		normalizeClaudeThinkingForDeepSeek(c, openaiRequest)
 		// DeepSeek V4 enables thinking mode by default even when the request
 		// omits the "thinking" field entirely. Claude Code never replays
 		// reasoning_content from previous turns, so we must always inject
@@ -450,11 +451,11 @@ func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, request *model.ClaudeRequ
 		// We only skip injection when thinking is explicitly disabled.
 		thinkingDisabled := openaiRequest.Thinking != nil && openaiRequest.Thinking.Type == "disabled"
 		if !thinkingDisabled {
-			injectMissingReasoningContentForClaudePath(c, openaiRequest)
+			deepseekcompat.InjectMissingReasoningContent(c, openaiRequest)
 		}
 	}
 	if isDeepSeek {
-		normalizeDeepSeekToolMessageContent(gmw.GetLogger(c), openaiRequest)
+		deepseekcompat.NormalizeToolMessageContent(gmw.GetLogger(c), openaiRequest)
 	}
 	if shouldForceResponseAPI(metaInfo) {
 		if err := a.applyRequestTransformations(metaInfo, openaiRequest); err != nil {

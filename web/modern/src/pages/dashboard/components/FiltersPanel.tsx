@@ -97,7 +97,7 @@ export const FiltersPanel = ({
                 aria-label={t('dashboard.filters.user_aria')}
               >
                 <option value="all">{t('dashboard.filters.all_users')}</option>
-                {userOptions.map((u) => (
+                {(Array.isArray(userOptions) ? userOptions : []).map((u) => (
                   <option key={u.id} value={String(u.id)}>
                     {u.display_name || u.username}
                   </option>

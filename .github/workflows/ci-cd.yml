@@ -1,0 +1,83 @@
+# GitHub Actions CI/CD 配置文件
+# 路径：.github/workflows/ci-cd.yml
+
+name: uniapi CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Go 环境
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: 设置 Node.js 环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: 安装 yarn
+        run: npm install -g yarn
+
+      - name: 安装 Go 依赖
+        run: go mod tidy
+
+      - name: 后端代码检查与测试
+        run: |
+          go vet ./...
+          go test -race ./...
+
+      - name: 构建后端
+        run: |
+          GIT_TAG=$(git describe --tags --always 2>/dev/null || echo "dev")
+          GIT_COMMIT=$(git rev-parse --short HEAD)
+          BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          CGO_ENABLED=0 go build \
+            -ldflags "-X github.com/songquanpeng/one-api/common.Version=${GIT_TAG} \
+                      -X github.com/songquanpeng/one-api/common.BuildCommit=${GIT_COMMIT} \
+                      -X github.com/songquanpeng/one-api/common.BuildTime=${BUILD_TIME}" \
+            -o uniapi .
+
+      - name: 安装前端依赖
+        run: |
+          cd web/modern
+          yarn install
+
+      - name: 构建前端
+        run: |
+          GIT_TAG=$(git describe --tags --always 2>/dev/null || echo "dev")
+          cd web/modern
+          VITE_APP_VERSION=${GIT_TAG} yarn build
+
+      - name: 部署到服务器
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          source: "uniapi,web/modern/dist"
+          target: "~/Documents/uniapi"
+
+      - name: 远程重启服务
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          script: |
+            cd ~/Documents/uniapi
+            sudo systemctl restart uniapi

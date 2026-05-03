@@ -38,6 +38,7 @@ const (
 	Coze
 	Cohere
 	DeepSeek
+	GLM
 	Cloudflare
 	DeepL
 	TogetherAI

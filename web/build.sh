@@ -1,13 +1,13 @@
 #!/bin/sh
 
-version=$(date +%s)
-pwd
+set -eu
 
-while IFS= read -r theme; do
-    echo "Building theme: $theme"
-    rm -r build/$theme
-    cd "$theme"
-    npm install
-    DISABLE_ESLINT_PLUGIN='true' REACT_APP_VERSION=$version npm run build
-    cd ..
-done < THEMES
+version=$(date +%s)
+echo "Building theme: modern"
+
+mkdir -p build
+rm -rf build/modern
+
+cd modern
+yarn install --frozen-lockfile
+REACT_APP_VERSION=$version yarn build

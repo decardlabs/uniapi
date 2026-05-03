@@ -71,7 +71,7 @@ const StackedChart = ({
       <YAxis tickLine={false} axisLine={false} width={60} fontSize={12} tickFormatter={tickFormatter} />
       <Tooltip content={tooltipContent} />
       <Legend />
-      {keys.map((key, idx) => (
+      {(Array.isArray(keys) ? keys : []).map((key, idx) => (
         <Bar key={key} dataKey={key} stackId="usage" fill={barColor(idx)} radius={[2, 2, 0, 0]} />
       ))}
     </BarChart>

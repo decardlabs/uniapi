@@ -1,0 +1,18 @@
+{
+  "edit": {
+    "template": {
+      "api_key": {
+        "label": "API密钥",
+        "help": "用于与服务商认证的API密钥。"
+      },
+      "region": {
+        "label": "区域",
+        "help": "云服务商的区域设置。"
+      },
+      "custom_field": {
+        "label": "自定义字段",
+        "help": "演示用的自定义字段。"
+      }
+    }
+  }
+}

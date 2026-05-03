@@ -92,7 +92,7 @@ export function DashboardFilter({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('dashboard.filters.all_users')}</SelectItem>
-                  {userOptions.map((u) => (
+                  {(Array.isArray(userOptions) ? userOptions : []).map((u) => (
                     <SelectItem key={u.id} value={String(u.id)}>
                       {u.display_name || u.username}
                     </SelectItem>

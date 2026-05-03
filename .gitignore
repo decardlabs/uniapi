@@ -30,3 +30,4 @@ docs/requirements/observability.md
 /docker-compose.local.yml
 web/modern/tsconfig.tsbuildinfo
 uniapi.new
+.gstack/
