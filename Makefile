@@ -7,8 +7,8 @@ LDFLAGS    := -X github.com/songquanpeng/one-api/common.Version=$(GIT_TAG) \
               -X github.com/songquanpeng/one-api/common.BuildTime=$(BUILD_TIME)
 
 .PHONY: build
-build:
-	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o uniapi .
+build: build-frontend-modern
+	go build -ldflags "$(LDFLAGS)" -o uniapi .
 
 .PHONY: install
 install:
