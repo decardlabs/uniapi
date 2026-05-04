@@ -14,6 +14,7 @@ import (
 
 	"github.com/decardlabs/uniapi/common/config"
 	"github.com/decardlabs/uniapi/model"
+	"github.com/decardlabs/uniapi/relay/channeltype"
 )
 
 func TestUpdateChannelToolingLifecycle(t *testing.T) {
@@ -26,7 +27,7 @@ func TestUpdateChannelToolingLifecycle(t *testing.T) {
 
 	channel := &model.Channel{
 		Name:   "tooling-update-lifecycle",
-		Type:   1,
+		Type:   channeltype.OpenRouter,
 		Key:    "sk-test",
 		Group:  "default",
 		Models: "gpt-4",
@@ -126,7 +127,7 @@ func TestAddChannelAcceptsObjectOtherField(t *testing.T) {
 
 	addPayload := map[string]any{
 		"name":      "add-channel-other-object",
-		"type":      1,
+		"type":      channeltype.OpenRouter,
 		"key":       "sk-test",
 		"base_url":  "https://api.openai.com/v1",
 		"models":    "gpt-4",
@@ -239,7 +240,7 @@ func TestGetChannelIncludesToolingField(t *testing.T) {
 
 	channel := &model.Channel{
 		Name:   "tooling-get",
-		Type:   1,
+		Type:   channeltype.OpenRouter,
 		Key:    "sk-test",
 		Group:  "default",
 		Models: "gpt-4",

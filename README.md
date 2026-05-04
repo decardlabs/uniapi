@@ -18,7 +18,8 @@ Open‑source version of OpenRouter, managed through a unified gateway that hand
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
-| **v3.8.0** | 2026-05-04 | 基于当前主分支代码发布 3.8.0：9 渠道发布对齐；新增 Doubao（字节跳动豆包）、TencentTokenHub、GLM（智谱 AI）、Kimi（Moonshot）完整注册；统一各渠道 base URL 默认值；修复 DeepSeek 工具消息内容归一化（flattenMessageContents）；修复全仓测试阻塞 |
+| **v3.8.1** | 2026-05-04 | 热修复：修正渠道工具测试中的过时 channel type 常量，恢复 `go test -race ./...` 全量通过 |
+| v3.8.0 | 2026-05-04 | 基于当前主分支代码发布 3.8.0：9 渠道发布对齐；新增 Doubao（字节跳动豆包）、TencentTokenHub、GLM（智谱 AI）、Kimi（Moonshot）完整注册；统一各渠道 base URL 默认值；修复 DeepSeek 工具消息内容归一化（flattenMessageContents）；修复全仓测试阻塞 |
 | v3.6.1 | 2026-04 | DeepSeek reasoning_content 注入修复；Claude→OpenAI tool_use 名称回填 |
 | v3.6.0 | 2026-04 | 动态渠道类型模板系统上线；全局动态渠道注册机制 |
 | v3.5 | — | MCP 聚合代理；Response API 完整支持 |
