@@ -12,12 +12,12 @@ import (
 	"github.com/Laisky/zap"
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/common"
-	"github.com/songquanpeng/one-api/common/ctxkey"
-	"github.com/songquanpeng/one-api/common/render"
-	commonsse "github.com/songquanpeng/one-api/common/sse"
-	"github.com/songquanpeng/one-api/common/tracing"
-	"github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/common"
+	"github.com/decardlabs/uniapi/common/ctxkey"
+	"github.com/decardlabs/uniapi/common/render"
+	commonsse "github.com/decardlabs/uniapi/common/sse"
+	"github.com/decardlabs/uniapi/common/tracing"
+	"github.com/decardlabs/uniapi/relay/model"
 )
 
 // DefaultBuilderCapacity defines the initial buffer size (4KB) for strings.Builder

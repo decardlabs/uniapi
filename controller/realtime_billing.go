@@ -10,15 +10,15 @@ import (
 	"github.com/Laisky/zap"
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/common/ctxkey"
-	"github.com/songquanpeng/one-api/common/graceful"
-	"github.com/songquanpeng/one-api/common/tracing"
-	"github.com/songquanpeng/one-api/model"
-	"github.com/songquanpeng/one-api/relay/adaptor"
-	"github.com/songquanpeng/one-api/relay/billing"
-	metalib "github.com/songquanpeng/one-api/relay/meta"
-	rmodel "github.com/songquanpeng/one-api/relay/model"
-	"github.com/songquanpeng/one-api/relay/pricing"
+	"github.com/decardlabs/uniapi/common/ctxkey"
+	"github.com/decardlabs/uniapi/common/graceful"
+	"github.com/decardlabs/uniapi/common/tracing"
+	"github.com/decardlabs/uniapi/model"
+	"github.com/decardlabs/uniapi/relay/adaptor"
+	"github.com/decardlabs/uniapi/relay/billing"
+	metalib "github.com/decardlabs/uniapi/relay/meta"
+	rmodel "github.com/decardlabs/uniapi/relay/model"
+	"github.com/decardlabs/uniapi/relay/pricing"
 )
 
 // Billing safety helpers for the top-level controller package.

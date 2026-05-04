@@ -9,7 +9,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
-	"github.com/songquanpeng/one-api/common"
+	"github.com/decardlabs/uniapi/common"
 )
 
 func setupTestDB(t *testing.T) *gorm.DB {

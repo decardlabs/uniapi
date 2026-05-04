@@ -11,9 +11,9 @@ import (
 	"github.com/Laisky/zap"
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/common/ctxkey"
-	"github.com/songquanpeng/one-api/relay/channeltype"
-	"github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/common/ctxkey"
+	"github.com/decardlabs/uniapi/relay/channeltype"
+	"github.com/decardlabs/uniapi/relay/model"
 )
 
 const (

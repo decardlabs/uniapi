@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	billingratio "github.com/songquanpeng/one-api/relay/billing/ratio"
+	billingratio "github.com/decardlabs/uniapi/relay/billing/ratio"
 )
 
 // GetGroups returns the list of configured billing groups.

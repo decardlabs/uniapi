@@ -13,7 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	commonsse "github.com/songquanpeng/one-api/common/sse"
+	commonsse "github.com/decardlabs/uniapi/common/sse"
 )
 
 // TestClassifyHeartbeatLineReaderLogPlan verifies HeartbeatLineReader errors are classified correctly.

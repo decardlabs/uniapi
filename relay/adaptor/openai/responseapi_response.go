@@ -3,7 +3,7 @@ package openai
 import (
 	"encoding/json"
 
-	"github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/relay/model"
 )
 
 // ResponseAPIResponse represents the OpenAI Response API response structure

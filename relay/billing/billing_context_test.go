@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/songquanpeng/one-api/common/metrics"
-	modelpkg "github.com/songquanpeng/one-api/model"
+	"github.com/decardlabs/uniapi/common/metrics"
+	modelpkg "github.com/decardlabs/uniapi/model"
 )
 
 // TestPostConsumeQuotaWithLog_CanceledContext verifies that billing operations

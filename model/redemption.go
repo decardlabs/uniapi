@@ -7,8 +7,8 @@ import (
 	"github.com/Laisky/errors/v2"
 	"gorm.io/gorm"
 
-	"github.com/songquanpeng/one-api/common"
-	"github.com/songquanpeng/one-api/common/helper"
+	"github.com/decardlabs/uniapi/common"
+	"github.com/decardlabs/uniapi/common/helper"
 )
 
 const (

@@ -7,11 +7,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/common/config"
-	"github.com/songquanpeng/one-api/common/ctxkey"
-	"github.com/songquanpeng/one-api/common/helper"
-	"github.com/songquanpeng/one-api/common/random"
-	"github.com/songquanpeng/one-api/model"
+	"github.com/decardlabs/uniapi/common/config"
+	"github.com/decardlabs/uniapi/common/ctxkey"
+	"github.com/decardlabs/uniapi/common/helper"
+	"github.com/decardlabs/uniapi/common/random"
+	"github.com/decardlabs/uniapi/model"
 )
 
 // GetAllRedemptions lists redemption codes with pagination.

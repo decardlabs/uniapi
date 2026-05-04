@@ -14,12 +14,12 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
-	"github.com/songquanpeng/one-api/common/config"
-	"github.com/songquanpeng/one-api/common/ctxkey"
-	"github.com/songquanpeng/one-api/model"
-	"github.com/songquanpeng/one-api/relay/channeltype"
-	metalib "github.com/songquanpeng/one-api/relay/meta"
-	"github.com/songquanpeng/one-api/relay/relaymode"
+	"github.com/decardlabs/uniapi/common/config"
+	"github.com/decardlabs/uniapi/common/ctxkey"
+	"github.com/decardlabs/uniapi/model"
+	"github.com/decardlabs/uniapi/relay/channeltype"
+	metalib "github.com/decardlabs/uniapi/relay/meta"
+	"github.com/decardlabs/uniapi/relay/relaymode"
 )
 
 // TestDoResponseClaudeStreamingSkipsConversion verifies that streaming Claude conversions

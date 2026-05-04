@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	gmw "github.com/Laisky/gin-middlewares/v7"
-	"github.com/songquanpeng/one-api/model"
+	"github.com/decardlabs/uniapi/model"
 )
 
 // --- Request/Response structs ---

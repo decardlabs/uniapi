@@ -9,10 +9,10 @@ import (
 	"github.com/Laisky/zap"
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/common"
-	"github.com/songquanpeng/one-api/common/config"
-	"github.com/songquanpeng/one-api/common/helper"
-	"github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/common"
+	"github.com/decardlabs/uniapi/common/config"
+	"github.com/decardlabs/uniapi/common/helper"
+	"github.com/decardlabs/uniapi/relay/model"
 )
 
 // AbortWithError aborts the request with an error message

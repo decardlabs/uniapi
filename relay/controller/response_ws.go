@@ -11,16 +11,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 
-	"github.com/songquanpeng/one-api/common/config"
-	"github.com/songquanpeng/one-api/common/ctxkey"
-	"github.com/songquanpeng/one-api/common/graceful"
-	"github.com/songquanpeng/one-api/common/metrics"
-	"github.com/songquanpeng/one-api/model"
-	"github.com/songquanpeng/one-api/relay/adaptor/openai"
-	"github.com/songquanpeng/one-api/relay/channeltype"
-	metalib "github.com/songquanpeng/one-api/relay/meta"
-	relaymodel "github.com/songquanpeng/one-api/relay/model"
-	"github.com/songquanpeng/one-api/relay/pricing"
+	"github.com/decardlabs/uniapi/common/config"
+	"github.com/decardlabs/uniapi/common/ctxkey"
+	"github.com/decardlabs/uniapi/common/graceful"
+	"github.com/decardlabs/uniapi/common/metrics"
+	"github.com/decardlabs/uniapi/model"
+	"github.com/decardlabs/uniapi/relay/adaptor/openai"
+	"github.com/decardlabs/uniapi/relay/channeltype"
+	metalib "github.com/decardlabs/uniapi/relay/meta"
+	relaymodel "github.com/decardlabs/uniapi/relay/model"
+	"github.com/decardlabs/uniapi/relay/pricing"
 )
 
 // maybeHandleResponseAPIWebSocket handles websocket upgrades for /v1/responses.

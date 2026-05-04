@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	aws "github.com/songquanpeng/one-api/relay/adaptor/aws/deepseek"
-	relaymodel "github.com/songquanpeng/one-api/relay/model"
+	aws "github.com/decardlabs/uniapi/relay/adaptor/aws/deepseek"
+	relaymodel "github.com/decardlabs/uniapi/relay/model"
 )
 
 func TestConvertMessages(t *testing.T) {

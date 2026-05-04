@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/songquanpeng/one-api/common/config"
+	"github.com/decardlabs/uniapi/common/config"
 )
 
 func TestCalculateResponseAPIPreconsumeQuotaBackground(t *testing.T) {

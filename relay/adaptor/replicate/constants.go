@@ -1,8 +1,8 @@
 package replicate
 
 import (
-	"github.com/songquanpeng/one-api/relay/adaptor"
-	ratio "github.com/songquanpeng/one-api/relay/billing/ratio"
+	"github.com/decardlabs/uniapi/relay/adaptor"
+	ratio "github.com/decardlabs/uniapi/relay/billing/ratio"
 )
 
 // ModelRatios contains all supported models and their pricing ratios

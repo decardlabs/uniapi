@@ -8,11 +8,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	openaipayload "github.com/songquanpeng/one-api/relay/adaptor/openai"
-	"github.com/songquanpeng/one-api/relay/apitype"
-	"github.com/songquanpeng/one-api/relay/channeltype"
-	metalib "github.com/songquanpeng/one-api/relay/meta"
-	relaymodel "github.com/songquanpeng/one-api/relay/model"
+	openaipayload "github.com/decardlabs/uniapi/relay/adaptor/openai"
+	"github.com/decardlabs/uniapi/relay/apitype"
+	"github.com/decardlabs/uniapi/relay/channeltype"
+	metalib "github.com/decardlabs/uniapi/relay/meta"
+	relaymodel "github.com/decardlabs/uniapi/relay/model"
 )
 
 func init() {

@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/songquanpeng/one-api/common/logger"
-	claude "github.com/songquanpeng/one-api/relay/adaptor/aws/claude"
-	cohere "github.com/songquanpeng/one-api/relay/adaptor/aws/cohere"
-	deepseek "github.com/songquanpeng/one-api/relay/adaptor/aws/deepseek"
-	llama3 "github.com/songquanpeng/one-api/relay/adaptor/aws/llama3"
-	mistral "github.com/songquanpeng/one-api/relay/adaptor/aws/mistral"
-	openai "github.com/songquanpeng/one-api/relay/adaptor/aws/openai"
-	qwen "github.com/songquanpeng/one-api/relay/adaptor/aws/qwen"
+	"github.com/decardlabs/uniapi/common/logger"
+	claude "github.com/decardlabs/uniapi/relay/adaptor/aws/claude"
+	cohere "github.com/decardlabs/uniapi/relay/adaptor/aws/cohere"
+	deepseek "github.com/decardlabs/uniapi/relay/adaptor/aws/deepseek"
+	llama3 "github.com/decardlabs/uniapi/relay/adaptor/aws/llama3"
+	mistral "github.com/decardlabs/uniapi/relay/adaptor/aws/mistral"
+	openai "github.com/decardlabs/uniapi/relay/adaptor/aws/openai"
+	qwen "github.com/decardlabs/uniapi/relay/adaptor/aws/qwen"
 
-	"github.com/songquanpeng/one-api/relay/adaptor/aws/utils"
-	writer "github.com/songquanpeng/one-api/relay/adaptor/aws/writer"
+	"github.com/decardlabs/uniapi/relay/adaptor/aws/utils"
+	writer "github.com/decardlabs/uniapi/relay/adaptor/aws/writer"
 )
 
 type AwsModelType int

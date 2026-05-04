@@ -3,8 +3,8 @@ package controller
 import (
 	"testing"
 
-	"github.com/songquanpeng/one-api/model"
-	"github.com/songquanpeng/one-api/relay/channeltype"
+	"github.com/decardlabs/uniapi/model"
+	"github.com/decardlabs/uniapi/relay/channeltype"
 	"github.com/stretchr/testify/require"
 )
 

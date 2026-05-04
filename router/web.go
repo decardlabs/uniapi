@@ -10,10 +10,10 @@ import (
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/common"
-	"github.com/songquanpeng/one-api/common/config"
-	"github.com/songquanpeng/one-api/controller"
-	"github.com/songquanpeng/one-api/middleware"
+	"github.com/decardlabs/uniapi/common"
+	"github.com/decardlabs/uniapi/common/config"
+	"github.com/decardlabs/uniapi/controller"
+	"github.com/decardlabs/uniapi/middleware"
 )
 
 func SetWebRouter(router *gin.Engine, buildFS fs.FS) {

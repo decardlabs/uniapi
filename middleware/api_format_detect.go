@@ -9,9 +9,9 @@ import (
 	"github.com/Laisky/zap"
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/common/config"
-	"github.com/songquanpeng/one-api/common/ctxkey"
-	"github.com/songquanpeng/one-api/relay/format"
+	"github.com/decardlabs/uniapi/common/config"
+	"github.com/decardlabs/uniapi/common/ctxkey"
+	"github.com/decardlabs/uniapi/relay/format"
 )
 
 // APIFormatAutoDetect returns a middleware that automatically detects the API format

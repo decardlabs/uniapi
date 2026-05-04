@@ -20,9 +20,9 @@ import (
 	"github.com/stretchr/testify/require"
 	_ "golang.org/x/image/webp"
 
-	"github.com/songquanpeng/one-api/common/client"
-	"github.com/songquanpeng/one-api/common/config"
-	img "github.com/songquanpeng/one-api/common/image"
+	"github.com/decardlabs/uniapi/common/client"
+	"github.com/decardlabs/uniapi/common/config"
+	img "github.com/decardlabs/uniapi/common/image"
 )
 
 type CountingReader struct {

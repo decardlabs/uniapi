@@ -13,11 +13,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 
-	"github.com/songquanpeng/one-api/common/ctxkey"
-	"github.com/songquanpeng/one-api/model"
-	"github.com/songquanpeng/one-api/relay/billing/ratio"
-	"github.com/songquanpeng/one-api/relay/channeltype"
-	"github.com/songquanpeng/one-api/relay/relaymode"
+	"github.com/decardlabs/uniapi/common/ctxkey"
+	"github.com/decardlabs/uniapi/model"
+	"github.com/decardlabs/uniapi/relay/billing/ratio"
+	"github.com/decardlabs/uniapi/relay/channeltype"
+	"github.com/decardlabs/uniapi/relay/relaymode"
 )
 
 type ModelRequest struct {

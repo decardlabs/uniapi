@@ -9,7 +9,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/common/config"
+	"github.com/decardlabs/uniapi/common/config"
 )
 
 type turnstileCheckResponse struct {

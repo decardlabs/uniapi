@@ -5,12 +5,12 @@ import (
 
 	"github.com/Laisky/zap"
 
-	"github.com/songquanpeng/one-api/common/logger"
-	modelcfg "github.com/songquanpeng/one-api/model"
-	"github.com/songquanpeng/one-api/relay/adaptor"
-	billingratio "github.com/songquanpeng/one-api/relay/billing/ratio"
-	relaymodel "github.com/songquanpeng/one-api/relay/model"
-	"github.com/songquanpeng/one-api/relay/pricing"
+	"github.com/decardlabs/uniapi/common/logger"
+	modelcfg "github.com/decardlabs/uniapi/model"
+	"github.com/decardlabs/uniapi/relay/adaptor"
+	billingratio "github.com/decardlabs/uniapi/relay/billing/ratio"
+	relaymodel "github.com/decardlabs/uniapi/relay/model"
+	"github.com/decardlabs/uniapi/relay/pricing"
 )
 
 // ComputeInput describes all parameters required to calculate quota consumption

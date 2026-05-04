@@ -6,10 +6,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/relay/adaptor"
-	"github.com/songquanpeng/one-api/relay/adaptor/openai_compatible"
-	"github.com/songquanpeng/one-api/relay/meta"
-	"github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/relay/adaptor"
+	"github.com/decardlabs/uniapi/relay/adaptor/openai_compatible"
+	"github.com/decardlabs/uniapi/relay/meta"
+	"github.com/decardlabs/uniapi/relay/model"
 )
 
 type Adaptor struct {
@@ -53,7 +53,7 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, meta *meta.Met
 }
 
 func (a *Adaptor) GetModelList() []string {
-	return adaptor.GetModelListFromPricing(ModelRatios)
+	return append([]string(nil), ModelList...)
 }
 
 func (a *Adaptor) GetChannelName() string {

@@ -10,16 +10,16 @@ import (
 	"github.com/Laisky/zap"
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/common/config"
-	"github.com/songquanpeng/one-api/common/ctxkey"
-	"github.com/songquanpeng/one-api/common/tracing"
-	"github.com/songquanpeng/one-api/model"
-	"github.com/songquanpeng/one-api/relay/adaptor/openai"
-	"github.com/songquanpeng/one-api/relay/billing"
-	metalib "github.com/songquanpeng/one-api/relay/meta"
-	relaymodel "github.com/songquanpeng/one-api/relay/model"
-	"github.com/songquanpeng/one-api/relay/pricing"
-	quotautil "github.com/songquanpeng/one-api/relay/quota"
+	"github.com/decardlabs/uniapi/common/config"
+	"github.com/decardlabs/uniapi/common/ctxkey"
+	"github.com/decardlabs/uniapi/common/tracing"
+	"github.com/decardlabs/uniapi/model"
+	"github.com/decardlabs/uniapi/relay/adaptor/openai"
+	"github.com/decardlabs/uniapi/relay/billing"
+	metalib "github.com/decardlabs/uniapi/relay/meta"
+	relaymodel "github.com/decardlabs/uniapi/relay/model"
+	"github.com/decardlabs/uniapi/relay/pricing"
+	quotautil "github.com/decardlabs/uniapi/relay/quota"
 )
 
 // preConsumeResponseAPIQuota pre-consumes quota for Response API requests

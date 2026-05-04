@@ -9,14 +9,14 @@ import (
 	"github.com/Laisky/zap"
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/common/ctxkey"
-	"github.com/songquanpeng/one-api/model"
-	"github.com/songquanpeng/one-api/relay/adaptor"
-	"github.com/songquanpeng/one-api/relay/billing/ratio"
-	"github.com/songquanpeng/one-api/relay/mcp"
-	metalib "github.com/songquanpeng/one-api/relay/meta"
-	relaymodel "github.com/songquanpeng/one-api/relay/model"
-	quotautil "github.com/songquanpeng/one-api/relay/quota"
+	"github.com/decardlabs/uniapi/common/ctxkey"
+	"github.com/decardlabs/uniapi/model"
+	"github.com/decardlabs/uniapi/relay/adaptor"
+	"github.com/decardlabs/uniapi/relay/billing/ratio"
+	"github.com/decardlabs/uniapi/relay/mcp"
+	metalib "github.com/decardlabs/uniapi/relay/meta"
+	relaymodel "github.com/decardlabs/uniapi/relay/model"
+	quotautil "github.com/decardlabs/uniapi/relay/quota"
 )
 
 // buildFunctionToolFromMCP converts an MCP tool schema into a local function tool definition.

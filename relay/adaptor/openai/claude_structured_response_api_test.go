@@ -8,10 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/songquanpeng/one-api/relay/channeltype"
-	"github.com/songquanpeng/one-api/relay/meta"
-	"github.com/songquanpeng/one-api/relay/model"
-	"github.com/songquanpeng/one-api/relay/relaymode"
+	"github.com/decardlabs/uniapi/relay/channeltype"
+	"github.com/decardlabs/uniapi/relay/meta"
+	"github.com/decardlabs/uniapi/relay/model"
+	"github.com/decardlabs/uniapi/relay/relaymode"
 )
 
 // TestConvertClaudeRequest_PromotedStructuredForcesResponseAPI ensures that when a Claude structured

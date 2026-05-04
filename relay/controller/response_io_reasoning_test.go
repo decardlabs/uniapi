@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/songquanpeng/one-api/relay/adaptor/openai"
-	"github.com/songquanpeng/one-api/relay/channeltype"
+	"github.com/decardlabs/uniapi/relay/adaptor/openai"
+	"github.com/decardlabs/uniapi/relay/channeltype"
 )
 
 func TestNormalizeResponseAPIRawBody_NormalizesReasoningSummaryForOpenAI(t *testing.T) {

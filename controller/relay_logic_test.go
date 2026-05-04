@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/relay/model"
 )
 
 func TestShouldRetry429Logic(t *testing.T) {

@@ -1,8 +1,8 @@
 package openrouter
 
 import (
-	"github.com/songquanpeng/one-api/relay/adaptor"
-	"github.com/songquanpeng/one-api/relay/billing/ratio"
+	"github.com/decardlabs/uniapi/relay/adaptor"
+	"github.com/decardlabs/uniapi/relay/billing/ratio"
 )
 
 // ModelRatios defines the comprehensive pricing configuration for all OpenRouter models.

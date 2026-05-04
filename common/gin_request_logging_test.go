@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	"github.com/songquanpeng/one-api/common/ctxkey"
+	"github.com/decardlabs/uniapi/common/ctxkey"
 )
 
 // TestLogClientRequestPayload_OnceAndReusable verifies payload logging deduplicates per request and keeps body reusable.

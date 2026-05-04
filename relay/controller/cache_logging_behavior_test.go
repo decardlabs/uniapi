@@ -14,14 +14,14 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
-	"github.com/songquanpeng/one-api/common"
-	"github.com/songquanpeng/one-api/common/ctxkey"
-	"github.com/songquanpeng/one-api/common/helper"
-	"github.com/songquanpeng/one-api/common/logger"
-	"github.com/songquanpeng/one-api/model"
-	"github.com/songquanpeng/one-api/relay/adaptor/openai"
-	metalib "github.com/songquanpeng/one-api/relay/meta"
-	relaymodel "github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/common"
+	"github.com/decardlabs/uniapi/common/ctxkey"
+	"github.com/decardlabs/uniapi/common/helper"
+	"github.com/decardlabs/uniapi/common/logger"
+	"github.com/decardlabs/uniapi/model"
+	"github.com/decardlabs/uniapi/relay/adaptor/openai"
+	metalib "github.com/decardlabs/uniapi/relay/meta"
+	relaymodel "github.com/decardlabs/uniapi/relay/model"
 )
 
 // setupCacheBillingLogTest prepares an isolated database and quota state for

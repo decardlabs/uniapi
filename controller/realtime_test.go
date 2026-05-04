@@ -7,13 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	"github.com/songquanpeng/one-api/common/ctxkey"
-	"github.com/songquanpeng/one-api/relay"
-	"github.com/songquanpeng/one-api/relay/billing/ratio"
-	"github.com/songquanpeng/one-api/relay/meta"
-	rmodel "github.com/songquanpeng/one-api/relay/model"
-	"github.com/songquanpeng/one-api/relay/pricing"
-	quotautil "github.com/songquanpeng/one-api/relay/quota"
+	"github.com/decardlabs/uniapi/common/ctxkey"
+	"github.com/decardlabs/uniapi/relay"
+	"github.com/decardlabs/uniapi/relay/billing/ratio"
+	"github.com/decardlabs/uniapi/relay/meta"
+	rmodel "github.com/decardlabs/uniapi/relay/model"
+	"github.com/decardlabs/uniapi/relay/pricing"
+	quotautil "github.com/decardlabs/uniapi/relay/quota"
 )
 
 func init() {

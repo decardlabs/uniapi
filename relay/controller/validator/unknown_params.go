@@ -9,8 +9,8 @@ import (
 	"github.com/Laisky/zap"
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/common/logger"
-	"github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/common/logger"
+	"github.com/decardlabs/uniapi/relay/model"
 )
 
 // GetKnownParameters extracts all valid JSON parameter names from GeneralOpenAIRequest struct

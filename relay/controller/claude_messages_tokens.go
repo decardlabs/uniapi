@@ -9,8 +9,8 @@ import (
 	gmw "github.com/Laisky/gin-middlewares/v7"
 	"github.com/Laisky/zap"
 
-	"github.com/songquanpeng/one-api/relay/adaptor/openai"
-	relaymodel "github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/relay/adaptor/openai"
+	relaymodel "github.com/decardlabs/uniapi/relay/model"
 )
 
 const claudeFileImageFallbackTokens = 853

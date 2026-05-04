@@ -14,9 +14,9 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
-	"github.com/songquanpeng/one-api/common/ctxkey"
-	dbmodel "github.com/songquanpeng/one-api/model"
-	metalib "github.com/songquanpeng/one-api/relay/meta"
+	"github.com/decardlabs/uniapi/common/ctxkey"
+	dbmodel "github.com/decardlabs/uniapi/model"
+	metalib "github.com/decardlabs/uniapi/relay/meta"
 )
 
 // TestVideoHandlerPassThroughJSON ensures JSON metadata is forwarded unchanged.

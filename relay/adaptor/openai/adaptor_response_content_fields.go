@@ -3,7 +3,7 @@ package openai
 import (
 	"strings"
 
-	"github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/relay/model"
 )
 
 // countResponseAPIUnsupportedContentFields counts content block fields that

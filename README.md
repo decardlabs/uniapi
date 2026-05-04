@@ -11,8 +11,6 @@ Open‑source version of OpenRouter, managed through a unified gateway that hand
 5. Supporting multi‑tenant management, allowing each tenant to set distinct quotas and permissions.
 6. Supporting generation of sub‑API Keys; each tenant can create multiple sub‑API Keys, each of which can be bound to different models and quotas.
 
-![](https://s3.laisky.com/uploads/2026/02/one-api.png)
-
 
 **UniAPI** 是 One API 项目的现代化重构，仅保留 Modern 前端模板和主线功能，采用 React + TypeScript + Tailwind CSS + Go 1.25 技术栈。已移除 Berry/Air/Default 等旧模板和无关功能，所有文档与代码保持一致。
 
@@ -20,7 +18,7 @@ Open‑source version of OpenRouter, managed through a unified gateway that hand
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
-| **v3.7.0** | 2026-05-04 | 9 渠道发布对齐：新增 Doubao（字节跳动豆包）、TencentTokenHub、GLM（智谱 AI）、Kimi（Moonshot）完整注册；统一各渠道 base URL 默认值；修复 DeepSeek 工具消息内容归一化（flattenMessageContents）；修复全仓测试阻塞 |
+| **v3.8.0** | 2026-05-04 | 基于当前主分支代码发布 3.8.0：9 渠道发布对齐；新增 Doubao（字节跳动豆包）、TencentTokenHub、GLM（智谱 AI）、Kimi（Moonshot）完整注册；统一各渠道 base URL 默认值；修复 DeepSeek 工具消息内容归一化（flattenMessageContents）；修复全仓测试阻塞 |
 | v3.6.1 | 2026-04 | DeepSeek reasoning_content 注入修复；Claude→OpenAI tool_use 名称回填 |
 | v3.6.0 | 2026-04 | 动态渠道类型模板系统上线；全局动态渠道注册机制 |
 | v3.5 | — | MCP 聚合代理；Response API 完整支持 |

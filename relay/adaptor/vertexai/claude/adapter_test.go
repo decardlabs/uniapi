@@ -8,9 +8,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	"github.com/songquanpeng/one-api/common/ctxkey"
-	"github.com/songquanpeng/one-api/relay/model"
-	"github.com/songquanpeng/one-api/relay/relaymode"
+	"github.com/decardlabs/uniapi/common/ctxkey"
+	"github.com/decardlabs/uniapi/relay/model"
+	"github.com/decardlabs/uniapi/relay/relaymode"
 )
 
 func TestAdaptorConvertRequestClearsTopPWhenTemperatureProvided(t *testing.T) {

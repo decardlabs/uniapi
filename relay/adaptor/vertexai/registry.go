@@ -5,16 +5,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/relay/adaptor/geminiOpenaiCompatible"
-	claude "github.com/songquanpeng/one-api/relay/adaptor/vertexai/claude"
-	"github.com/songquanpeng/one-api/relay/adaptor/vertexai/deepseek"
-	gemini "github.com/songquanpeng/one-api/relay/adaptor/vertexai/gemini"
-	"github.com/songquanpeng/one-api/relay/adaptor/vertexai/imagen"
-	"github.com/songquanpeng/one-api/relay/adaptor/vertexai/openai"
-	"github.com/songquanpeng/one-api/relay/adaptor/vertexai/qwen"
-	"github.com/songquanpeng/one-api/relay/adaptor/vertexai/veo"
-	"github.com/songquanpeng/one-api/relay/meta"
-	"github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/relay/adaptor/geminiOpenaiCompatible"
+	claude "github.com/decardlabs/uniapi/relay/adaptor/vertexai/claude"
+	"github.com/decardlabs/uniapi/relay/adaptor/vertexai/deepseek"
+	gemini "github.com/decardlabs/uniapi/relay/adaptor/vertexai/gemini"
+	"github.com/decardlabs/uniapi/relay/adaptor/vertexai/imagen"
+	"github.com/decardlabs/uniapi/relay/adaptor/vertexai/openai"
+	"github.com/decardlabs/uniapi/relay/adaptor/vertexai/qwen"
+	"github.com/decardlabs/uniapi/relay/adaptor/vertexai/veo"
+	"github.com/decardlabs/uniapi/relay/meta"
+	"github.com/decardlabs/uniapi/relay/model"
 )
 
 type VertexAIModelType int

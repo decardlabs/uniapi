@@ -7,7 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-	"github.com/songquanpeng/one-api/common/metrics"
+	"github.com/decardlabs/uniapi/common/metrics"
 )
 
 // PrometheusRecorder implements the MetricsRecorder interface using Prometheus

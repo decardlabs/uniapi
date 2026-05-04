@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	rmeta "github.com/songquanpeng/one-api/relay/meta"
+	rmeta "github.com/decardlabs/uniapi/relay/meta"
 )
 
 func init() {

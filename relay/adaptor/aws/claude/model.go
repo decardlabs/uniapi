@@ -1,8 +1,8 @@
 package aws
 
 import (
-	"github.com/songquanpeng/one-api/relay/adaptor/anthropic"
-	"github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/relay/adaptor/anthropic"
+	"github.com/decardlabs/uniapi/relay/model"
 )
 
 // Request is the request to AWS Claude

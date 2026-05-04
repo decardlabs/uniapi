@@ -9,7 +9,7 @@ import (
 	"github.com/Laisky/zap"
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/relay/model"
 )
 
 // NormalizeLogger defines the logger interface used by DeepSeek normalization functions.

@@ -14,11 +14,11 @@ import (
 	"github.com/Laisky/errors/v2"
 	"github.com/Laisky/zap"
 
-	"github.com/songquanpeng/one-api/common"
-	"github.com/songquanpeng/one-api/common/config"
-	"github.com/songquanpeng/one-api/common/logger"
-	"github.com/songquanpeng/one-api/common/random"
-	"github.com/songquanpeng/one-api/dto"
+	"github.com/decardlabs/uniapi/common"
+	"github.com/decardlabs/uniapi/common/config"
+	"github.com/decardlabs/uniapi/common/logger"
+	"github.com/decardlabs/uniapi/common/random"
+	"github.com/decardlabs/uniapi/dto"
 )
 
 var (

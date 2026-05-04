@@ -10,7 +10,7 @@ import (
 
 	"github.com/Laisky/errors/v2"
 
-	"github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/relay/model"
 )
 
 // toFluxRemixRequest convert OpenAI's image edit request to Flux's remix request.

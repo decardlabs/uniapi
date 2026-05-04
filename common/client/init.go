@@ -13,9 +13,9 @@ import (
 	"github.com/Laisky/errors/v2"
 	"github.com/Laisky/zap"
 
-	"github.com/songquanpeng/one-api/common/config"
-	"github.com/songquanpeng/one-api/common/logger"
-	netutil "github.com/songquanpeng/one-api/common/network"
+	"github.com/decardlabs/uniapi/common/config"
+	"github.com/decardlabs/uniapi/common/logger"
+	netutil "github.com/decardlabs/uniapi/common/network"
 )
 
 // HTTPClient is the default outbound client used for relay requests.

@@ -7,10 +7,10 @@ import (
 
 	"github.com/Laisky/zap"
 
-	"github.com/songquanpeng/one-api/common/helper"
-	"github.com/songquanpeng/one-api/common/logger"
-	"github.com/songquanpeng/one-api/common/metrics"
-	"github.com/songquanpeng/one-api/model"
+	"github.com/decardlabs/uniapi/common/helper"
+	"github.com/decardlabs/uniapi/common/logger"
+	"github.com/decardlabs/uniapi/common/metrics"
+	"github.com/decardlabs/uniapi/model"
 )
 
 // billingOpsTimeout is the maximum time allowed for all database operations

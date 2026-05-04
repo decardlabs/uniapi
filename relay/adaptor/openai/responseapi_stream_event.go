@@ -9,7 +9,7 @@ import (
 
 	"github.com/Laisky/errors/v2"
 
-	"github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/relay/model"
 )
 
 // ResponseAPIStreamEvent represents a flexible structure for Response API streaming events

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/songquanpeng/one-api/relay/channeltype"
-	"github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/relay/channeltype"
+	"github.com/decardlabs/uniapi/relay/model"
 )
 
 func ResponseText2Usage(responseText string, modelName string, promptTokens int) *model.Usage {

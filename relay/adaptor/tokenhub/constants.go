@@ -1,6 +1,6 @@
 package tokenhub
 
-import "github.com/songquanpeng/one-api/relay/billing/ratio"
+import "github.com/decardlabs/uniapi/relay/billing/ratio"
 
 // ModelList is the list of models available on Tencent TokenHub aggregator platform.
 // TokenHub is an OpenRouter-like aggregator that provides access to Hunyuan models

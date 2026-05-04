@@ -8,8 +8,8 @@ import (
 	"github.com/Laisky/errors/v2"
 	"github.com/Laisky/zap"
 
-	"github.com/songquanpeng/one-api/common"
-	"github.com/songquanpeng/one-api/common/logger"
+	"github.com/decardlabs/uniapi/common"
+	"github.com/decardlabs/uniapi/common/logger"
 )
 
 var traceURLMigrationOnce sync.Once

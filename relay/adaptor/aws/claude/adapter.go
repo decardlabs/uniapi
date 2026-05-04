@@ -5,12 +5,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/common/config"
-	"github.com/songquanpeng/one-api/common/ctxkey"
-	"github.com/songquanpeng/one-api/relay/adaptor/anthropic"
-	"github.com/songquanpeng/one-api/relay/adaptor/aws/utils"
-	"github.com/songquanpeng/one-api/relay/meta"
-	"github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/common/config"
+	"github.com/decardlabs/uniapi/common/ctxkey"
+	"github.com/decardlabs/uniapi/relay/adaptor/anthropic"
+	"github.com/decardlabs/uniapi/relay/adaptor/aws/utils"
+	"github.com/decardlabs/uniapi/relay/meta"
+	"github.com/decardlabs/uniapi/relay/model"
 )
 
 var _ utils.AwsAdapter = new(Adaptor)

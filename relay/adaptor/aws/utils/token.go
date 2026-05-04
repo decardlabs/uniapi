@@ -13,11 +13,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime/types"
 
-	"github.com/songquanpeng/one-api/common/client"
-	"github.com/songquanpeng/one-api/common/config"
-	"github.com/songquanpeng/one-api/common/image"
-	netutil "github.com/songquanpeng/one-api/common/network"
-	"github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/common/client"
+	"github.com/decardlabs/uniapi/common/config"
+	"github.com/decardlabs/uniapi/common/image"
+	netutil "github.com/decardlabs/uniapi/common/network"
+	"github.com/decardlabs/uniapi/relay/model"
 )
 
 // DownloadImageFromURL downloads an image from a URL and returns the image data and format

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/songquanpeng/one-api/relay/channeltype"
+	"github.com/decardlabs/uniapi/relay/channeltype"
 )
 
 // ChannelTypeTemplateOptionResponse defines a selectable option in a channel template field.

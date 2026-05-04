@@ -3,7 +3,7 @@ package gemini
 import (
 	"strings"
 
-	"github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/relay/model"
 )
 
 var claudeStructuredIntentKeywords = []string{"json", "structured", "schema", "fields"}

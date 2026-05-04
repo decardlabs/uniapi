@@ -51,7 +51,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/songquanpeng/one-api/common/env"
+	"github.com/decardlabs/uniapi/common/env"
 )
 
 // =============================================================================

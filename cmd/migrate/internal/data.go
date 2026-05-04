@@ -9,8 +9,8 @@ import (
 	"github.com/Laisky/errors/v2"
 	"github.com/Laisky/zap"
 
-	"github.com/songquanpeng/one-api/common/logger"
-	"github.com/songquanpeng/one-api/model"
+	"github.com/decardlabs/uniapi/common/logger"
+	"github.com/decardlabs/uniapi/model"
 )
 
 // BatchJob represents a batch processing job

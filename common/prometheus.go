@@ -7,8 +7,8 @@ import (
 
 	"github.com/go-redis/redis/v8"
 
-	"github.com/songquanpeng/one-api/common/logger"
-	"github.com/songquanpeng/one-api/common/metrics"
+	"github.com/decardlabs/uniapi/common/logger"
+	"github.com/decardlabs/uniapi/common/metrics"
 )
 
 // PrometheusRedisHook implements redis.Hook for monitoring Redis operations

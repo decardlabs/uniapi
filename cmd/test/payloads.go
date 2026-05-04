@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/base64"
 
-	testassets "github.com/songquanpeng/one-api/test"
+	testassets "github.com/decardlabs/uniapi/test"
 )
 
 const affineSystemPrompt = `### Your Role

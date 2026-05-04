@@ -6,10 +6,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/common/config"
-	"github.com/songquanpeng/one-api/common/ctxkey"
+	"github.com/decardlabs/uniapi/common/config"
+	"github.com/decardlabs/uniapi/common/ctxkey"
 	gmw "github.com/Laisky/gin-middlewares/v7"
-	"github.com/songquanpeng/one-api/model"
+	"github.com/decardlabs/uniapi/model"
 )
 
 // CreateRechargeRequest 用户提交充值申请

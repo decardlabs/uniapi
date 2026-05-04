@@ -8,13 +8,13 @@ import (
 	"github.com/Laisky/errors/v2"
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/common"
-	"github.com/songquanpeng/one-api/common/helper"
-	"github.com/songquanpeng/one-api/relay/adaptor/openai"
-	"github.com/songquanpeng/one-api/relay/constant"
-	"github.com/songquanpeng/one-api/relay/constant/finishreason"
-	"github.com/songquanpeng/one-api/relay/constant/role"
-	"github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/common"
+	"github.com/decardlabs/uniapi/common/helper"
+	"github.com/decardlabs/uniapi/relay/adaptor/openai"
+	"github.com/decardlabs/uniapi/relay/constant"
+	"github.com/decardlabs/uniapi/relay/constant/finishreason"
+	"github.com/decardlabs/uniapi/relay/constant/role"
+	"github.com/decardlabs/uniapi/relay/model"
 )
 
 // https://developers.deepl.com/docs/getting-started/your-first-api-request

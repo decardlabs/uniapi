@@ -12,8 +12,8 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
-	"github.com/songquanpeng/one-api/common"
-	"github.com/songquanpeng/one-api/model"
+	"github.com/decardlabs/uniapi/common"
+	"github.com/decardlabs/uniapi/model"
 )
 
 // setupMCPToolsTestDB creates an in-memory database for MCP tool tests.

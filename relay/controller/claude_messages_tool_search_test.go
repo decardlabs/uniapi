@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/songquanpeng/one-api/relay/adaptor/anthropic"
-	"github.com/songquanpeng/one-api/relay/mcp"
-	relaymodel "github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/relay/adaptor/anthropic"
+	"github.com/decardlabs/uniapi/relay/mcp"
+	relaymodel "github.com/decardlabs/uniapi/relay/model"
 )
 
 func TestHasToolSearchInClaudeRequest(t *testing.T) {

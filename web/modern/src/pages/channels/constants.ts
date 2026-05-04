@@ -35,7 +35,7 @@ export const CHANNEL_TYPES_WITH_CUSTOM_KEY_FIELD = new Set<number>();
 // Used to filter the model dropdown to show only actively-used models.
 // The "Fill All" button still exposes every model from the backend catalog.
 export const MAINSTREAM_MODELS: Record<number, string[]> = {
-  // OpenRouter - curated 10 models
+  // OpenRouter (type 20) - curated 10 models
   20: [
     'anthropic/claude-opus-4.7',
     'anthropic/claude-opus-4.6',
@@ -48,19 +48,46 @@ export const MAINSTREAM_MODELS: Record<number, string[]> = {
     'xiaomi/mimo-v2-pro',
     'x-ai/grok-4.1-fast',
   ],
-  // Tencent Hunyuan (腾讯混元)
+  // Tencent Hunyuan (type 23, 腾讯混元)
   23: ['hunyuan-lite', 'hunyuan-pro', 'hunyuan-turbo'],
-  // DeepSeek
-  36: ['deepseek-v4-pro', 'deepseek-v4-flash'],
-  // Zhipu GLM
-  16: ['glm-5.1'],
-  // Moonshot / Kimi
+  // Moonshot / Kimi (type 25)
   25: ['kimi-k2.6'],
-  // MiniMax
+  // MiniMax (type 27)
   27: ['MiniMax-Text-01', 'MiniMax-M1', 'MiniMax-M2.7', 'MiniMax-M2.7-highspeed', 'MiniMax-M2.5', 'MiniMax-M2.5-highspeed'],
-  // Alibaba Qwen
+  // DeepSeek (type 36) — models in deepseek adaptor pricing
+  36: ['deepseek-v4-pro', 'deepseek-v4-flash'],
+  // GLM / Zhipu OpenAI-compatible (type 37)
+  37: ['glm-5.1'],
+  // Zhipu native protocol (type 16)
+  16: ['glm-5.1'],
+  // Doubao (type 41) — top Ark endpoint models
+  41: [
+    'doubao-seed-2-0-pro-260215',
+    'doubao-seed-2-0-lite-250820',
+    'doubao-seed-2-0-mini-250820',
+    'doubao-1-5-pro-32k-250115',
+    'doubao-1-5-lite-32k-250115',
+  ],
+  // SiliconFlow (type 45) — top curated models
+  45: [
+    'Qwen/Qwen3-235B-A22B',
+    'Qwen/Qwen3-32B',
+    'Qwen/Qwen2.5-72B-Instruct',
+    'deepseek-chat',
+    'meta-llama/Meta-Llama-3.1-70B-Instruct',
+  ],
+  // Alibaba Qwen / DashScope (type 17)
   17: ['qwen3.6-plus', 'qwen3.6-flash'],
-  // OpenAI Compatible (no whitelist — user defines their own models)
+  // Tencent TokenHub (type 55) — top aggregated models
+  55: [
+    'hunyuan-turbos-latest',
+    'hunyuan-t1-latest',
+    'hunyuan-lite',
+    'deepseek-v4-flash',
+    'deepseek-v3',
+    'deepseek-r1',
+  ],
+  // OpenAI Compatible (type 50, no whitelist — user defines their own models)
   50: [],
 };
 

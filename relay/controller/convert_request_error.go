@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/songquanpeng/one-api/relay/adaptor/openai"
-	relaymodel "github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/relay/adaptor/openai"
+	relaymodel "github.com/decardlabs/uniapi/relay/model"
 )
 
 var convertRequestBadRequestHints = []string{

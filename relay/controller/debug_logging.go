@@ -10,8 +10,8 @@ import (
 	"github.com/Laisky/zap"
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/common"
-	"github.com/songquanpeng/one-api/common/ctxkey"
+	"github.com/decardlabs/uniapi/common"
+	"github.com/decardlabs/uniapi/common/ctxkey"
 )
 
 const debugLogBodyLimit = common.DefaultLogBodyLimit

@@ -5,9 +5,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/songquanpeng/one-api/model"
-	"github.com/songquanpeng/one-api/relay/channeltype"
-	metalib "github.com/songquanpeng/one-api/relay/meta"
+	"github.com/decardlabs/uniapi/model"
+	"github.com/decardlabs/uniapi/relay/channeltype"
+	metalib "github.com/decardlabs/uniapi/relay/meta"
 )
 
 func TestSupportsNativeResponseAPIOpenAICompatible(t *testing.T) {

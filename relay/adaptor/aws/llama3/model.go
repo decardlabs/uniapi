@@ -1,7 +1,7 @@
 package aws
 
 import (
-	relaymodel "github.com/songquanpeng/one-api/relay/model"
+	relaymodel "github.com/decardlabs/uniapi/relay/model"
 )
 
 // Request is the request for AWS Llama using Converse API

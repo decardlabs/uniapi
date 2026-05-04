@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/relay/model"
 )
 
 func isChargeableWebSearchAction(item OutputItem) bool {

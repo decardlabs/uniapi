@@ -1,4 +1,4 @@
-module github.com/songquanpeng/one-api
+module github.com/decardlabs/uniapi
 
 go 1.25.0
 

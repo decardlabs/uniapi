@@ -17,7 +17,7 @@ import (
 	"github.com/Laisky/zap/zapcore"
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/common/config"
+	"github.com/decardlabs/uniapi/common/config"
 )
 
 var (

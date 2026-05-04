@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	"github.com/songquanpeng/one-api/relay/meta"
+	"github.com/decardlabs/uniapi/relay/meta"
 )
 
 func TestNormalizeCopilotRequestPath(t *testing.T) {

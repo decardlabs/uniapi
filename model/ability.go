@@ -11,9 +11,9 @@ import (
 	gutils "github.com/Laisky/go-utils/v6"
 	"gorm.io/gorm"
 
-	"github.com/songquanpeng/one-api/common"
-	"github.com/songquanpeng/one-api/common/utils"
-	"github.com/songquanpeng/one-api/dto"
+	"github.com/decardlabs/uniapi/common"
+	"github.com/decardlabs/uniapi/common/utils"
+	"github.com/decardlabs/uniapi/dto"
 )
 
 type Ability struct {

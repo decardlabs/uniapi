@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/songquanpeng/one-api/model"
+	"github.com/decardlabs/uniapi/model"
 )
 
 func TestResolveTools_PolicyLayers(t *testing.T) {

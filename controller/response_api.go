@@ -5,10 +5,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/common/helper"
-	"github.com/songquanpeng/one-api/monitor"
-	rcontroller "github.com/songquanpeng/one-api/relay/controller"
-	metalib "github.com/songquanpeng/one-api/relay/meta"
+	"github.com/decardlabs/uniapi/common/helper"
+	"github.com/decardlabs/uniapi/monitor"
+	rcontroller "github.com/decardlabs/uniapi/relay/controller"
+	metalib "github.com/decardlabs/uniapi/relay/meta"
 )
 
 func RelayResponseGet(c *gin.Context) {

@@ -1,9 +1,9 @@
 package controller
 
 import (
-	"github.com/songquanpeng/one-api/relay"
-	relayadaptor "github.com/songquanpeng/one-api/relay/adaptor"
-	metalib "github.com/songquanpeng/one-api/relay/meta"
+	"github.com/decardlabs/uniapi/relay"
+	relayadaptor "github.com/decardlabs/uniapi/relay/adaptor"
+	metalib "github.com/decardlabs/uniapi/relay/meta"
 )
 
 // resolvePricingAdaptor resolves the pricing adaptor for a request.

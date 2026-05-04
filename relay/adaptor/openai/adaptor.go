@@ -1,6 +1,6 @@
 package openai
 
-import "github.com/songquanpeng/one-api/relay/adaptor"
+import "github.com/decardlabs/uniapi/relay/adaptor"
 
 type Adaptor struct {
 	adaptor.DefaultPricingMethods

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/songquanpeng/one-api/common/logger"
+	"github.com/decardlabs/uniapi/common/logger"
 )
 
 const (

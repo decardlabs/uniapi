@@ -14,10 +14,10 @@ import (
 	gmw "github.com/Laisky/gin-middlewares/v7"
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/common"
-	"github.com/songquanpeng/one-api/common/render"
-	commonsse "github.com/songquanpeng/one-api/common/sse"
-	relaymodel "github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/common"
+	"github.com/decardlabs/uniapi/common/render"
+	commonsse "github.com/decardlabs/uniapi/common/sse"
+	relaymodel "github.com/decardlabs/uniapi/relay/model"
 )
 
 // ConvertOpenAIResponseToClaudeResponse converts an OpenAI-compatible response

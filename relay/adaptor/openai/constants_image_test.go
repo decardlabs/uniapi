@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/songquanpeng/one-api/relay/billing/ratio"
+	"github.com/decardlabs/uniapi/relay/billing/ratio"
 )
 
 func TestGptImage1HasDualPricing(t *testing.T) {

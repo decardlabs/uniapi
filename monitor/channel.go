@@ -5,10 +5,10 @@ import (
 
 	"github.com/Laisky/zap"
 
-	"github.com/songquanpeng/one-api/common/config"
-	"github.com/songquanpeng/one-api/common/logger"
-	"github.com/songquanpeng/one-api/common/message"
-	"github.com/songquanpeng/one-api/model"
+	"github.com/decardlabs/uniapi/common/config"
+	"github.com/decardlabs/uniapi/common/logger"
+	"github.com/decardlabs/uniapi/common/message"
+	"github.com/decardlabs/uniapi/model"
 )
 
 func notifyRootUser(subject string, content string) {

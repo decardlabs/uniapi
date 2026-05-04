@@ -5,8 +5,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/songquanpeng/one-api/common/ctxkey"
-	"github.com/songquanpeng/one-api/common/tracing"
+	"github.com/decardlabs/uniapi/common/ctxkey"
+	"github.com/decardlabs/uniapi/common/tracing"
 
 	"github.com/Laisky/errors/v2"
 	gmw "github.com/Laisky/gin-middlewares/v7"
@@ -16,13 +16,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime/types"
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/common"
-	"github.com/songquanpeng/one-api/common/config"
-	"github.com/songquanpeng/one-api/common/helper"
-	"github.com/songquanpeng/one-api/relay/adaptor/aws/internal/streamfinalizer"
-	"github.com/songquanpeng/one-api/relay/adaptor/aws/utils"
-	"github.com/songquanpeng/one-api/relay/adaptor/openai"
-	relaymodel "github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/common"
+	"github.com/decardlabs/uniapi/common/config"
+	"github.com/decardlabs/uniapi/common/helper"
+	"github.com/decardlabs/uniapi/relay/adaptor/aws/internal/streamfinalizer"
+	"github.com/decardlabs/uniapi/relay/adaptor/aws/utils"
+	"github.com/decardlabs/uniapi/relay/adaptor/openai"
+	relaymodel "github.com/decardlabs/uniapi/relay/model"
 )
 
 // AwsModelIDMap maps Writer model names to their AWS Bedrock model IDs.

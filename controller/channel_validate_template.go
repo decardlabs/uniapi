@@ -3,8 +3,8 @@ package controller
 import (
 	"fmt"
 
-	"github.com/songquanpeng/one-api/model"
-	"github.com/songquanpeng/one-api/relay/channeltype"
+	"github.com/decardlabs/uniapi/model"
+	"github.com/decardlabs/uniapi/relay/channeltype"
 )
 
 // ValidateChannelParamsByTemplate 校验渠道参数是否符合类型模板

@@ -6,11 +6,11 @@ import (
 
 	"github.com/Laisky/errors/v2"
 
-	"github.com/songquanpeng/one-api/common/config"
-	"github.com/songquanpeng/one-api/common/metrics"
-	"github.com/songquanpeng/one-api/model"
-	"github.com/songquanpeng/one-api/monitor/otel"
-	"github.com/songquanpeng/one-api/monitor/prometheus"
+	"github.com/decardlabs/uniapi/common/config"
+	"github.com/decardlabs/uniapi/common/metrics"
+	"github.com/decardlabs/uniapi/model"
+	"github.com/decardlabs/uniapi/monitor/otel"
+	"github.com/decardlabs/uniapi/monitor/prometheus"
 )
 
 // InitMonitoring initializes all monitoring components

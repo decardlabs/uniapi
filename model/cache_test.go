@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/songquanpeng/one-api/common/config"
+	"github.com/decardlabs/uniapi/common/config"
 )
 
 func TestCacheGetRandomSatisfiedChannelExcluding(t *testing.T) {

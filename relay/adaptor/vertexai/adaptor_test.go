@@ -6,14 +6,14 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
 
-	"github.com/songquanpeng/one-api/model"
-	"github.com/songquanpeng/one-api/relay/adaptor/geminiOpenaiCompatible"
-	"github.com/songquanpeng/one-api/relay/adaptor/vertexai/deepseek"
-	"github.com/songquanpeng/one-api/relay/adaptor/vertexai/qwen"
-	"github.com/songquanpeng/one-api/relay/billing/ratio"
-	"github.com/songquanpeng/one-api/relay/meta"
-	relayModel "github.com/songquanpeng/one-api/relay/model"
-	"github.com/songquanpeng/one-api/relay/relaymode"
+	"github.com/decardlabs/uniapi/model"
+	"github.com/decardlabs/uniapi/relay/adaptor/geminiOpenaiCompatible"
+	"github.com/decardlabs/uniapi/relay/adaptor/vertexai/deepseek"
+	"github.com/decardlabs/uniapi/relay/adaptor/vertexai/qwen"
+	"github.com/decardlabs/uniapi/relay/billing/ratio"
+	"github.com/decardlabs/uniapi/relay/meta"
+	relayModel "github.com/decardlabs/uniapi/relay/model"
+	"github.com/decardlabs/uniapi/relay/relaymode"
 )
 
 func TestGetDefaultModelPricingIncludesGeminiEmbeddingPreview(t *testing.T) {

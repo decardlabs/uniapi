@@ -5,7 +5,7 @@ import (
 
 	"github.com/Laisky/errors/v2"
 
-	cfg "github.com/songquanpeng/one-api/common/config"
+	cfg "github.com/decardlabs/uniapi/common/config"
 )
 
 // config captures the configuration derived from flags and environment variables.

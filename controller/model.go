@@ -15,17 +15,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/songquanpeng/one-api/common/ctxkey"
-	"github.com/songquanpeng/one-api/middleware"
-	"github.com/songquanpeng/one-api/model"
-	relay "github.com/songquanpeng/one-api/relay"
-	adaptorpkg "github.com/songquanpeng/one-api/relay/adaptor"
-	"github.com/songquanpeng/one-api/relay/adaptor/openai"
-	"github.com/songquanpeng/one-api/relay/apitype"
-	"github.com/songquanpeng/one-api/relay/billing/ratio"
-	"github.com/songquanpeng/one-api/relay/channeltype"
-	"github.com/songquanpeng/one-api/relay/meta"
-	relaymodel "github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/common/ctxkey"
+	"github.com/decardlabs/uniapi/middleware"
+	"github.com/decardlabs/uniapi/model"
+	relay "github.com/decardlabs/uniapi/relay"
+	adaptorpkg "github.com/decardlabs/uniapi/relay/adaptor"
+	"github.com/decardlabs/uniapi/relay/adaptor/openai"
+	"github.com/decardlabs/uniapi/relay/apitype"
+	"github.com/decardlabs/uniapi/relay/billing/ratio"
+	"github.com/decardlabs/uniapi/relay/channeltype"
+	"github.com/decardlabs/uniapi/relay/meta"
+	relaymodel "github.com/decardlabs/uniapi/relay/model"
 )
 
 // https://platform.openai.com/docs/api-reference/models/list
@@ -148,6 +148,25 @@ func init() {
 		}
 		adaptor.Init(meta)
 		channelId2Models[i] = adaptor.GetModelList()
+	}
+	// Override model lists for OpenAI-compatible channel types.
+	// The loop above maps compatible channels to apitype.OpenAI via ToAPIType(), causing
+	// the generic OpenAI model list to be returned. Use GetCompatibleChannelMeta() instead
+	// to get each provider's specific model list.
+	for _, channelType := range openai.CompatibleChannels {
+		if channeltype.ToAPIType(channelType) != apitype.OpenAI {
+			// Channel has a dedicated adaptor whose GetModelList() already returns the
+			// correct provider-specific model list; skip the override.
+			continue
+		}
+		_, models := openai.GetCompatibleChannelMeta(channelType)
+		channelId2Models[channelType] = models
+	}
+	// GLM (type 37) uses the Zhipu OpenAI-compatible endpoint. Its models come from
+	// the Zhipu adaptor. We resolve via apitype.Zhipu to avoid an import cycle between
+	// the openai and zhipu packages.
+	if zhipuAdaptor := relay.GetAdaptor(apitype.Zhipu); zhipuAdaptor != nil {
+		channelId2Models[channeltype.GLM] = zhipuAdaptor.GetModelList()
 	}
 }
 

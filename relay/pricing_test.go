@@ -5,11 +5,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/songquanpeng/one-api/relay/adaptor/ali"
-	"github.com/songquanpeng/one-api/relay/adaptor/openrouter"
-	"github.com/songquanpeng/one-api/relay/adaptor/xai"
-	"github.com/songquanpeng/one-api/relay/apitype"
-	billingratio "github.com/songquanpeng/one-api/relay/billing/ratio"
+	"github.com/decardlabs/uniapi/relay/adaptor/ali"
+	"github.com/decardlabs/uniapi/relay/adaptor/openrouter"
+	"github.com/decardlabs/uniapi/relay/adaptor/xai"
+	"github.com/decardlabs/uniapi/relay/apitype"
+	billingratio "github.com/decardlabs/uniapi/relay/billing/ratio"
 )
 
 // TestAdapterPricingImplementations tests that all major adapters have proper pricing implementations

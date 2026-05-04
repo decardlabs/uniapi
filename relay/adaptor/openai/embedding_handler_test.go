@@ -13,7 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	"github.com/songquanpeng/one-api/common/ctxkey"
+	"github.com/decardlabs/uniapi/common/ctxkey"
 )
 
 func TestEmbeddingHandlerUsageFromResponse(t *testing.T) {

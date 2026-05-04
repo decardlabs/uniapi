@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/songquanpeng/one-api/common"
+	"github.com/decardlabs/uniapi/common"
 )
 
 func TestRunWithSQLiteBusyRetryEventualSuccess(t *testing.T) {

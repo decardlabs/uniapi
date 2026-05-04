@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/songquanpeng/one-api/common/metrics"
+	"github.com/decardlabs/uniapi/common/metrics"
 )
 
 // MockMetricsRecorder for testing billing monitoring

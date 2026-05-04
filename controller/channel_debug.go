@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/songquanpeng/one-api/model"
+	"github.com/decardlabs/uniapi/model"
 )
 
 // DebugChannelModelConfigs provides debugging information for a specific channel

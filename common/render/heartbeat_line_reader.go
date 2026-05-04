@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	commonsse "github.com/songquanpeng/one-api/common/sse"
+	commonsse "github.com/decardlabs/uniapi/common/sse"
 )
 
 const (

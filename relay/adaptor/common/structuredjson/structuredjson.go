@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/songquanpeng/one-api/relay/model"
+	"github.com/decardlabs/uniapi/relay/model"
 )
 
 // EnsureInstruction injects a system message that instructs the model to emit JSON
