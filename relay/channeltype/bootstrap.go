@@ -71,7 +71,7 @@ func init() {
 		Label:       "OpenRouter",
 		Category:    "official",
 		Description: "OpenRouter unified routing endpoint",
-		Template:    registerBaseTemplate("https://openrouter.ai/api"),
+		Template:    registerBaseTemplate("https://openrouter.ai/api/v1"),
 	})
 	RegisterChannelType(ChannelTypeInfoV2{
 		ID:          Anthropic,
@@ -120,9 +120,9 @@ func init() {
 	RegisterChannelType(ChannelTypeInfoV2{
 		ID:          Moonshot,
 		Name:        "moonshot",
-		Label:       "Moonshot",
+		Label:       "Kimi (Moonshot)",
 		Category:    "official",
-		Description: "Moonshot official endpoint",
+		Description: "Moonshot Kimi official endpoint",
 		Template:    registerBaseTemplate("https://api.moonshot.cn/v1"),
 	})
 	RegisterChannelType(ChannelTypeInfoV2{
@@ -131,7 +131,7 @@ func init() {
 		Label:       "MiniMax",
 		Category:    "official",
 		Description: "MiniMax（海螺AI）official endpoint，支持 MiniMax-Text-01、MiniMax-M1 等主要模型",
-		Template:    registerBaseTemplate("https://api.minimaxi.com/v1"),
+		Template:    registerBaseTemplate("https://api.minimax.chat/v1"),
 	})
 	RegisterChannelType(ChannelTypeInfoV2{
 		ID:          GLM,
@@ -172,6 +172,22 @@ func init() {
 		Category:    "official",
 		Description: "SiliconFlow OpenAI-compatible endpoint",
 		Template:    registerBaseTemplate("https://api.siliconflow.cn/v1"),
+	})
+	RegisterChannelType(ChannelTypeInfoV2{
+		ID:          Doubao,
+		Name:        "ark",
+		Label:       "Volcengine Ark",
+		Category:    "official",
+		Description: "Volcengine Ark OpenAI-compatible endpoint",
+		Template:    registerOpenAICompatibleTemplate("https://ark.cn-beijing.volces.com/api/v3"),
+	})
+	RegisterChannelType(ChannelTypeInfoV2{
+		ID:          TencentTokenHub,
+		Name:        "tokenhub",
+		Label:       "Tencent TokenHub",
+		Category:    "official",
+		Description: "Tencent TokenHub OpenAI-compatible endpoint",
+		Template:    registerOpenAICompatibleTemplate("https://api.lkeap.cloud.tencent.com/TokenHub/v3"),
 	})
 	RegisterChannelType(ChannelTypeInfoV2{
 		ID:          XAI,

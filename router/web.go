@@ -1,8 +1,8 @@
 package router
 
 import (
-	"embed"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"strings"
 
@@ -16,8 +16,8 @@ import (
 	"github.com/songquanpeng/one-api/middleware"
 )
 
-func SetWebRouter(router *gin.Engine, buildFS embed.FS) {
-	indexPageData, _ := buildFS.ReadFile(fmt.Sprintf("web/build/%s/index.html", config.Theme))
+func SetWebRouter(router *gin.Engine, buildFS fs.FS) {
+	indexPageData, _ := fs.ReadFile(buildFS, fmt.Sprintf("web/build/%s/index.html", config.Theme))
 	router.Use(gzip.Gzip(gzip.DefaultCompression))
 	router.Use(middleware.GlobalWebRateLimit())
 	router.Use(middleware.Cache())

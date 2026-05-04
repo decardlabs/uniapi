@@ -1,8 +1,8 @@
 package router
 
 import (
-	"embed"
 	"fmt"
+	"io/fs"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -11,7 +11,7 @@ import (
 	"github.com/songquanpeng/one-api/common/logger"
 )
 
-func SetRouter(router *gin.Engine, buildFS embed.FS) {
+func SetRouter(router *gin.Engine, buildFS fs.FS) {
 	SetApiRouter(router)
 	SetDashboardRouter(router)
 	SetRelayRouter(router)

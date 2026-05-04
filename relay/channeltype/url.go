@@ -31,14 +31,14 @@ var ChannelBaseURLConfigs = []ChannelBaseURLConfig{
 	{URL: "https://dashscope.aliyuncs.com/compatible-mode/v1", Editable: false},        // 17 Ali
 	{URL: "", Editable: false},                                                         // 18 Xunfei
 	{URL: "https://ai.360.cn", Editable: false},                                        // 19 AI360
-	{URL: "https://openrouter.ai/api", Editable: true},                                 // 20 OpenRouter
+	{URL: "https://openrouter.ai/api/v1", Editable: true},                              // 20 OpenRouter
 	{URL: "https://api.aiproxy.io", Editable: true},                                    // 21 AIProxyLibrary
 	{URL: "https://fastgpt.run/api/openapi", Editable: true},                           // 22 FastGPT
 	{URL: "https://hunyuan.tencentcloudapi.com", Editable: false},                      // 23 Tencent
 	{URL: "https://generativelanguage.googleapis.com", Editable: false},                // 24 Gemini
 	{URL: "https://api.moonshot.cn/v1", Editable: false},                               // 25 Moonshot
 	{URL: "https://api.baichuan-ai.com", Editable: false},                              // 26 Baichuan
-	{URL: "https://api.minimaxi.com/v1", Editable: true},                               // 27 Minimax
+	{URL: "https://api.minimax.chat/v1", Editable: true},                               // 27 Minimax
 	{URL: "https://api.mistral.ai", Editable: false},                                   // 28 Mistral
 	{URL: "https://api.groq.com/openai", Editable: false},                              // 29 Groq
 	{URL: "http://localhost:11434", Editable: true},                                    // 30 Ollama - often self-hosted
@@ -47,16 +47,16 @@ var ChannelBaseURLConfigs = []ChannelBaseURLConfig{
 	{URL: "", Editable: false},                                                         // 33 AwsClaude - region-based
 	{URL: "https://api.coze.com", Editable: true},                                      // 34 Coze
 	{URL: "https://api.cohere.ai", Editable: false},                                    // 35 Cohere
-	{URL: "https://api.deepseek.com", Editable: false},                                 // 36 DeepSeek
+	{URL: "https://api.deepseek.com/v1", Editable: false},                              // 36 DeepSeek
 	{URL: "https://open.bigmodel.cn/api/paas/v4", Editable: false},                     // 37 GLM
 	{URL: "https://api.cloudflare.com", Editable: false},                               // 37 Cloudflare
 	{URL: "https://api-free.deepl.com", Editable: true},                                // 38 DeepL
 	{URL: "https://api.together.xyz", Editable: false},                                 // 39 TogetherAI
-	{URL: "https://ark.cn-beijing.volces.com", Editable: true},                         // 40 Doubao
+	{URL: "https://ark.cn-beijing.volces.com/api/v3", Editable: true},                  // 40 Doubao
 	{URL: "https://api.novita.ai/v3/openai", Editable: false},                          // 41 Novita
 	{URL: "", Editable: false},                                                         // 42 VertextAI - region-based
 	{URL: "", Editable: true},                                                          // 43 Proxy
-	{URL: "https://api.siliconflow.cn", Editable: false},                               // 44 SiliconFlow
+	{URL: "https://api.siliconflow.cn/v1", Editable: false},                            // 44 SiliconFlow
 	{URL: "https://api.x.ai", Editable: false},                                         // 45 XAI
 	{URL: "https://api.replicate.com/v1/models/", Editable: false},                     // 46 Replicate
 	{URL: "https://qianfan.baidubce.com", Editable: false},                             // 47 BaiduV2
@@ -66,6 +66,7 @@ var ChannelBaseURLConfigs = []ChannelBaseURLConfig{
 	{URL: "https://generativelanguage.googleapis.com/v1beta/openai/", Editable: false}, // 51 GeminiOpenAICompatible
 	{URL: "", Editable: true},                                                          // 52 ClaudeCompatible - user must provide
 	{URL: "https://api.githubcopilot.com", Editable: true},                             // 53 Copilot
+	{URL: "https://api.lkeap.cloud.tencent.com/TokenHub/v3", Editable: true},           // 54 TencentTokenHub
 }
 
 // ChannelBaseURLs provides backward compatibility by returning only the URL strings.

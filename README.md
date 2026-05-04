@@ -16,6 +16,17 @@ Open‑source version of OpenRouter, managed through a unified gateway that hand
 
 **UniAPI** 是 One API 项目的现代化重构，仅保留 Modern 前端模板和主线功能，采用 React + TypeScript + Tailwind CSS + Go 1.25 技术栈。已移除 Berry/Air/Default 等旧模板和无关功能，所有文档与代码保持一致。
 
+## 版本历史
+
+| 版本 | 日期 | 说明 |
+|------|------|------|
+| **v3.7.0** | 2026-05-04 | 9 渠道发布对齐：新增 Doubao（字节跳动豆包）、TencentTokenHub、GLM（智谱 AI）、Kimi（Moonshot）完整注册；统一各渠道 base URL 默认值；修复 DeepSeek 工具消息内容归一化（flattenMessageContents）；修复全仓测试阻塞 |
+| v3.6.1 | 2026-04 | DeepSeek reasoning_content 注入修复；Claude→OpenAI tool_use 名称回填 |
+| v3.6.0 | 2026-04 | 动态渠道类型模板系统上线；全局动态渠道注册机制 |
+| v3.5 | — | MCP 聚合代理；Response API 完整支持 |
+| v3.1.x | — | 实时计费；多轮 tool_use 兼容性增强 |
+| v3.0.0 | — | Modern UI 全量重构；移除旧模板 |
+
 
 ## 为什么选择 UniAPI？
 
@@ -98,6 +109,34 @@ Skipped (unsupported combinations):
 3. 浏览器访问 http://localhost:8080，注册并登录，体验全部功能。
 
 详细环境搭建与部署见 DEV_SETUP_GUIDE.md。
+
+## 构建模式
+
+项目提供三种构建目标，按产物大小从大到小排列：
+
+| 命令 | 体积参考 | 说明 |
+|------|---------|------|
+| `make build` | ~87 MB | 标准构建，含完整调试符号，同时重新构建前端 |
+| `make build-release` | ~59 MB | 瘦身构建，去除调试符号和路径信息（`-s -w -trimpath`），同时重新构建前端 |
+| `make build-release-no-frontend` | ~59 MB | 与上同，但跳过前端重新构建（前端已构建完成时使用） |
+| `make build-release-external-static` | ~55 MB | 最小体积，前端静态资源在运行时从磁盘加载而非嵌入二进制 |
+
+**`build-release-external-static` 部署注意事项**
+
+使用此模式构建的二进制不内嵌前端资源，需在运行目录下提供 `web/build/modern/` 目录：
+
+```sh
+# 先构建前端
+make build-frontend-modern
+
+# 再构建外部静态二进制
+make build-release-external-static
+
+# 运行时必须在含 web/build/ 的目录下启动
+./uniapi
+```
+
+如需纯 API 部署（无前端，通过 `FRONTEND_BASE_URL` 反代前端），推荐使用 `build-release-no-frontend`。
 
 > 历史设计、升级、版本等文档已归档至 docs/legacy/，如需参考请前往该目录。
 

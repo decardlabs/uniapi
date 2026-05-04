@@ -17,6 +17,7 @@ import (
 	"github.com/songquanpeng/one-api/relay/adaptor/siliconflow"
 	"github.com/songquanpeng/one-api/relay/adaptor/stepfun"
 	"github.com/songquanpeng/one-api/relay/adaptor/togetherai"
+	"github.com/songquanpeng/one-api/relay/adaptor/tokenhub"
 	"github.com/songquanpeng/one-api/relay/adaptor/xai"
 	"github.com/songquanpeng/one-api/relay/adaptor/xunfeiv2"
 	"github.com/songquanpeng/one-api/relay/channeltype"
@@ -40,6 +41,8 @@ var CompatibleChannels = []int{
 	channeltype.XAI,
 	channeltype.BaiduV2,
 	channeltype.XunfeiV2,
+	channeltype.AliBailian,
+	channeltype.TencentTokenHub,
 }
 
 func GetCompatibleChannelMeta(channelType int) (string, []string) {
@@ -83,6 +86,8 @@ func GetCompatibleChannelMeta(channelType int) (string, []string) {
 		return "openrouter", adaptor.GetModelList()
 	case channeltype.AliBailian:
 		return "alibailian", alibailian.ModelList
+	case channeltype.TencentTokenHub:
+		return "tencenttokenhub", tokenhub.ModelList
 	case channeltype.GeminiOpenAICompatible:
 		return "geminiv2", geminiOpenaiCompatible.ModelList
 	default:

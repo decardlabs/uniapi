@@ -5,10 +5,23 @@ BUILD_TIME := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 LDFLAGS    := -X github.com/songquanpeng/one-api/common.Version=$(GIT_TAG) \
               -X github.com/songquanpeng/one-api/common.BuildCommit=$(GIT_COMMIT) \
               -X github.com/songquanpeng/one-api/common.BuildTime=$(BUILD_TIME)
+RELEASE_LDFLAGS := $(LDFLAGS) -s -w
 
 .PHONY: build
 build: build-frontend-modern
 	go build -ldflags "$(LDFLAGS)" -o uniapi .
+
+.PHONY: build-release
+build-release: build-frontend-modern
+	go build -trimpath -ldflags "$(RELEASE_LDFLAGS)" -o uniapi .
+
+.PHONY: build-release-no-frontend
+build-release-no-frontend:
+	go build -trimpath -ldflags "$(RELEASE_LDFLAGS)" -o uniapi .
+
+.PHONY: build-release-external-static
+build-release-external-static:
+	go build -tags external_static -trimpath -ldflags "$(RELEASE_LDFLAGS)" -o uniapi .
 
 .PHONY: install
 install:
@@ -67,6 +80,10 @@ help-dev:
 	@echo "  dev               Start modern template development server (default)"
 	@echo ""
 	@echo "Build targets:"
+	@echo "  build             Build with frontend and standard symbols"
+	@echo "  build-release     Build with frontend and slim binary flags"
+	@echo "  build-release-no-frontend Build slim binary without rebuilding frontend"
+	@echo "  build-release-external-static Build slim binary that loads web/build from disk"
 	@echo "  build-frontend-modern      Build modern template for production"
 	@echo ""
 	@echo "Development build targets:"

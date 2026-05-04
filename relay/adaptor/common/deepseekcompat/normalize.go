@@ -3,6 +3,7 @@ package deepseekcompat
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	gmw "github.com/Laisky/gin-middlewares/v7"
 	"github.com/Laisky/zap"
@@ -40,6 +41,12 @@ func NormalizeToolMessageContent(lg NormalizeLogger, request *model.GeneralOpenA
 
 		normalized := message.StringContent()
 		if normalized == "" {
+			switch content := message.Content.(type) {
+			case []model.MessageContent:
+				normalized = flattenMessageContents(content)
+			}
+		}
+		if normalized == "" {
 			if message.Content == nil {
 				normalized = ""
 			} else {
@@ -75,6 +82,24 @@ func NormalizeToolMessageContent(lg NormalizeLogger, request *model.GeneralOpenA
 			zap.Int("normalized_count", normalizedCount),
 		)
 	}
+}
+
+// flattenMessageContents concatenates text segments from message content blocks into a plain string.
+func flattenMessageContents(content []model.MessageContent) string {
+	if len(content) == 0 {
+		return ""
+	}
+
+	var builder strings.Builder
+	for idx := range content {
+		part := content[idx]
+		if part.Text == nil {
+			continue
+		}
+		builder.WriteString(*part.Text)
+	}
+
+	return builder.String()
 }
 
 // InjectMissingReasoningContent ensures all assistant messages have reasoning_content

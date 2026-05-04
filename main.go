@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"embed"
 	"encoding/base64"
 	"net/http"
 	"os"
@@ -38,10 +37,6 @@ import (
 	"github.com/songquanpeng/one-api/relay/mcp"
 	"github.com/songquanpeng/one-api/router"
 )
-
-//go:embed web/build/*
-
-var buildFS embed.FS
 
 func main() {
 	ctx := context.Background()
@@ -218,7 +213,7 @@ func main() {
 		logger.Logger.Info("Prometheus metrics endpoint available at /metrics")
 	}
 
-	router.SetRouter(server, buildFS)
+	router.SetRouter(server, webFS)
 	port := config.ServerPort
 	if port == "" {
 		port = strconv.Itoa(*common.Port)

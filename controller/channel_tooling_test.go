@@ -226,7 +226,7 @@ func TestAddChannelUsesDefaultBaseURLWhenReadonlyTypeOmitsBaseURL(t *testing.T) 
 	})
 
 	require.NotNil(t, created.BaseURL)
-	require.Equal(t, "https://api.deepseek.com", *created.BaseURL)
+	require.Equal(t, "https://api.deepseek.com/v1", *created.BaseURL)
 }
 
 func TestGetChannelIncludesToolingField(t *testing.T) {

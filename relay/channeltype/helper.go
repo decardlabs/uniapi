@@ -182,6 +182,8 @@ func IdToName(channelType int) string {
 		return "geminiopenaicompatible"
 	case Copilot:
 		return "copilot"
+	case TencentTokenHub:
+		return "tencenttokenhub"
 	case Dummy:
 		return "dummy"
 	default:

@@ -56,5 +56,6 @@ const (
 	GeminiOpenAICompatible
 	ClaudeCompatible
 	Copilot
+	TencentTokenHub
 	Dummy
 )
