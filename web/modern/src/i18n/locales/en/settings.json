@@ -75,6 +75,7 @@
       "system_name_desc": "System display name shown in the UI and emails.",
       "theme": "Theme",
       "theme_desc": "UI theme name. Supported: modern.",
+      "theme_fixed_desc": "Only the Modern theme is supported. The theme cannot be changed.",
       "title": "System Branding"
     },
     "content": {
@@ -103,7 +104,7 @@
       "description": "Check for updates and manage system version",
       "title": "System Updates",
       "update_available": "Update Available: {{version}}",
-      "view_releases": "View GitHub Releases"
+      "view_versions": "View GitHub Tags"
     }
   },
   "personal_settings": {

@@ -75,6 +75,7 @@
       "system_name_desc": "在 UI 和邮件中显示的系统显示名称。",
       "theme": "主题",
       "theme_desc": "UI 主题名称。支持：modern。",
+      "theme_fixed_desc": "当前仅支持 Modern 主题，主题不可更改。",
       "title": "系统品牌"
     },
     "content": {
@@ -103,7 +104,7 @@
       "description": "检查更新并管理系统版本",
       "title": "系统更新",
       "update_available": "可用更新: {{version}}",
-      "view_releases": "查看 GitHub 发布"
+      "view_versions": "查看 GitHub 标签"
     }
   },
   "personal_settings": {

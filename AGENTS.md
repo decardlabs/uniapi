@@ -35,6 +35,7 @@
 - **CSS rules:** Avoid `!important`; avoid inline styles in HTML/JSX; use CSS classes for maintainability.
 - **Web console logging:** When debugging in browser consoles, log **strings only** (not objects) to make output easy to copy and analyze.
 - **I18n completeness:** Ensure all UI strings are present in locale files and that translations are wired into the Modern frontend.
+- **README upgrade log:** Record every user-visible feature upgrade or behavior change in `README.md` as part of the same task; keep the upgrade notes in sync with shipped functionality.
 - **Frontend build/dev:** Follow Modern template build/dev conventions and ensure `make build-frontend-modern` succeeds after changes.
 - **Preserve CI expectations:** Any change must respect CI and linting rules; fix tests or implementation as needed, but do not bypass checks.
 - **Planning discipline (pre-action):** Before any action, independently plan: check policy constraints and prerequisites, reorder operations if needed, and ensure required info/tools are available.

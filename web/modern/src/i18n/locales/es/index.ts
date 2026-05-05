@@ -1,5 +1,6 @@
 import auth from './auth.json';
 import billing from './billing.json';
+import channels from './channels.json';
 import common from './common.json';
 import dashboard from './dashboard.json';
 import logs from './logs.json';
@@ -26,6 +27,10 @@ const translations = {
   ...mcp,
   ...tools,
   ...pool,
+  channels: {
+    ...(management.channels || {}),
+    ...channels,
+  },
 };
 
 export default translations;

@@ -88,8 +88,9 @@ export function EditChannelPage() {
 
   const rawModels = Array.isArray(modelsCatalog[normalizedChannelType ?? -1]) ? modelsCatalog[normalizedChannelType ?? -1] : [];
   const whitelist = MAINSTREAM_MODELS[normalizedChannelType ?? -1];
+  const hasCuratedModels = Array.isArray(whitelist) && whitelist.length > 0;
   const availableModels = rawModels
-    .filter((model) => typeof model === 'string' && !!model && (!whitelist || whitelist.includes(model)))
+    .filter((model) => typeof model === 'string' && !!model && (!hasCuratedModels || whitelist.includes(model)))
     .map((model) => ({ id: model, name: String(model) }))
     .filter((m) => typeof m.name === 'string' && m.name)
     .sort((a, b) => {
@@ -191,9 +192,10 @@ export function EditChannelPage() {
                   form={form}
                   availableModels={availableModels}
                   currentCatalogModels={currentCatalogModels}
+                  hasCuratedModels={hasCuratedModels}
                   defaultPricing={defaultPricing}
-                  tr={tr}
                   notify={notify}
+                  tr={tr}
                 />
 
                 <ChannelAdvancedSettings form={form} normalizedChannelType={normalizedChannelType} tr={tr} />

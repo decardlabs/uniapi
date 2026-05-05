@@ -1,5 +1,4 @@
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { useEffect } from 'react';
 import { useForm, type UseFormReturn } from 'react-hook-form';
 import { describe, expect, it, vi } from 'vitest';
@@ -14,7 +13,13 @@ import { ChannelModelSettings } from '../ChannelModelSettings';
  * @param defaultValue - fallback string to render.
  * @returns The fallback translation value.
  */
-const tr = (_key: string, defaultValue: string) => defaultValue;
+const tr = (_key: string, defaultValue: string, options?: Record<string, unknown>) => {
+  if (!options) {
+    return defaultValue;
+  }
+
+  return Object.entries(options).reduce((text, [name, value]) => text.replace(`{{${name}}}`, String(value)), defaultValue);
+};
 
 const baseDefaults: ChannelForm = {
   name: 'Test Channel',
@@ -50,7 +55,11 @@ const baseDefaults: ChannelForm = {
  * TestHarnessProps defines inputs for the test harness component.
  */
 interface TestHarnessProps {
+  availableModels?: { id: string; name: string }[];
+  currentCatalogModels?: string[];
+  hasCuratedModels?: boolean;
   defaultPricing: string;
+  notify?: (options: any) => void;
   onReady: (form: UseFormReturn<ChannelForm>) => void;
 }
 
@@ -60,7 +69,14 @@ interface TestHarnessProps {
  * @param onReady - callback to expose the form instance.
  * @returns The rendered ChannelModelSettings component.
  */
-const TestHarness = ({ defaultPricing, onReady }: TestHarnessProps) => {
+const TestHarness = ({
+  availableModels = [],
+  currentCatalogModels = [],
+  hasCuratedModels = false,
+  defaultPricing,
+  notify = vi.fn(),
+  onReady,
+}: TestHarnessProps) => {
   const form = useForm<ChannelForm>({ defaultValues: baseDefaults });
 
   useEffect(() => {
@@ -71,19 +87,19 @@ const TestHarness = ({ defaultPricing, onReady }: TestHarnessProps) => {
     <TooltipProvider>
       <ChannelModelSettings
         form={form}
-        availableModels={[]}
-        currentCatalogModels={[]}
+        availableModels={availableModels}
+        currentCatalogModels={currentCatalogModels}
+        hasCuratedModels={hasCuratedModels}
         defaultPricing={defaultPricing}
+        notify={notify}
         tr={tr}
-        notify={vi.fn()}
       />
     </TooltipProvider>
   );
 };
 
 describe('ChannelModelSettings', () => {
-  it('loads default model configs into the form', async () => {
-    const user = userEvent.setup();
+  it('loads default model configs into the form', () => {
     let formRef: UseFormReturn<ChannelForm> | null = null;
 
     render(
@@ -95,9 +111,124 @@ describe('ChannelModelSettings', () => {
       />
     );
 
-    const button = screen.getByRole('button', { name: 'Load Default' });
-    await user.click(button);
+    const button = screen.getByRole('button', { name: 'Load Provider Defaults' });
+    fireEvent.click(button);
 
-    expect(formRef?.getValues('model_configs')).toBe('{"gpt-4": {"ratio": 1}}');
+    expect(formRef?.getValues('model_configs')).toBe('{\n  "gpt-4": {\n    "ratio": 1\n  }\n}');
+  });
+
+  it('loads default model configs filtered by selected models', () => {
+    let formRef: UseFormReturn<ChannelForm> | null = null;
+
+    render(
+      <TestHarness
+        defaultPricing='{"gpt-4": {"ratio": 1}, "deepseek-chat": {"ratio": 0.14}, "unused": {"ratio": 999}}'
+        onReady={(form) => {
+          formRef = form;
+        }}
+      />
+    );
+
+    formRef?.setValue('models', ['deepseek-chat', 'gpt-4']);
+    fireEvent.click(screen.getByRole('button', { name: 'Load Provider Defaults' }));
+
+    expect(formRef?.getValues('model_configs')).toBe(
+      '{\n  "deepseek-chat": {\n    "ratio": 0.14\n  },\n  "gpt-4": {\n    "ratio": 1\n  }\n}'
+    );
+  });
+
+  it('generates fallback model configs when provider defaults are missing', () => {
+    let formRef: UseFormReturn<ChannelForm> | null = null;
+
+    render(
+      <TestHarness
+        defaultPricing=''
+        currentCatalogModels={['gpt-4', 'deepseek-chat']}
+        onReady={(form) => {
+          formRef = form;
+        }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load Provider Defaults' }));
+
+    expect(formRef?.getValues('model_configs')).toBe(
+      '{\n  "gpt-4": {\n    "ratio": 1,\n    "completion_ratio": 1,\n    "max_tokens": 128000\n  },\n  "deepseek-chat": {\n    "ratio": 1,\n    "completion_ratio": 1,\n    "max_tokens": 128000\n  }\n}'
+    );
+  });
+
+  it('adds recommended and catalog models from separate actions', () => {
+    let formRef: UseFormReturn<ChannelForm> | null = null;
+
+    render(
+      <TestHarness
+        availableModels={[
+          { id: 'recommended-a', name: 'recommended-a' },
+          { id: 'recommended-b', name: 'recommended-b' },
+        ]}
+        currentCatalogModels={['recommended-a', 'catalog-only']}
+        hasCuratedModels={true}
+        defaultPricing=''
+        onReady={(form) => {
+          formRef = form;
+        }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Recommended Models (2)' }));
+    expect(formRef?.getValues('models')).toEqual(['recommended-a', 'recommended-b']);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Provider Catalog (2)' }));
+    expect(formRef?.getValues('models')).toEqual(['recommended-a', 'recommended-b', 'catalog-only']);
+  });
+
+  it('warns and applies fallback defaults when no selected models match provider defaults', () => {
+    const notify = vi.fn();
+    let formRef: UseFormReturn<ChannelForm> | null = null;
+
+    render(
+      <TestHarness
+        defaultPricing='{"gpt-4": {"ratio": 1}}'
+        notify={notify}
+        onReady={(form) => {
+          formRef = form;
+        }}
+      />
+    );
+
+    formRef?.setValue('models', ['deepseek-chat']);
+    formRef?.setValue('model_configs', '{"existing": {"ratio": 9}}');
+    fireEvent.click(screen.getByRole('button', { name: 'Load Provider Defaults' }));
+
+    expect(formRef?.getValues('model_configs')).toBe(
+      '{\n  "deepseek-chat": {\n    "ratio": 1,\n    "completion_ratio": 1,\n    "max_tokens": 128000\n  }\n}'
+    );
+    expect(notify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'warning',
+      })
+    );
+  });
+
+  it('formats model mapping by auto-filling one-to-one mappings for models', () => {
+    let formRef: UseFormReturn<ChannelForm> | null = null;
+
+    render(
+      <TestHarness
+        defaultPricing=''
+        currentCatalogModels={['gpt-4', 'deepseek-chat']}
+        onReady={(form) => {
+          formRef = form;
+        }}
+      />
+    );
+
+    formRef?.setValue('models', ['gpt-4', 'deepseek-chat']);
+    formRef?.setValue('model_mapping', '{"gpt-4": "openai/gpt-4"}');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Format JSON' })[0]);
+
+    expect(formRef?.getValues('model_mapping')).toBe(
+      '{\n  "gpt-4": "openai/gpt-4",\n  "deepseek-chat": "deepseek-chat"\n}'
+    );
   });
 });

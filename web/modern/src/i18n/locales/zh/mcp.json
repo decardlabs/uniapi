@@ -1,6 +1,8 @@
 {
   "mcp": {
     "edit": {
+      "description_add": "添加新的 MCP 服务器并配置其工具暴露方式。",
+      "description_edit": "更新 MCP 服务器连接、同步和工具暴露设置。",
       "actions": {
         "add": "添加",
         "cancel": "取消",

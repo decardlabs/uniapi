@@ -18,6 +18,8 @@ Open‑source version of OpenRouter, managed through a unified gateway that hand
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| **v3.8.3** | 2026-05-05 | 渠道编辑页模型区全面重设计：新增"推荐模型名"与"供应商目录"两个独立导入卡片，说明文字根据渠道类型是否有精选列表自适应显示；"加载供应商默认配置"按当前已选模型（或目录）筛选默认定价，缺少默认值时自动生成 `ratio=1/completion_ratio=1/max_tokens=128000` 占位配置并给出警告；"请求模型映射"格式化时自动将已选模型补入映射；移除旧"Fill Related / Fill All"按钮，统一命名为"加入推荐模型 / 加入供应商目录"；设置页移除"主题（Theme）"配置项，当前仅支持 Modern 主题 |
+| **v3.8.2** | 2026-05-05 | 渠道配置体验升级：新增渠道时，“请求模型映射 (JSON)”的“格式化 JSON”可按已选模型或供应商目录自动补齐一一映射；“加载供应商默认配置”在供应商缺少定价时会按默认 `ratio=1`、`completion_ratio=1`、`max_tokens=128000` 为每个模型生成可编辑 JSON；设置页“检查更新”改为优先读取 GitHub 最新 tag，避免把过期 release 误报为最新版本 |
 | **v3.8.1** | 2026-05-04 | 热修复：修正渠道工具测试中的过时 channel type 常量，恢复 `go test -race ./...` 全量通过 |
 | v3.8.0 | 2026-05-04 | 基于当前主分支代码发布 3.8.0：9 渠道发布对齐；新增 Doubao（字节跳动豆包）、TencentTokenHub、GLM（智谱 AI）、Kimi（Moonshot）完整注册；统一各渠道 base URL 默认值；修复 DeepSeek 工具消息内容归一化（flattenMessageContents）；修复全仓测试阻塞 |
 | v3.6.1 | 2026-04 | DeepSeek reasoning_content 注入修复；Claude→OpenAI tool_use 名称回填 |
@@ -288,6 +290,14 @@ Support internationalization (i18n) in the web frontend, including English, Chin
 #### Unified Billing System
 
 All channels share a four-layer billing pipeline (channel overrides → adapter defaults → global fallback → safe default) with support for tiered token pricing, cached prompt buckets, and per-second/per-image media meters. Administrators can fetch defaults, override specific models, and audit every call via `X-Oneapi-Request-Id`; see [docs/arch/billing.md](./docs/arch/billing.md) for internals and [docs/manuals/billing.md](./docs/manuals/billing.md) for the operational playbook.
+
+#### Channel configuration scaffolding for new providers
+
+When adding a new channel in the Modern admin UI, UniAPI now pre-fills the two most error-prone JSON areas so administrators can start from an editable baseline instead of writing everything from scratch.
+
+- `Request Model Mapping (JSON)` → clicking `Format JSON` preserves any existing custom mappings and automatically fills missing models as one-to-one mappings, based on the currently selected models or the provider catalog.
+- `Per-Model Pricing & Limits (JSON)` → clicking `Load Provider Defaults` still prefers adapter-provided defaults, but when a provider has no pricing for some or all models, UniAPI now generates editable fallback entries for every model with `ratio=1`, `completion_ratio=1`, and `max_tokens=128000`.
+- This behavior is especially useful when registering a brand-new provider or onboarding a provider whose upstream model list is available before its pricing table is fully curated.
 
 #### Support Open Telemetry
 

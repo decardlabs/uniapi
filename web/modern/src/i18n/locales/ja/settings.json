@@ -103,7 +103,7 @@
       "description": "更新を確認し、システムバージョンを管理します",
       "title": "システム更新",
       "update_available": "利用可能な更新: {{version}}",
-      "view_releases": "GitHub のリリースを見る"
+      "view_versions": "GitHub のタグを見る"
     }
   },
   "personal_settings": {

@@ -12,6 +12,8 @@ import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import * as z from 'zod';
 
+import { GITHUB_TAGS_PAGE, fetchLatestVersion } from './versionCheck';
+
 const otherSchema = z.object({
   Footer: z.string().default(''),
   Notice: z.string().default(''),
@@ -19,7 +21,6 @@ const otherSchema = z.object({
   SystemName: z.string().default(''),
   Logo: z.string().default(''),
   HomePageContent: z.string().default(''),
-  Theme: z.string().default(''),
 });
 
 type OtherForm = z.infer<typeof otherSchema>;
@@ -30,6 +31,7 @@ export function OtherSettings() {
   const [updateData, setUpdateData] = useState<{
     tag_name: string;
     content: string;
+    html_url: string;
   } | null>(null);
 
   // Descriptions for each setting on this page
@@ -37,7 +39,6 @@ export function OtherSettings() {
     () => ({
       SystemName: t('other_settings.branding.system_name_desc'),
       Logo: t('other_settings.branding.logo_url_desc'),
-      Theme: t('other_settings.branding.theme_desc'),
       Notice: t('other_settings.content.notice_desc'),
       About: t('other_settings.content.about_desc'),
       HomePageContent: t('other_settings.content.home_page_desc'),
@@ -55,7 +56,6 @@ export function OtherSettings() {
       SystemName: '',
       Logo: '',
       HomePageContent: '',
-      Theme: '',
     },
   });
 
@@ -100,9 +100,8 @@ export function OtherSettings() {
 
   const checkUpdate = async () => {
     try {
-      const res = await fetch('https://api.github.com/repos/decardlabs/uniapi/releases/latest');
-      const data = await res.json();
-      if (data.tag_name) {
+      const data = await fetchLatestVersion();
+      if (data?.tag_name) {
         setUpdateData(data);
       }
     } catch (error) {
@@ -110,8 +109,8 @@ export function OtherSettings() {
     }
   };
 
-  const openGitHubRelease = () => {
-    window.open('https://github.com/decardlabs/uniapi/releases/latest', '_blank');
+  const openGitHubVersionPage = () => {
+    window.open(updateData?.html_url ?? GITHUB_TAGS_PAGE, '_blank');
   };
 
   useEffect(() => {
@@ -199,34 +198,6 @@ export function OtherSettings() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="Theme"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        {t('other_settings.branding.theme')}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button type="button" className="text-muted-foreground hover:text-foreground" aria-label={t('common.info')}>
-                              <Info className="h-4 w-4" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" align="start" className="max-w-[320px]">
-                            {descriptions.Theme}
-                          </TooltipContent>
-                        </Tooltip>
-                      </FormLabel>
-                      <div className="flex gap-2">
-                        <FormControl>
-                          <Input placeholder="modern" {...field} />
-                        </FormControl>
-                        <Button onClick={() => submitField('Theme')}>{t('other_settings.branding.save')}</Button>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
             </Form>
           </CardContent>
@@ -371,8 +342,8 @@ export function OtherSettings() {
             <div className="space-y-4">
               <div className="flex gap-2">
                 <Button onClick={checkUpdate}>{t('other_settings.updates.check_update')}</Button>
-                <Button variant="outline" onClick={openGitHubRelease}>
-                  {t('other_settings.updates.view_releases')}
+                <Button variant="outline" onClick={openGitHubVersionPage}>
+                  {t('other_settings.updates.view_versions')}
                 </Button>
               </div>
 

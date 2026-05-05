@@ -91,7 +91,7 @@
           "tip": "WebSocket 版本 API"
         },
         "29": {
-          "description": "Groq-hosted LLaMA-style models via OpenAI schema."
+          "description": "通过 OpenAI 协议访问由 Groq 托管的 LLaMA 风格模型。"
         },
         "40": {
           "description": "原字节跳动豆包"
@@ -121,15 +121,15 @@
         }
       },
       "common": {
-        "add": "Add",
+        "add": "添加",
         "base_url": {
-          "fixed_note": "Using default: {{url}}",
-          "help_editable": "Custom API base URL. Leave empty to use the default URL.",
-          "help_readonly": "The API base URL for this channel type is fixed and cannot be modified.",
-          "label": "API Base URL",
+          "fixed_note": "使用默认地址: {{url}}",
+          "help_editable": "自定义 API 基础地址。留空将使用默认地址。",
+          "help_readonly": "该渠道类型的 API 基础地址是固定值，无法修改。",
+          "label": "API 基础地址",
           "placeholder": "https://api.example.com"
         },
-        "format_json": "Format JSON"
+        "format_json": "格式化 JSON"
       },
       "coze": {
         "auth_type": {
@@ -197,7 +197,7 @@
         }
       },
       "groups": {
-        "add_placeholder": "Add custom group...",
+        "add_placeholder": "添加自定义分组...",
         "help": "限制特定用户组的访问。留空表示所有用户都可以访问。默认分组始终保留。",
         "label": "分组 *"
       },
@@ -208,8 +208,8 @@
         "placeholder": "AWS Bedrock 推理配置文件 ARN 映射:\n{{example}}"
       },
       "key": {
-        "help": "The API key for authentication with the provider.",
-        "label": "API Key"
+        "help": "用于与服务提供商进行身份验证的 API 密钥。",
+        "label": "API 密钥"
       },
       "loading": "正在加载渠道...",
       "mcp": {
@@ -224,7 +224,7 @@
         "invalid": "无效的模型配置格式",
         "invalid_short": "✗ 无效配置",
         "label": "模型配置 (JSON)",
-        "load_default": "Load Default",
+        "load_default": "加载默认配置",
         "note": "配置每个模型的定价和限制 (可选)",
         "placeholder": "JSON 格式的模型配置:\n{{example}}",
         "select_type_notice": "选择渠道类型以配置模型配置。",
@@ -238,7 +238,7 @@
       },
       "models": {
         "add_custom": "添加",
-        "clear": "Clear",
+        "clear": "清空",
         "clear_all": "全部清除",
         "copy_title": "点击复制模型名称",
         "custom_placeholder": "添加自定义模型...",
@@ -246,16 +246,16 @@
         "fill_related": "填充相关模型 ({{count}})",
         "help": "此渠道可用的模型。留空以允许所有提供商模型。使用按钮填充相关/所有模型；重复项将被删除。",
         "label": "支持的模型 *",
-        "no_match": "No models found",
-        "no_selection": "No models selected",
+        "no_match": "未找到模型",
+        "no_selection": "未选择模型",
         "search_placeholder": "搜索模型...",
         "select_type_notice": "选择渠道类型以配置支持的模型。",
-        "selected_count": "Selected Models ({{count}})"
+        "selected_count": "已选模型 ({{count}})"
       },
       "name": {
-        "help": "A descriptive name for this channel to identify it in logs and lists.",
-        "label": "Channel Name *",
-        "placeholder": "My Channel"
+        "help": "用于在日志和列表中识别该渠道的描述性名称。",
+        "label": "渠道名称 *",
+        "placeholder": "我的渠道"
       },
       "openai_compatible": {
         "api_format": {
@@ -263,13 +263,13 @@
           "label": "上游 API 格式 *",
           "option": {
             "chat_completion": "ChatCompletion (默认)",
-            "response": "Response"
+            "response": "Response（响应 API）"
           },
           "placeholder": "选择上游 API 格式"
         },
         "base_url": {
           "help": "OpenAI 兼容端点的 Base URL，例如 https://api.your-provider.com。需要时会自动附加 /v1。",
-          "label": "Base URL *",
+          "label": "基础地址 *",
           "placeholder": "https://api.your-provider.com"
         },
         "heading": "OpenAI 兼容配置"
@@ -282,12 +282,12 @@
         }
       },
       "priority": {
-        "help": "Higher priority channels are tried first. Default is 0.",
-        "label": "Priority"
+        "help": "优先级更高的渠道会被优先尝试。默认值为 0。",
+        "label": "优先级"
       },
       "ratelimit": {
-        "help": "Maximum requests per minute. 0 means unlimited.",
-        "label": "Rate Limit"
+        "help": "每分钟最大请求数。0 表示不限制。",
+        "label": "速率限制"
       },
       "spark": {
         "version": {
@@ -306,9 +306,9 @@
         "edit": "编辑渠道"
       },
       "tooling": {
-        "add_custom": "Add custom tool...",
-        "available_tools": "Available Tools",
-        "editor_disabled": "Fix JSON error to enable editor",
+        "add_custom": "添加自定义工具...",
+        "available_tools": "可用工具",
+        "editor_disabled": "请先修复 JSON 错误再启用编辑器",
         "errors": {
           "invalid_json_message": "在编辑白名单之前修复工具 JSON。",
           "invalid_json_title": "无效 JSON"
@@ -318,7 +318,7 @@
         "help": "定义渠道范围的内置工具策略。配置提供商内置工具的白名单和每次调用的定价。",
         "invalid": "无效的工具配置格式",
         "label": "工具配置 (JSON)",
-        "no_whitelist": "No tools whitelisted",
+        "no_whitelist": "未加入白名单的工具",
         "note": "配置内置工具允许列表和每次调用的定价 (可选)",
         "placeholder": "JSON 格式的工具配置:\n{{example}}",
         "whitelist": {
@@ -330,22 +330,22 @@
           "subtitle": "空白白名单保留所有提供商工具可用。",
           "title": "内置工具白名单"
         },
-        "whitelist_editor": "Whitelist Editor",
-        "whitelisted_tools": "Whitelisted Tools ({{count}})"
+        "whitelist_editor": "白名单编辑器",
+        "whitelisted_tools": "白名单工具 ({{count}})"
       },
       "type": {
-        "help": "The provider type for this channel. Changing this may reset some fields.",
-        "label": "Channel Type *",
-        "not_found": "No channel type found.",
-        "placeholder": "Select a channel type",
-        "search": "Search channel type..."
+        "help": "该渠道对应的服务提供商类型。修改后可能会重置部分字段。",
+        "label": "渠道类型 *",
+        "not_found": "未找到渠道类型。",
+        "placeholder": "选择渠道类型",
+        "search": "搜索渠道类型..."
       },
       "type_change": {
-        "cancel": "Cancel",
-        "confirm": "Change Type",
-        "description": "You are about to change the channel type from \"{{fromType}}\" to \"{{toType}}\".",
-        "title": "Change Channel Type?",
-        "warning": "Warning: This may reset some configuration fields specific to the previous channel type. Any unsaved changes may be lost."
+        "cancel": "取消",
+        "confirm": "确认修改",
+        "description": "你即将把渠道类型从 \"{{fromType}}\" 修改为 \"{{toType}}\"。",
+        "title": "确认修改渠道类型？",
+        "warning": "警告：这可能会重置旧渠道类型的部分配置字段，未保存的更改可能会丢失。"
       },
       "validation": {
         "api_key_required": "API 密钥是必填项。",
@@ -384,12 +384,12 @@
         }
       },
       "weight": {
-        "help": "Used for load balancing between channels of the same priority. Default is 0.",
-        "label": "Weight"
+        "help": "用于同一优先级渠道之间的负载均衡。默认值为 0。",
+        "label": "权重"
       }
     },
     "empty": "尚未找到渠道，请先创建一个渠道。",
-    "group_default": "default",
+    "group_default": "默认",
     "notifications": {
       "bulk_test_failed_title": "批量测试失败",
       "bulk_test_started": "已开始批量渠道测试。",

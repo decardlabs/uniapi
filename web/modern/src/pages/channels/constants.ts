@@ -106,21 +106,21 @@ export const COZE_AUTH_OPTIONS = [
 ];
 
 export const MODEL_MAPPING_EXAMPLE = {
-  'gpt-3.5-turbo-0301': 'gpt-3.5-turbo',
-  'gpt-4-0314': 'gpt-4',
-  'gpt-4-32k-0314': 'gpt-4-32k',
+  'client-facing-model': 'provider/actual-model-name',
+  'gpt-4o-mini': 'openai/gpt-4o-mini',
+  'claude-sonnet': 'anthropic/claude-sonnet-4',
 };
 
 export const MODEL_CONFIGS_EXAMPLE = {
-  'gpt-3.5-turbo-0301': {
-    ratio: 0.0015,
-    completion_ratio: 2.0,
-    max_tokens: 65536,
-  },
-  'gpt-4': {
-    ratio: 0.03,
-    completion_ratio: 2.0,
+  'provider/actual-model-name': {
+    ratio: 1,
+    completion_ratio: 1,
     max_tokens: 128000,
+  },
+  'vision/model-example': {
+    ratio: 1.2,
+    completion_ratio: 1.5,
+    max_tokens: 65536,
   },
 } satisfies Record<string, Record<string, unknown>>;
 

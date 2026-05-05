@@ -103,7 +103,7 @@
       "description": "Verifica actualizaciones y gestiona la versión del sistema",
       "title": "Actualizaciones del sistema",
       "update_available": "Actualización disponible: {{version}}",
-      "view_releases": "Ver publicaciones en GitHub"
+      "view_versions": "Ver etiquetas de GitHub"
     }
   },
   "personal_settings": {

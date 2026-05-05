@@ -52,7 +52,7 @@
       "quota_consumed": "消耗 {{value}}",
       "requests": "请求",
       "requests_value": "{{value}} 次请求",
-      "tokens": "Tokens",
+      "tokens": "令牌",
       "tokens_value": "{{value}} 个 token"
     },
     "loading": "正在刷新仪表盘...",
@@ -60,7 +60,7 @@
     "metrics": {
       "expenses": "费用",
       "requests": "请求",
-      "tokens": "Tokens"
+      "tokens": "令牌"
     },
     "overview": {
       "subtitle": "所选时间范围内的总量与领先者",
