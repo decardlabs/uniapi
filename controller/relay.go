@@ -31,6 +31,34 @@ import (
 
 // https://platform.openai.com/docs/api-reference/chat
 
+// estimateFunctionToolSignals estimates function/tool usage signals from raw request payload.
+func estimateFunctionToolSignals(c *gin.Context) int {
+	if c == nil || c.Request == nil || c.Request.Method != http.MethodPost {
+		return 0
+	}
+
+	body, err := common.GetRequestBody(c)
+	if err != nil || len(body) == 0 {
+		return 0
+	}
+
+	count := 0
+	markers := [][]byte{
+		[]byte(`"tool_calls"`),
+		[]byte(`"tools"`),
+		[]byte(`"function_call"`),
+	}
+	for _, marker := range markers {
+		count += bytes.Count(body, marker)
+	}
+
+	if count < 0 {
+		return 0
+	}
+
+	return count
+}
+
 func relayHelper(c *gin.Context, relayMode int) *model.ErrorWithStatusCode {
 	var err *model.ErrorWithStatusCode
 	switch relayMode {
@@ -97,6 +125,17 @@ func Relay(c *gin.Context) {
 
 	// Track channel request in flight
 	PrometheusMonitor.RecordChannelRequest(relayMeta, startTime)
+	if relayMode == relaymode.ChatCompletions || relayMode == relaymode.ClaudeMessages {
+		toolSignals := estimateFunctionToolSignals(c)
+		dbmodel.RecordFunctionContext(ctx,
+			userId,
+			c.GetString(ctxkey.RequestModel),
+			channelId,
+			requestId,
+			"",
+			toolSignals,
+		)
+	}
 
 	bizErr := relayHelper(c, relayMode)
 	if bizErr == nil {
@@ -798,17 +837,23 @@ func processChannelRelayError(ctx context.Context, params processChannelRelayErr
 	}
 
 	if params.Err.StatusCode == http.StatusTooManyRequests {
+		// Prefer the upstream-specified Retry-After duration; fall back to config default.
+		suspendDur := config.ChannelSuspendSecondsFor429
+		if params.Err.RetryAfterSeconds > 0 {
+			suspendDur = time.Duration(params.Err.RetryAfterSeconds) * time.Second
+		}
 		// For 429, we will suspend the specific model for a while
 		lg.Error("ability suspended due to rate limit (429)",
 			appendRelayFailureFields(params,
 				zap.Error(params.Err.RawError),
 				zap.String("suspension_rationale", "upstream rate limit exceeded; suspending ability to allow cooldown"),
-				zap.Duration("suspension_duration", config.ChannelSuspendSecondsFor429),
+				zap.Duration("suspension_duration", suspendDur),
+				zap.Int("retry_after_seconds", params.Err.RetryAfterSeconds),
 			)...,
 		)
 		if suspendErr := dbmodel.SuspendAbility(ctx,
 			params.Group, params.OriginalModel, params.ChannelId,
-			config.ChannelSuspendSecondsFor429); suspendErr != nil {
+			suspendDur); suspendErr != nil {
 			lg.Error("failed to suspend ability for channel",
 				appendRelayFailureFields(params,
 					zap.Error(errors.Wrap(suspendErr, "suspend ability failed")),

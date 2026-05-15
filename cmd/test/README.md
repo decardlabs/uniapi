@@ -75,6 +75,30 @@ Behavior:
 - Waits for terminal events such as `response.completed` or `response.error`.
 - Returns non-zero when websocket handshake fails, upstream returns websocket error events, or the probe times out.
 
+### Real-channel live usage probe
+
+Run `go run ./cmd/test live` to validate practical behavior with your real configured channel account. This command runs round-based checks and reports success rates for:
+
+- Basic Response API completion (`response_create`)
+- Response API continuation via `previous_response_id` (`response_continue`)
+- Plain Chat Completions completion (`chat_completion`)
+- Chat Completions function-calling (`chat_tool_invocation`)
+
+For DeepSeek models, the harness runs the Response API checks plus the plain Chat Completions check, and skips only the forced `tool_choice` step so the probe stays focused on routing, continuity, and basic chat support instead of model-specific tool behavior.
+
+```bash
+API_TOKEN=sk-... ONEAPI_TEST_MODELS="gpt-5-mini" go run ./cmd/test live
+API_TOKEN=sk-... ONEAPI_TEST_MODELS="gpt-5-mini" go run ./cmd/test live --rounds 5 --concurrency 2
+API_TOKEN=sk-... go run ./cmd/test live --model gpt-4o-mini --timeout 120s
+```
+
+Behavior:
+
+- Uses the same `API_TOKEN`/`API_BASE` config as other harness commands.
+- Logs per-step pass rates and overall round pass rates.
+- Returns non-zero if any round fails.
+- Emits a few compact failure samples (step, status, reason) to help troubleshoot real upstream behavior.
+
 ### Capturing payload samples
 
 Use the `generate` subcommand to execute the configured variants and write request/response artefacts to `cmd/test/generated`:

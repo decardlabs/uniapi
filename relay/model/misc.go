@@ -85,6 +85,9 @@ type Error struct {
 type ErrorWithStatusCode struct {
 	Error
 	StatusCode int `json:"status_code"`
+	// RetryAfterSeconds is parsed from the upstream Retry-After response header.
+	// When non-zero, callers should prefer this over any fixed suspension duration.
+	RetryAfterSeconds int `json:"-"`
 }
 
 // UsagePromptTokensDetails contains details about the prompt tokens used in a request.

@@ -789,3 +789,37 @@ func convertAdaptorTooling(cfg adaptor.ChannelToolConfig) *model.ChannelToolingC
 	}
 	return tooling
 }
+
+// GetChannelPoolStatus returns the availability state of all abilities for a given
+// group+model pair. It is intended for admin observability.
+// Query parameters: group (required), model (required).
+// Returns: JSON with total, available, suspended counts and soonest recovery time.
+func GetChannelPoolStatus(c *gin.Context) {
+	group := strings.TrimSpace(c.Query("group"))
+	modelName := strings.TrimSpace(c.Query("model"))
+	if group == "" || modelName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "query parameters 'group' and 'model' are required",
+		})
+		return
+	}
+
+	status, err := model.GetChannelPoolStatus(group, modelName)
+	if err != nil {
+		lg := gmw.GetLogger(c)
+		lg.Error("failed to query channel pool status", zap.Error(err),
+			zap.String("group", group), zap.String("model", modelName))
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "failed to query channel pool status: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    status,
+	})
+}
+

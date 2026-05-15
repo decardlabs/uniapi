@@ -11,23 +11,26 @@ Open‑source version of OpenRouter, managed through a unified gateway that hand
 5. Supporting multi‑tenant management, allowing each tenant to set distinct quotas and permissions.
 6. Supporting generation of sub‑API Keys; each tenant can create multiple sub‑API Keys, each of which can be bound to different models and quotas.
 
-
 **UniAPI** 是 One API 项目的现代化重构，仅保留 Modern 前端模板和主线功能，采用 React + TypeScript + Tailwind CSS + Go 1.25 技术栈。已移除 Berry/Air/Default 等旧模板和无关功能，所有文档与代码保持一致。
 
 ## 版本历史
 
-| 版本 | 日期 | 说明 |
-|------|------|------|
+| 版本       | 日期       | 说明                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ---------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v3.8.9** | 2026-05-14 | 负载均衡全面升级：选路阶段新增渠道限流预检（`WouldChannelRateLimitBlock`），被限流渠道自动跳过而非失败后重试；能力暂停精确至 `(group, model, channel_id)` 三元组，不同错误类型使用差异化冷却窗口（429: 5s / 5xx: 10s / auth: 60s）；新增 `ChannelPoolRecoveryWaitMax` 全渠道冷却时智能等待最早恢复；413 错误自动搜索更大 `max_tokens` 渠道；新增 `STICKY_SESSION_ENABLED` 开关与 `selected_by` 选路观测日志；新增 `go run ./cmd/test live` 真实渠道探测命令；README 补充 VS Code 调试说明 |
+| **v3.8.7** | 2026-05-14 | 多用户并发稳定性调优：缩短能力自动暂停默认窗口（`CHANNEL_SUSPEND_SECONDS_FOR_429` 默认从 60s 降至 15s，`CHANNEL_SUSPEND_SECONDS_FOR_5XX` 默认从 30s 降至 10s），降低高压下通道被同时冷却导致的短时不可用概率；`go run ./cmd/test live` 现会对 DeepSeek 模型自动跳过强制 `tool_choice` 的 Chat Function Calling 步骤，但仍保留 Response API 和普通 Chat Completion 检查，避免把模型能力差异误判为通道稳定性问题                                                    |
+| **v3.8.6** | 2026-05-14 | 新增 `STICKY_SESSION_ENABLED` 开关（默认开启），可在高并发压测时快速关闭 sticky 进行 A/B 对照；分发流程新增选路观测日志（`selected_by`、`selected_channel_id`、`sticky_enabled`），便于排查多用户访问下的通道选择与成功率波动                                                                                                                                                                                                                                     |
+| **v3.8.5** | 2026-05-14 | 测试工具新增 `go run ./cmd/test live` 真实渠道探测命令：按轮次执行 Response 创建、`previous_response_id` 连续上下文、Chat Function Calling 三项实测，并输出分步骤成功率与失败样本；用于快速核验真实账号在一线场景下的可用性与稳定性                                                                                                                                                                                                                               |
+| **v3.8.4** | 2026-05-14 | 中转站会话粘性升级：新增按用户+模型的 sticky session 账号绑定（首次随机分配、后续请求自动复用并按 TTL 续期）；新增 Response API `response_id` / `previous_response_id` 到账号的集中绑定，支持跨节点保持同账号上下文；新增 function calling 会话上下文集中记录（用户ID、账号ID、请求ID、工具调用计数）用于排障；选路阶段新增账号限流预检，遇到账号限流优先跳过并切换可用账号，降低 429 失败率                                                                      |
 | **v3.8.3** | 2026-05-05 | 渠道编辑页模型区全面重设计：新增"推荐模型名"与"供应商目录"两个独立导入卡片，说明文字根据渠道类型是否有精选列表自适应显示；"加载供应商默认配置"按当前已选模型（或目录）筛选默认定价，缺少默认值时自动生成 `ratio=1/completion_ratio=1/max_tokens=128000` 占位配置并给出警告；"请求模型映射"格式化时自动将已选模型补入映射；移除旧"Fill Related / Fill All"按钮，统一命名为"加入推荐模型 / 加入供应商目录"；设置页移除"主题（Theme）"配置项，当前仅支持 Modern 主题 |
-| **v3.8.2** | 2026-05-05 | 渠道配置体验升级：新增渠道时，“请求模型映射 (JSON)”的“格式化 JSON”可按已选模型或供应商目录自动补齐一一映射；“加载供应商默认配置”在供应商缺少定价时会按默认 `ratio=1`、`completion_ratio=1`、`max_tokens=128000` 为每个模型生成可编辑 JSON；设置页“检查更新”改为优先读取 GitHub 最新 tag，避免把过期 release 误报为最新版本 |
-| **v3.8.1** | 2026-05-04 | 热修复：修正渠道工具测试中的过时 channel type 常量，恢复 `go test -race ./...` 全量通过 |
-| v3.8.0 | 2026-05-04 | 基于当前主分支代码发布 3.8.0：9 渠道发布对齐；新增 Doubao（字节跳动豆包）、TencentTokenHub、GLM（智谱 AI）、Kimi（Moonshot）完整注册；统一各渠道 base URL 默认值；修复 DeepSeek 工具消息内容归一化（flattenMessageContents）；修复全仓测试阻塞 |
-| v3.6.1 | 2026-04 | DeepSeek reasoning_content 注入修复；Claude→OpenAI tool_use 名称回填 |
-| v3.6.0 | 2026-04 | 动态渠道类型模板系统上线；全局动态渠道注册机制 |
-| v3.5 | — | MCP 聚合代理；Response API 完整支持 |
-| v3.1.x | — | 实时计费；多轮 tool_use 兼容性增强 |
-| v3.0.0 | — | Modern UI 全量重构；移除旧模板 |
-
+| **v3.8.2** | 2026-05-05 | 渠道配置体验升级：新增渠道时，“请求模型映射 (JSON)”的“格式化 JSON”可按已选模型或供应商目录自动补齐一一映射；“加载供应商默认配置”在供应商缺少定价时会按默认 `ratio=1`、`completion_ratio=1`、`max_tokens=128000` 为每个模型生成可编辑 JSON；设置页“检查更新”改为优先读取 GitHub 最新 tag，避免把过期 release 误报为最新版本                                                                                                                                        |
+| **v3.8.1** | 2026-05-04 | 热修复：修正渠道工具测试中的过时 channel type 常量，恢复 `go test -race ./...` 全量通过                                                                                                                                                                                                                                                                                                                                                                           |
+| v3.8.0     | 2026-05-04 | 基于当前主分支代码发布 3.8.0：9 渠道发布对齐；新增 Doubao（字节跳动豆包）、TencentTokenHub、GLM（智谱 AI）、Kimi（Moonshot）完整注册；统一各渠道 base URL 默认值；修复 DeepSeek 工具消息内容归一化（flattenMessageContents）；修复全仓测试阻塞                                                                                                                                                                                                                    |
+| v3.6.1     | 2026-04    | DeepSeek reasoning_content 注入修复；Claude→OpenAI tool_use 名称回填                                                                                                                                                                                                                                                                                                                                                                                              |
+| v3.6.0     | 2026-04    | 动态渠道类型模板系统上线；全局动态渠道注册机制                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| v3.5       | —          | MCP 聚合代理；Response API 完整支持                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| v3.1.x     | —          | 实时计费；多轮 tool_use 兼容性增强                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| v3.0.0     | —          | Modern UI 全量重构；移除旧模板                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 ## 为什么选择 UniAPI？
 
@@ -85,7 +88,6 @@ Skipped (unsupported combinations):
 
 ```
 
-
 ### 关于本分支
 
 本分支已对原项目进行精简，仅保留主线功能和 Modern 前端，所有说明文档与实际代码保持一致。历史设计、升级、版本文档已归档至 docs/legacy/，如需参考请前往该目录。
@@ -111,16 +113,25 @@ Skipped (unsupported combinations):
 
 详细环境搭建与部署见 DEV_SETUP_GUIDE.md。
 
+### VS Code 开发调试
+
+- `Cmd+Shift+B`：运行构建任务，优先选择 `build-frontend-modern` 或 `build`
+- `F5`：选择 `Debug Main`，会先构建前端资源，再以 Go 调试模式启动后端
+- `Connect to Delve`：连接到 `dlv debug --headless --listen=127.0.0.1:2345 --api-version=2 .`
+- `Dev Frontend`：在 `web/modern` 下启动前端热更新开发服务器
+
+如果本地还没有 `.env`，先复制 `.env.example` 为 `.env`，再按本机 MySQL 和 Redis 地址修改连接配置。
+
 ## 构建模式
 
 项目提供三种构建目标，按产物大小从大到小排列：
 
-| 命令 | 体积参考 | 说明 |
-|------|---------|------|
-| `make build` | ~87 MB | 标准构建，含完整调试符号，同时重新构建前端 |
-| `make build-release` | ~59 MB | 瘦身构建，去除调试符号和路径信息（`-s -w -trimpath`），同时重新构建前端 |
-| `make build-release-no-frontend` | ~59 MB | 与上同，但跳过前端重新构建（前端已构建完成时使用） |
-| `make build-release-external-static` | ~55 MB | 最小体积，前端静态资源在运行时从磁盘加载而非嵌入二进制 |
+| 命令                                 | 体积参考 | 说明                                                                    |
+| ------------------------------------ | -------- | ----------------------------------------------------------------------- |
+| `make build`                         | ~87 MB   | 标准构建，含完整调试符号，同时重新构建前端                              |
+| `make build-release`                 | ~59 MB   | 瘦身构建，去除调试符号和路径信息（`-s -w -trimpath`），同时重新构建前端 |
+| `make build-release-no-frontend`     | ~59 MB   | 与上同，但跳过前端重新构建（前端已构建完成时使用）                      |
+| `make build-release-external-static` | ~55 MB   | 最小体积，前端静态资源在运行时从磁盘加载而非嵌入二进制                  |
 
 **`build-release-external-static` 部署注意事项**
 
@@ -180,7 +191,6 @@ The Kubernetes deployment guide has been moved into a dedicated document:
 
 - [docs/manuals/k8s.md](docs/manuals/k8s.md)
 
-
 ## Channel Parameter Template Mechanism & Extension
 
 ### Overview
@@ -223,6 +233,7 @@ UniAPI supports a fully backend-driven, extensible parameter template mechanism 
 ```
 
 **How to extend:**
+
 - Add new channel types or parameters in the backend registry/config.
 - Update parameter definitions to add new fields, groups, or dependencies.
 - No frontend code changes required for new types/fields.
@@ -241,6 +252,7 @@ UniAPI supports a fully backend-driven, extensible parameter template mechanism 
 - All UI strings (labels, descriptions, group names) are passed through i18n and must be present in `web/modern/src/i18n/locales/`.
 
 **How to extend:**
+
 - Add new parameters or groups in the backend template; the frontend will render them automatically.
 - To add new input types or custom widgets, extend the `ChannelDynamicParams` field renderer and ensure accessibility/i18n.
 
@@ -267,6 +279,7 @@ UniAPI supports a fully backend-driven, extensible parameter template mechanism 
 ---
 
 **See also:**
+
 - [web/modern/src/constants.ts](web/modern/src/constants.ts) (fetch logic)
 - [web/modern/src/pages/channel/EditChannelPage.tsx](web/modern/src/pages/channel/EditChannelPage.tsx) (page orchestration)
 - [web/modern/src/components/channel/ChannelDynamicParams.tsx](web/modern/src/components/channel/ChannelDynamicParams.tsx) (dynamic form rendering)

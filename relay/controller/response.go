@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/Laisky/errors/v2"
@@ -25,6 +27,27 @@ import (
 	"github.com/decardlabs/uniapi/relay/pricing"
 	"github.com/decardlabs/uniapi/relay/tooling"
 )
+
+var responseIDPattern = regexp.MustCompile(`"id"\s*:\s*"(resp_[^"]+)"`)
+
+// extractResponseIDFromCapture extracts response_id from captured upstream response preview bytes.
+func extractResponseIDFromCapture(capture *loggingReadCloser) string {
+	if capture == nil {
+		return ""
+	}
+
+	preview, _, _ := capture.Snapshot()
+	if len(preview) == 0 {
+		return ""
+	}
+
+	matches := responseIDPattern.FindSubmatch(preview)
+	if len(matches) < 2 {
+		return ""
+	}
+
+	return strings.TrimSpace(string(matches[1]))
+}
 
 // RelayResponseAPIHelper handles Response API requests with direct pass-through
 func RelayResponseAPIHelper(c *gin.Context) *relaymodel.ErrorWithStatusCode {
@@ -56,6 +79,28 @@ func RelayResponseAPIHelper(c *gin.Context) *relaymodel.ErrorWithStatusCode {
 	meta.ActualModelName = metalib.GetMappedModelName(meta.OriginModelName, meta.ModelMapping)
 	metalib.Set2Context(c, meta)
 	meta.IsStream = responseAPIRequest.Stream != nil && *responseAPIRequest.Stream
+	if responseAPIRequest.PreviousResponseId != nil {
+		if err := model.SetResponseBoundChannel(ctx, meta.UserId, *responseAPIRequest.PreviousResponseId, meta.ChannelId); err != nil {
+			lg.Warn("failed to refresh previous response binding",
+				zap.Error(err),
+				zap.Int("user_id", meta.UserId),
+				zap.Int("channel_id", meta.ChannelId),
+				zap.String("previous_response_id", *responseAPIRequest.PreviousResponseId),
+			)
+		}
+	}
+	previousResponseID := ""
+	if responseAPIRequest.PreviousResponseId != nil {
+		previousResponseID = strings.TrimSpace(*responseAPIRequest.PreviousResponseId)
+	}
+	model.RecordFunctionContext(ctx,
+		meta.UserId,
+		meta.ActualModelName,
+		meta.ChannelId,
+		c.GetString(ctxkey.RequestId),
+		previousResponseID,
+		len(responseAPIRequest.Tools),
+	)
 	sanitizeResponseAPIRequest(responseAPIRequest, meta.ChannelType)
 	applyThinkingQueryToResponseRequest(c, responseAPIRequest, meta)
 	if normalized, changed := openai.NormalizeToolChoiceForResponse(responseAPIRequest.ToolChoice); changed {
@@ -232,6 +277,23 @@ func RelayResponseAPIHelper(c *gin.Context) *relaymodel.ErrorWithStatusCode {
 	)
 	if upstreamCapture != nil {
 		logUpstreamResponseFromCapture(lg, resp, upstreamCapture, "response_api")
+		if responseID := extractResponseIDFromCapture(upstreamCapture); responseID != "" {
+			if err := model.SetResponseBoundChannel(ctx, meta.UserId, responseID, meta.ChannelId); err != nil {
+				lg.Warn("failed to persist response-to-channel binding",
+					zap.Error(err),
+					zap.Int("user_id", meta.UserId),
+					zap.Int("channel_id", meta.ChannelId),
+					zap.String("response_id", responseID),
+				)
+			} else {
+				lg.Debug("response-to-channel binding persisted",
+					zap.Int("user_id", meta.UserId),
+					zap.Int("channel_id", meta.ChannelId),
+					zap.String("response_id", responseID),
+					zap.String("request_id", c.GetString(ctxkey.RequestId)),
+				)
+			}
+		}
 	} else {
 		logUpstreamResponseFromBytes(lg, resp, nil, "response_api")
 	}

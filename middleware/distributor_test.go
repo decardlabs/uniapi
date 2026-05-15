@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -330,6 +331,148 @@ func TestDistributeAutoSkipsUnsupportedChannel(t *testing.T) {
 	assert.False(t, c.IsAborted(), "middleware should continue when a supported channel exists")
 	selectedChannelId := c.GetInt(ctxkey.ChannelId)
 	assert.Equal(t, goodChannel.Id, selectedChannelId, "should select the channel that still supports the model")
+}
+
+// TestDistributeUsesStickySessionChannel verifies distributor honors sticky user/model channel bindings.
+func TestDistributeUsesStickySessionChannel(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db, cleanup := setupDistributorTestDB(t)
+	defer cleanup()
+
+	originalRedisEnabled := common.IsRedisEnabled()
+	common.SetRedisEnabled(false)
+	defer common.SetRedisEnabled(originalRedisEnabled)
+
+	originalMemoryCache := config.MemoryCacheEnabled
+	config.MemoryCacheEnabled = false
+	defer func() { config.MemoryCacheEnabled = originalMemoryCache }()
+
+	user := &model.User{
+		Id:       501,
+		Username: "sticky-user",
+		Password: "hashed",
+		Group:    "default",
+		Status:   model.UserStatusEnabled,
+	}
+	require.NoError(t, db.Create(user).Error)
+
+	priorityA := int64(100)
+	channelA := &model.Channel{
+		Id:       601,
+		Name:     "channel-a",
+		Type:     channeltype.OpenAI,
+		Models:   "gpt-4o",
+		Group:    "default",
+		Status:   model.ChannelStatusEnabled,
+		Priority: &priorityA,
+	}
+	require.NoError(t, db.Create(channelA).Error)
+	require.NoError(t, channelA.AddAbilities())
+
+	priorityB := int64(90)
+	channelB := &model.Channel{
+		Id:       602,
+		Name:     "channel-b",
+		Type:     channeltype.OpenAI,
+		Models:   "gpt-4o",
+		Group:    "default",
+		Status:   model.ChannelStatusEnabled,
+		Priority: &priorityB,
+	}
+	require.NoError(t, db.Create(channelB).Error)
+	require.NoError(t, channelB.AddAbilities())
+
+	require.NoError(t, model.SetStickySessionChannel(context.Background(), user.Id, "gpt-4o", channelB.Id))
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewBufferString(`{"model":"gpt-4o"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = req
+
+	c.Set(ctxkey.Id, user.Id)
+	c.Set(ctxkey.UserObj, user)
+	c.Set(ctxkey.RequestModel, "gpt-4o")
+	c.Set(ctxkey.TokenId, 9001)
+	gmw.SetLogger(c, logger.Logger)
+
+	Distribute()(c)
+
+	require.False(t, c.IsAborted())
+	require.Equal(t, channelB.Id, c.GetInt(ctxkey.ChannelId))
+}
+
+// TestDistributeSkipsStickySessionWhenDisabled verifies distributor ignores sticky bindings when sticky routing is disabled.
+func TestDistributeSkipsStickySessionWhenDisabled(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db, cleanup := setupDistributorTestDB(t)
+	defer cleanup()
+
+	originalRedisEnabled := common.IsRedisEnabled()
+	common.SetRedisEnabled(false)
+	defer common.SetRedisEnabled(originalRedisEnabled)
+
+	originalMemoryCache := config.MemoryCacheEnabled
+	config.MemoryCacheEnabled = false
+	defer func() { config.MemoryCacheEnabled = originalMemoryCache }()
+
+	originalStickyEnabled := config.StickySessionEnabled
+	config.StickySessionEnabled = false
+	defer func() { config.StickySessionEnabled = originalStickyEnabled }()
+
+	user := &model.User{
+		Id:       511,
+		Username: "sticky-disabled-user",
+		Password: "hashed",
+		Group:    "default",
+		Status:   model.UserStatusEnabled,
+	}
+	require.NoError(t, db.Create(user).Error)
+
+	priorityA := int64(100)
+	channelA := &model.Channel{
+		Id:       611,
+		Name:     "channel-a",
+		Type:     channeltype.OpenAI,
+		Models:   "gpt-4o",
+		Group:    "default",
+		Status:   model.ChannelStatusEnabled,
+		Priority: &priorityA,
+	}
+	require.NoError(t, db.Create(channelA).Error)
+	require.NoError(t, channelA.AddAbilities())
+
+	priorityB := int64(90)
+	channelB := &model.Channel{
+		Id:       612,
+		Name:     "channel-b",
+		Type:     channeltype.OpenAI,
+		Models:   "gpt-4o",
+		Group:    "default",
+		Status:   model.ChannelStatusEnabled,
+		Priority: &priorityB,
+	}
+	require.NoError(t, db.Create(channelB).Error)
+	require.NoError(t, channelB.AddAbilities())
+
+	require.NoError(t, model.SetStickySessionChannel(context.Background(), user.Id, "gpt-4o", channelB.Id))
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewBufferString(`{"model":"gpt-4o"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = req
+
+	c.Set(ctxkey.Id, user.Id)
+	c.Set(ctxkey.UserObj, user)
+	c.Set(ctxkey.RequestModel, "gpt-4o")
+	c.Set(ctxkey.TokenId, 9011)
+	gmw.SetLogger(c, logger.Logger)
+
+	Distribute()(c)
+
+	require.False(t, c.IsAborted())
+	require.Equal(t, channelA.Id, c.GetInt(ctxkey.ChannelId))
 }
 
 // TestChannelSupportsEndpoint verifies the endpoint support checking logic.

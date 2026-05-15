@@ -15,6 +15,10 @@ var (
 	// Port holds the CLI flag indicating which port the HTTP server listens on.
 	Port = flag.Int("port", 3000, "the listening port")
 
+	// HttpAddr holds the CLI flag indicating which address the HTTP server binds to.
+	// Defaults to "0.0.0.0" (all interfaces). Use "127.0.0.1" to only listen locally.
+	HttpAddr = flag.String("http-addr", "0.0.0.0", "the listening address for HTTP server")
+
 	// PrintVersion toggles a CLI mode that prints the binary version and exits.
 	PrintVersion = flag.Bool("version", false, "print version and exit")
 

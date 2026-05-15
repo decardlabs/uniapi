@@ -104,6 +104,7 @@ func SetApiRouter(router *gin.Engine) {
 			channelRoute.GET("/update_balance/:id", controller.UpdateChannelBalance)
 			channelRoute.GET("/pricing/:id", controller.GetChannelPricing)
 			channelRoute.GET("/default-pricing", controller.GetChannelDefaultPricing)
+			channelRoute.GET("/pool-status", controller.GetChannelPoolStatus)
 			channelRoute.POST("/", controller.AddChannel)
 			channelRoute.PUT("/", controller.UpdateChannel)
 			channelRoute.PUT("/pricing/:id", controller.UpdateChannelPricing)

@@ -1,10 +1,14 @@
 package middleware
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/Laisky/errors/v2"
 	gmw "github.com/Laisky/gin-middlewares/v7"
@@ -13,7 +17,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 
+	"github.com/decardlabs/uniapi/common"
+	"github.com/decardlabs/uniapi/common/config"
 	"github.com/decardlabs/uniapi/common/ctxkey"
+	"github.com/decardlabs/uniapi/common/helper"
 	"github.com/decardlabs/uniapi/model"
 	"github.com/decardlabs/uniapi/relay/billing/ratio"
 	"github.com/decardlabs/uniapi/relay/channeltype"
@@ -22,6 +29,10 @@ import (
 
 type ModelRequest struct {
 	Model string `json:"model" form:"model"`
+}
+
+type responsePreviousIDRequest struct {
+	PreviousResponseID *string `json:"previous_response_id"`
 }
 
 // isResponseAPIWebSocketHandshake reports whether current request is the websocket
@@ -188,6 +199,44 @@ func channelSupportsResponseWebSocket(channel *model.Channel, relayMode int, isR
 	return channel != nil && channel.Type == channeltype.OpenAI
 }
 
+// channelRateLimitValue returns the configured per-channel rate limit.
+func channelRateLimitValue(channel *model.Channel) int {
+	if channel == nil || channel.RateLimit == nil {
+		return 0
+	}
+
+	return *channel.RateLimit
+}
+
+// extractPreviousResponseID reads previous_response_id from /v1/responses POST payload.
+func extractPreviousResponseID(c *gin.Context) string {
+	if c == nil || c.Request == nil || c.Request.Method != http.MethodPost {
+		return ""
+	}
+
+	if !strings.HasSuffix(c.Request.URL.Path, "/v1/responses") {
+		return ""
+	}
+
+	body, err := common.GetRequestBody(c)
+	if err != nil || len(body) == 0 {
+		return ""
+	}
+
+	var req responsePreviousIDRequest
+	if err := json.Unmarshal(body, &req); err != nil {
+		c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
+		return ""
+	}
+
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
+	if req.PreviousResponseID == nil {
+		return ""
+	}
+
+	return strings.TrimSpace(*req.PreviousResponseID)
+}
+
 func Distribute() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		lg := gmw.GetLogger(c)
@@ -209,8 +258,59 @@ func Distribute() func(c *gin.Context) {
 
 		var requestModel string
 		var channel *model.Channel
+		channelBoundFromSession := false
+		selectedBy := "auto_selection"
+		stickyEnabled := config.StickySessionEnabled
 		channelId := c.GetInt(ctxkey.SpecificChannelId)
+		if channelId == 0 {
+			if responseID := strings.TrimSpace(c.Param("response_id")); responseID != "" {
+				boundChannelID, found, bindErr := model.GetResponseBoundChannel(ctx, userId, responseID)
+				if bindErr != nil {
+					lg.Warn("failed to resolve response channel binding",
+						zap.Error(bindErr),
+						zap.Int("user_id", userId),
+						zap.String("response_id", responseID),
+					)
+				} else if found {
+					channelId = boundChannelID
+					c.Set(ctxkey.SpecificChannelId, boundChannelID)
+					channelBoundFromSession = true
+					lg.Debug("response action routed by bound channel",
+						zap.Int("user_id", userId),
+						zap.String("response_id", responseID),
+						zap.Int("channel_id", boundChannelID),
+					)
+				}
+			}
+
+			if channelId == 0 {
+				if previousResponseID := extractPreviousResponseID(c); previousResponseID != "" {
+					boundChannelID, found, bindErr := model.GetResponseBoundChannel(ctx, userId, previousResponseID)
+					if bindErr != nil {
+						lg.Warn("failed to resolve previous response channel binding",
+							zap.Error(bindErr),
+							zap.Int("user_id", userId),
+							zap.String("previous_response_id", previousResponseID),
+						)
+					} else if found {
+						channelId = boundChannelID
+						c.Set(ctxkey.SpecificChannelId, boundChannelID)
+						channelBoundFromSession = true
+						lg.Debug("response request routed by previous_response_id binding",
+							zap.Int("user_id", userId),
+							zap.String("previous_response_id", previousResponseID),
+							zap.Int("channel_id", boundChannelID),
+						)
+					}
+				}
+			}
+		}
 		if channelId != 0 {
+			if channelBoundFromSession {
+				selectedBy = "response_binding"
+			} else {
+				selectedBy = "specific_channel"
+			}
 			var err error
 			channel, err = model.GetChannelById(channelId, true)
 			if err != nil {
@@ -241,8 +341,76 @@ func Distribute() func(c *gin.Context) {
 					errors.Errorf("Channel #%d does not support the requested endpoint: %s", channelId, endpointName))
 				return
 			}
+
+			if channelBoundFromSession {
+				limitBlocked, limitErr := WouldChannelRateLimitBlock(c, channel.Id, channelRateLimitValue(channel))
+				if limitErr != nil {
+					lg.Warn("session-bound channel rate-limit precheck failed",
+						zap.Error(limitErr),
+						zap.Int("channel_id", channel.Id),
+					)
+				} else if limitBlocked {
+					lg.Info("session-bound channel is rate limited, falling back to alternative channel",
+						zap.Int("user_id", userId),
+						zap.Int("channel_id", channel.Id),
+					)
+					channel = nil
+					channelId = 0
+					c.Set(ctxkey.SpecificChannelId, 0)
+				}
+			}
 		} else {
+			// keep auto-selection branch in sync with explicit-channel fallback behavior
+		}
+
+		if channel == nil {
 			requestModel = c.GetString(ctxkey.RequestModel)
+			if stickyEnabled && requestModel != "" {
+				stickyChannelID, found, stickyErr := model.GetStickySessionChannel(ctx, userId, requestModel)
+				if stickyErr != nil {
+					lg.Warn("failed to load sticky session channel",
+						zap.Error(stickyErr),
+						zap.Int("user_id", userId),
+						zap.String("model", requestModel),
+					)
+				} else if found {
+					stickyChannel, loadErr := model.GetChannelById(stickyChannelID, true)
+					if loadErr != nil {
+						_ = model.DeleteStickySessionChannel(ctx, userId, requestModel)
+					} else if stickyChannel.Status != model.ChannelStatusEnabled || !stickyChannel.SupportsModel(requestModel) {
+						_ = model.DeleteStickySessionChannel(ctx, userId, requestModel)
+					} else {
+						limitBlocked, limitErr := WouldChannelRateLimitBlock(c, stickyChannel.Id, channelRateLimitValue(stickyChannel))
+						if limitErr != nil {
+							lg.Warn("sticky channel rate-limit precheck failed",
+								zap.Error(limitErr),
+								zap.Int("channel_id", stickyChannel.Id),
+							)
+						} else if !limitBlocked {
+							channel = stickyChannel
+							selectedBy = "sticky_session"
+							lg.Debug("sticky session channel selected",
+								zap.Int("user_id", userId),
+								zap.String("model", requestModel),
+								zap.Int("channel_id", stickyChannel.Id),
+								zap.String("request_id", c.GetString(helper.RequestIdKey)),
+							)
+						} else {
+							lg.Info("sticky session channel is rate limited, selecting alternative channel",
+								zap.Int("user_id", userId),
+								zap.String("model", requestModel),
+								zap.Int("channel_id", stickyChannel.Id),
+							)
+						}
+					}
+				}
+			} else if !stickyEnabled && requestModel != "" {
+				lg.Debug("sticky session disabled, skip sticky lookup",
+					zap.Int("user_id", userId),
+					zap.String("model", requestModel),
+				)
+			}
+
 			isResponseWSHandshake := isResponseAPIWebSocketHandshake(c, relayMode)
 			if requestModel == "" && isResponseWSHandshake {
 				if hintedModel := strings.TrimSpace(c.Query("model")); hintedModel != "" {
@@ -267,6 +435,21 @@ func Distribute() func(c *gin.Context) {
 						return nil, errors.Wrap(err, "select channel from cache")
 					}
 
+					limitBlocked, limitErr := WouldChannelRateLimitBlock(c, candidate.Id, channelRateLimitValue(candidate))
+					if limitErr != nil {
+						lg.Warn("candidate channel rate-limit precheck failed",
+							zap.Error(limitErr),
+							zap.Int("channel_id", candidate.Id),
+						)
+					} else if limitBlocked {
+						exclude[candidate.Id] = true
+						lg.Debug("channel skipped - rate limit reached",
+							zap.Int("channel_id", candidate.Id),
+							zap.String("channel_name", candidate.Name),
+						)
+						continue
+					}
+
 					// Check endpoint support
 					if !channelSupportsEndpoint(candidate, relayMode) {
 						exclude[candidate.Id] = true
@@ -288,21 +471,95 @@ func Distribute() func(c *gin.Context) {
 				}
 			}
 
-			exclude := make(map[int]bool)
-			var err error
-			channel, err = selectChannel(false, exclude)
-			if err != nil {
-				lg.Info(fmt.Sprintf("No highest priority channels available for model %s in group %s, trying lower priority channels", requestModel, userGroup))
-				channel, err = selectChannel(true, exclude)
+			if channel == nil {
+				exclude := make(map[int]bool)
+				var err error
+				channel, err = selectChannel(false, exclude)
 				if err != nil {
-					message := fmt.Sprintf("No available channels for Model %s under Group %s", requestModel, userGroup)
-					AbortWithError(c, http.StatusServiceUnavailable, errors.New(message))
-					return
+					lg.Info(fmt.Sprintf("No highest priority channels available for model %s in group %s, trying lower priority channels", requestModel, userGroup))
+					channel, err = selectChannel(true, exclude)
+					if err != nil {
+						// Before returning 503, check whether all abilities are merely suspended
+						// and will recover within ChannelPoolRecoveryWaitMax. If so, wait and retry
+						// once to smooth over short rate-limit bursts without failing the request.
+						if requestModel != "" && config.ChannelPoolRecoveryWaitMax > 0 {
+							soonest, soonestErr := model.GetSoonestSuspendUntil(userGroup, requestModel)
+							if soonestErr != nil {
+								lg.Warn("failed to query soonest suspend_until for pool recovery wait",
+									zap.Error(soonestErr),
+									zap.String("model", requestModel),
+								)
+							} else if soonest != nil {
+								waitDur := time.Until(*soonest)
+								if waitDur > 0 && waitDur <= config.ChannelPoolRecoveryWaitMax {
+									lg.Info("all channels suspended; waiting for earliest recovery before retrying",
+										zap.Duration("wait_duration", waitDur),
+										zap.Time("soonest_recovery", *soonest),
+										zap.String("model", requestModel),
+										zap.String("group", userGroup),
+									)
+									select {
+									case <-ctx.Done():
+										// Client disconnected; fall through to 503
+									case <-time.After(waitDur):
+										exclude2 := make(map[int]bool)
+										channel, err = selectChannel(false, exclude2)
+										if err != nil {
+											channel, err = selectChannel(true, exclude2)
+										}
+									}
+								}
+							}
+						}
+						if channel == nil {
+							message := fmt.Sprintf("No available channels for Model %s under Group %s", requestModel, userGroup)
+							AbortWithError(c, http.StatusServiceUnavailable, errors.New(message))
+							return
+						}
+					}
 				}
+				selectedBy = "auto_selection"
 			}
 		}
-		lg.Debug(fmt.Sprintf("user id %d, user group: %s, request model: %s, using channel #%d", userId, userGroup, requestModel, channel.Id))
+
+		if channel != nil {
+			limitBlocked, limitErr := WouldChannelRateLimitBlock(c, channel.Id, channelRateLimitValue(channel))
+			if limitErr != nil {
+				lg.Warn("selected channel rate-limit precheck failed",
+					zap.Error(limitErr),
+					zap.Int("channel_id", channel.Id),
+				)
+			} else if limitBlocked {
+				AbortWithError(c, http.StatusTooManyRequests, errors.New("selected channel is rate limited"))
+				return
+			}
+		}
+		lg.Debug("channel selected for request",
+			zap.Int("user_id", userId),
+			zap.String("user_group", userGroup),
+			zap.String("request_model", requestModel),
+			zap.Int("selected_channel_id", channel.Id),
+			zap.String("selected_channel_name", channel.Name),
+			zap.String("selected_by", selectedBy),
+			zap.Bool("sticky_enabled", stickyEnabled),
+		)
 		SetupContextForSelectedChannel(c, channel, requestModel)
+		if stickyEnabled && c.GetInt(ctxkey.SpecificChannelId) == 0 && requestModel != "" {
+			if err := model.SetStickySessionChannel(ctx, userId, requestModel, channel.Id); err != nil {
+				lg.Warn("failed to persist sticky session channel",
+					zap.Error(err),
+					zap.Int("user_id", userId),
+					zap.String("model", requestModel),
+					zap.Int("channel_id", channel.Id),
+				)
+			}
+		} else if !stickyEnabled && requestModel != "" {
+			lg.Debug("sticky session disabled, skip sticky persistence",
+				zap.Int("user_id", userId),
+				zap.String("model", requestModel),
+				zap.Int("channel_id", channel.Id),
+			)
+		}
 		c.Next()
 	}
 }

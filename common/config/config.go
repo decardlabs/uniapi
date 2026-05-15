@@ -364,15 +364,26 @@ var (
 	// is temporarily paused to avoid further throttling.
 	//
 	// Environment variable: CHANNEL_SUSPEND_SECONDS_FOR_429
-	// Default: 60 seconds
-	ChannelSuspendSecondsFor429 = time.Second * time.Duration(env.Int("CHANNEL_SUSPEND_SECONDS_FOR_429", 60))
+	// Default: 5 seconds
+	ChannelSuspendSecondsFor429 = time.Second * time.Duration(env.Int("CHANNEL_SUSPEND_SECONDS_FOR_429", 5))
+
+	// ChannelPoolRecoveryWaitMax is the maximum duration the distributor will wait
+	// for a suspended channel pool to recover before returning 503 to the client.
+	// When all channels for a model are suspended, the distributor queries the
+	// soonest recovery time. If recovery is within this window, it waits and retries
+	// once, avoiding a 503 for transient rate-limit bursts.
+	// Set to 0 to disable the wait-and-retry behaviour.
+	//
+	// Environment variable: CHANNEL_POOL_RECOVERY_WAIT_MAX_SECONDS
+	// Default: 3 seconds
+	ChannelPoolRecoveryWaitMax = time.Second * time.Duration(env.Int("CHANNEL_POOL_RECOVERY_WAIT_MAX_SECONDS", 3))
 
 	// ChannelSuspendSecondsFor5XX defines how long an ability is paused after
 	// upstream 5xx (server error) failures. Prevents hammering failing providers.
 	//
 	// Environment variable: CHANNEL_SUSPEND_SECONDS_FOR_5XX
-	// Default: 30 seconds
-	ChannelSuspendSecondsFor5XX = time.Second * time.Duration(env.Int("CHANNEL_SUSPEND_SECONDS_FOR_5XX", 30))
+	// Default: 10 seconds
+	ChannelSuspendSecondsFor5XX = time.Second * time.Duration(env.Int("CHANNEL_SUSPEND_SECONDS_FOR_5XX", 10))
 
 	// ChannelSuspendSecondsForAuth defines the backoff window applied after
 	// quota/auth/permission errors (e.g., invalid API key, exceeded quota).
@@ -536,6 +547,29 @@ var (
 	// Default: 60 seconds
 	// Unit: seconds
 	DownloadRateLimitDuration int64 = 60
+
+	// StickySessionTimeoutSeconds controls how long user-to-channel sticky bindings
+	// remain valid without refresh.
+	//
+	// StickySessionEnabled toggles user+model sticky routing behavior.
+	//
+	// Environment variable: STICKY_SESSION_ENABLED
+	// Default: true
+	StickySessionEnabled = env.Bool("STICKY_SESSION_ENABLED", true)
+
+	// StickySessionTimeoutSeconds controls how long user-to-channel sticky bindings
+	// remain valid without refresh.
+	//
+	// Environment variable: STICKY_SESSION_TIMEOUT_SECONDS
+	// Default: 1800 seconds (30 minutes)
+	StickySessionTimeoutSeconds = env.Int("STICKY_SESSION_TIMEOUT_SECONDS", 30*60)
+
+	// FunctionContextHistoryLimit bounds the number of function-calling context
+	// records kept per user/model session in centralized storage.
+	//
+	// Environment variable: FUNCTION_CONTEXT_HISTORY_LIMIT
+	// Default: 50 records
+	FunctionContextHistoryLimit = env.Int("FUNCTION_CONTEXT_HISTORY_LIMIT", 50)
 )
 
 // =============================================================================

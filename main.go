@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/base64"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -218,7 +219,7 @@ func main() {
 	if port == "" {
 		port = strconv.Itoa(*common.Port)
 	}
-	addr := ":" + port
+	addr := net.JoinHostPort(*common.HttpAddr, port)
 	srv := &http.Server{Addr: addr, Handler: server}
 
 	// Start server in background

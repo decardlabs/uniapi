@@ -73,3 +73,23 @@ func (l *InMemoryRateLimiter) Request(key string, maxRequestNum int, duration in
 	}
 	return true
 }
+
+// CanRequest checks whether the key can issue another request under the provided
+// constraints without mutating the internal counters.
+// maxRequestNum limits the number of requests recorded within the sliding duration window, whose unit is seconds.
+func (l *InMemoryRateLimiter) CanRequest(key string, maxRequestNum int, duration int64) bool {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	queue, ok := l.store[key]
+	if !ok {
+		return true
+	}
+
+	now := time.Now().Unix()
+	if len(*queue) < maxRequestNum {
+		return true
+	}
+
+	return now-(*queue)[0] >= duration
+}

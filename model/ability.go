@@ -192,6 +192,97 @@ func SuspendAbility(ctx context.Context, group string, modelName string, channel
 		Update("suspend_until", suspendTime).Error
 }
 
+// GetSoonestSuspendUntil returns the minimum suspend_until timestamp across all currently
+// suspended (but enabled) abilities for the given group and model. It returns nil when no
+// abilities are suspended, and an error only if the DB query itself fails.
+// This is used by the distributor to decide whether to wait briefly before giving up.
+func GetSoonestSuspendUntil(group string, modelName string) (*time.Time, error) {
+	if DB == nil {
+		return nil, errors.New("database not initialized")
+	}
+	groupCol := "`group`"
+	trueVal := "1"
+	if common.UsingPostgreSQL.Load() {
+		groupCol = `"group"`
+		trueVal = "true"
+	}
+	now := time.Now()
+	var soonest time.Time
+	row := DB.Model(&Ability{}).
+		Select("MIN(suspend_until)").
+		Where(groupCol+" = ? AND model = ? AND enabled = "+trueVal+" AND suspend_until IS NOT NULL AND suspend_until > ?",
+			group, modelName, now).
+		Row()
+	if err := row.Scan(&soonest); err != nil {
+		return nil, errors.Wrap(err, "scan soonest suspend_until")
+	}
+	if soonest.IsZero() {
+		return nil, nil
+	}
+	return &soonest, nil
+}
+
+// ChannelPoolStatus summarises the availability state of all abilities for a given
+// group+model combination. It is intended for admin observability endpoints.
+type ChannelPoolStatus struct {
+	// Group is the user group this status applies to.
+	Group string `json:"group"`
+	// Model is the model name this status applies to.
+	Model string `json:"model"`
+	// Total is the count of enabled abilities (active channels) for this model.
+	Total int `json:"total"`
+	// Available is the count of abilities whose suspend_until is NULL or in the past.
+	Available int `json:"available"`
+	// Suspended is the count of abilities still within a suspension window.
+	Suspended int `json:"suspended"`
+	// SoonestRecovery is the earliest time a suspended ability will become available.
+	// It is nil when no abilities are suspended.
+	SoonestRecovery *time.Time `json:"soonest_recovery,omitempty"`
+}
+
+// GetChannelPoolStatus returns availability counts and the soonest recovery time for
+// all enabled abilities matching the given group and model.
+// Parameters: group — user group; modelName — model identifier.
+// Returns: ChannelPoolStatus with current counts, or error on DB failure.
+func GetChannelPoolStatus(group string, modelName string) (ChannelPoolStatus, error) {
+	status := ChannelPoolStatus{Group: group, Model: modelName}
+	if DB == nil {
+		return status, errors.New("database not initialized")
+	}
+	groupCol := "`group`"
+	trueVal := "1"
+	if common.UsingPostgreSQL.Load() {
+		groupCol = `"group"`
+		trueVal = "true"
+	}
+	now := time.Now()
+
+	type row struct {
+		Total     int        `gorm:"column:total"`
+		Available int        `gorm:"column:available"`
+		Soonest   *time.Time `gorm:"column:soonest"`
+	}
+	var r row
+
+	// Single query: count total, count available, and get soonest suspension expiry.
+	err := DB.Raw(`
+		SELECT
+			COUNT(*) AS total,
+			SUM(CASE WHEN (suspend_until IS NULL OR suspend_until < ?) THEN 1 ELSE 0 END) AS available,
+			MIN(CASE WHEN suspend_until >= ? THEN suspend_until ELSE NULL END) AS soonest
+		FROM abilities
+		WHERE `+groupCol+` = ? AND model = ? AND enabled = `+trueVal,
+		now, now, group, modelName).Scan(&r).Error
+	if err != nil {
+		return status, errors.Wrap(err, "query channel pool status")
+	}
+	status.Total = r.Total
+	status.Available = r.Available
+	status.Suspended = r.Total - r.Available
+	status.SoonestRecovery = r.Soonest
+	return status, nil
+}
+
 func GetRandomSatisfiedChannelExcluding(group string, model string, ignoreFirstPriority bool, excludeChannelIds map[int]bool) (*Channel, error) {
 	if DB == nil {
 		return nil, errors.New("database not initialized")

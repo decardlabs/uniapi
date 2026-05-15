@@ -1,5 +1,5 @@
-import { test as base, Page, Locator, expect } from '@playwright/test';
-import path from 'path';
+import type { Locator, Page } from '@playwright/test';
+import { test as base, expect } from '@playwright/test';
 
 /**
  * 自定义 fixtures，用于登录测试
@@ -65,14 +65,14 @@ export class LoginPage {
    */
   async enterTotp(code: string) {
     await this.totpInput.fill(code);
-    await page.getByRole('button', { name: /verify totp/i }).click();
+    await this.page.getByRole('button', { name: /verify totp/i }).click();
   }
 
   /**
    * 返回登录表单（TOTP 模式）
    */
   async backToLogin() {
-    await page.getByRole('button', { name: /back to login/i }).click();
+    await this.page.getByRole('button', { name: /back to login/i }).click();
   }
 
   /**
@@ -98,4 +98,6 @@ export const test = base.extend<{ loginPage: LoginPage }>({
   },
 });
 
-export { expect, Page, Locator };
+export { expect };
+export type { Locator, Page };
+

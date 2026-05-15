@@ -11,7 +11,7 @@ import (
 var StartTime = time.Now().Unix() // unit: second
 
 // Version stores the display version reported to clients (e.g., build time and commit).
-var Version = "3.8.3"
+var Version = "3.8.9"
 
 // BuildCommit captures the full Git commit hash used for the build when available.
 var BuildCommit = ""

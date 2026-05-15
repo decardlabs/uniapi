@@ -15,6 +15,7 @@ import (
 	"github.com/decardlabs/uniapi/common"
 	"github.com/decardlabs/uniapi/common/config"
 	"github.com/decardlabs/uniapi/common/ctxkey"
+	"github.com/decardlabs/uniapi/common/metrics"
 )
 
 var timeFormat = "2006-01-02T15:04:05.000Z"
@@ -153,6 +154,68 @@ func ChannelRateLimit() func(c *gin.Context) {
 		maxRequestNum = 1
 	}
 	return rateLimitFactory(maxRequestNum, config.ChannelRateLimitDuration, "CR")
+}
+
+// WouldChannelRateLimitBlock checks whether the current request would be blocked by
+// the per-channel rate-limit window without consuming any quota.
+// It returns true when the request should be considered rate-limited for the channel.
+func WouldChannelRateLimitBlock(c *gin.Context, channelID int, channelRateLimit int) (bool, error) {
+	if c == nil || channelID <= 0 || !config.ChannelRateLimitEnabled || channelRateLimit <= 0 {
+		return false, nil
+	}
+
+	tokenParts := GetTokenKeyParts(c)
+	if len(tokenParts) == 0 || tokenParts[0] == "" {
+		return false, nil
+	}
+
+	hashedToken := sha256.Sum256([]byte(tokenParts[0]))
+	key := fmt.Sprintf("rateLimit:%s:%s:%d", "CR", hex.EncodeToString(hashedToken[:8]), channelID)
+
+	if common.IsRedisEnabled() {
+		ctx := gmw.Ctx(c)
+		listLength, err := common.RDB.LLen(ctx, key).Result()
+		if err != nil {
+			return false, errors.Wrap(err, "check channel rate limit list length")
+		}
+
+		if listLength < int64(channelRateLimit) {
+			remaining := channelRateLimit - int(listLength)
+			metrics.GlobalRecorder.UpdateRateLimitRemaining("channel", fmt.Sprintf("%d", channelID), remaining)
+			return false, nil
+		}
+
+		oldTimeStr, err := common.RDB.LIndex(ctx, key, -1).Result()
+		if err != nil {
+			return false, errors.Wrap(err, "check channel rate limit oldest timestamp")
+		}
+
+		oldTime, err := time.Parse(timeFormat, oldTimeStr)
+		if err != nil {
+			return false, errors.Wrap(err, "parse channel rate limit oldest timestamp")
+		}
+
+		nowTime := time.Now()
+		if int64(nowTime.Sub(oldTime).Seconds()) < config.ChannelRateLimitDuration {
+			metrics.GlobalRecorder.RecordRateLimitHit("channel", fmt.Sprintf("%d", channelID))
+			metrics.GlobalRecorder.UpdateRateLimitRemaining("channel", fmt.Sprintf("%d", channelID), 0)
+			return true, nil
+		}
+
+		metrics.GlobalRecorder.UpdateRateLimitRemaining("channel", fmt.Sprintf("%d", channelID), 1)
+		return false, nil
+	}
+
+	inMemoryRateLimiter.Init(config.RateLimitKeyExpirationDuration)
+	allowed := inMemoryRateLimiter.CanRequest(key, channelRateLimit, config.ChannelRateLimitDuration)
+	if !allowed {
+		metrics.GlobalRecorder.RecordRateLimitHit("channel", fmt.Sprintf("%d", channelID))
+		metrics.GlobalRecorder.UpdateRateLimitRemaining("channel", fmt.Sprintf("%d", channelID), 0)
+		return true, nil
+	}
+
+	metrics.GlobalRecorder.UpdateRateLimitRemaining("channel", fmt.Sprintf("%d", channelID), 1)
+	return false, nil
 }
 
 // TotpRateLimit limits TOTP verification attempts to 1 per second per user

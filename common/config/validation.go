@@ -399,6 +399,12 @@ func ValidateAllEnvVars() *ValidationResult {
 	if err := ValidatePositiveInt("CRITICAL_RATE_LIMIT", CriticalRateLimitNum); err != nil {
 		result.Errors = append(result.Errors, err)
 	}
+	if err := ValidatePositiveInt("STICKY_SESSION_TIMEOUT_SECONDS", StickySessionTimeoutSeconds); err != nil {
+		result.Errors = append(result.Errors, err)
+	}
+	if err := ValidatePositiveInt("FUNCTION_CONTEXT_HISTORY_LIMIT", FunctionContextHistoryLimit); err != nil {
+		result.Errors = append(result.Errors, err)
+	}
 
 	// String format validators
 	if err := ValidateTokenKeyPrefix(TokenKeyPrefix); err != nil {

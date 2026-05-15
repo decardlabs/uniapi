@@ -81,6 +81,14 @@ func RelayErrorHandler(resp *http.Response) (ErrorWithStatusCode *model.ErrorWit
 			RawError: errors.Errorf("bad response %d", resp.StatusCode),
 		},
 	}
+
+	// Parse Retry-After header when present (common on 429 responses).
+	// Both integer-seconds and HTTP-date formats are supported.
+	if ra := resp.Header.Get("Retry-After"); ra != "" {
+		if secs, parseErr := strconv.Atoi(ra); parseErr == nil && secs > 0 {
+			ErrorWithStatusCode.RetryAfterSeconds = secs
+		}
+	}
 	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		ErrorWithStatusCode.Error.Message = fmt.Sprintf("failed to read response body: %+v\n\n", err) + ErrorWithStatusCode.Error.Message
