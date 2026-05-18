@@ -971,6 +971,8 @@ func UnifiedStreamProcessing(c *gin.Context, resp *http.Response, promptTokens i
 	lineReader := commonsse.NewLineReader(resp.Body, commonsse.DefaultLineBufferSize)
 
 	common.SetEventStreamHeaders(c)
+	hbr := render.NewHeartbeatLineReader(c, lineReader, render.DefaultHeartbeatInterval)
+	defer hbr.Close()
 
 	var streamRewriter StreamRewriteHandler
 	if rewriteAny, exists := c.Get(ctxkey.ResponseStreamRewriteHandler); exists {
@@ -981,15 +983,17 @@ func UnifiedStreamProcessing(c *gin.Context, resp *http.Response, promptTokens i
 
 	// Initialize unified streaming context
 	streamCtx := NewStreamingContext(logger, enableThinking)
+	var streamErr error
 
 	for {
-		line, err := lineReader.Next()
+		line, err := hbr.Next()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
 			}
 
-			return ErrorWrapper(err, "read_stream_failed", http.StatusInternalServerError), streamCtx.usage
+			streamErr = err
+			break
 		}
 
 		if line.Oversized {
@@ -1132,6 +1136,18 @@ func UnifiedStreamProcessing(c *gin.Context, resp *http.Response, promptTokens i
 		} else {
 			render.StringData(c, data)
 		}
+	}
+
+	if hbr.HeartbeatsSent() > 0 || hbr.HeartbeatWriteErr() != nil {
+		logger.Debug("heartbeat diagnostics",
+			zap.Int("heartbeats_sent", hbr.HeartbeatsSent()),
+			zap.NamedError("heartbeat_write_err", hbr.HeartbeatWriteErr()),
+		)
+	}
+
+	if streamErr != nil {
+		render.LogHeartbeatLineReaderError(c, logger, streamErr, hbr)
+		return ErrorWrapper(streamErr, "read_stream_failed", http.StatusInternalServerError), streamCtx.usage
 	}
 
 	// Validate stream completion
