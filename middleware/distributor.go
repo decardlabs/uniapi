@@ -359,9 +359,7 @@ func Distribute() func(c *gin.Context) {
 					c.Set(ctxkey.SpecificChannelId, 0)
 				}
 			}
-		} else {
-			// keep auto-selection branch in sync with explicit-channel fallback behavior
-		}
+			}
 
 		if channel == nil {
 			requestModel = c.GetString(ctxkey.RequestModel)

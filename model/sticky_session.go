@@ -34,7 +34,32 @@ type functionContextEntry struct {
 var (
 	stickySessionMemoryLock sync.RWMutex
 	stickySessionMemory     = map[string]stickyCacheEntry{}
+	stickySessionCleanupOnce sync.Once
 )
+
+// startStickySessionCleanup periodically purges expired entries from the in-memory
+// sticky session store. It is safe to call multiple times; only the first call has effect.
+func startStickySessionCleanup() {
+	stickySessionCleanupOnce.Do(func() {
+		interval := stickySessionTTL()
+		if interval < time.Minute {
+			interval = time.Minute
+		}
+		go func() {
+			for {
+				time.Sleep(interval)
+				stickySessionMemoryLock.Lock()
+				now := time.Now().UTC()
+				for key, entry := range stickySessionMemory {
+					if now.After(entry.expiresAt) {
+						delete(stickySessionMemory, key)
+					}
+				}
+				stickySessionMemoryLock.Unlock()
+			}
+		}()
+	})
+}
 
 // stickySessionTTL returns the configured sticky-session timeout as a duration.
 func stickySessionTTL() time.Duration {
@@ -90,6 +115,7 @@ func SetStickySessionChannel(ctx context.Context, userID int, model string, chan
 	stickySessionMemoryLock.Lock()
 	stickySessionMemory[key] = stickyCacheEntry{channelID: channelID, expiresAt: time.Now().UTC().Add(ttl)}
 	stickySessionMemoryLock.Unlock()
+	startStickySessionCleanup()
 	return nil
 }
 
@@ -170,6 +196,7 @@ func SetResponseBoundChannel(ctx context.Context, userID int, responseID string,
 			stickySessionMemoryLock.Lock()
 			stickySessionMemory[key] = stickyCacheEntry{channelID: channelID, expiresAt: time.Now().UTC().Add(stickySessionTTL())}
 			stickySessionMemoryLock.Unlock()
+			startStickySessionCleanup()
 			return nil
 		}
 		return errors.Wrap(err, "set response-channel binding in redis")
@@ -271,4 +298,5 @@ func RecordFunctionContext(ctx context.Context, userID int, model string, channe
 	stickySessionMemoryLock.Lock()
 	stickySessionMemory[memoryKey] = stickyCacheEntry{channelID: channelID, expiresAt: time.Now().UTC().Add(ttl)}
 	stickySessionMemoryLock.Unlock()
+	startStickySessionCleanup()
 }

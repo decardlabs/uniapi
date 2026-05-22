@@ -28,46 +28,7 @@ type Ability struct {
 }
 
 func GetRandomSatisfiedChannel(group string, model string, ignoreFirstPriority bool) (*Channel, error) {
-	if DB == nil {
-		return nil, errors.New("database not initialized")
-	}
-
-	ability := Ability{}
-	groupCol := "`group`"
-	trueVal := "1"
-	if common.UsingPostgreSQL.Load() {
-		groupCol = `"group"`
-		trueVal = "true"
-	}
-	now := time.Now()
-
-	var err error = nil
-	var channelQuery *gorm.DB
-	if ignoreFirstPriority {
-		channelQuery = DB.Where(groupCol+" = ? AND model = ? AND enabled = "+trueVal+" AND (suspend_until IS NULL OR suspend_until < ?)", group, model, now)
-	} else {
-		maxPrioritySubQuery := DB.Model(&Ability{}).Select("MAX(priority)").Where(groupCol+" = ? AND model = ? AND enabled = "+trueVal+" AND (suspend_until IS NULL OR suspend_until < ?)", group, model, now)
-		channelQuery = DB.Where(groupCol+" = ? AND model = ? AND enabled = "+trueVal+" AND priority = (?) AND (suspend_until IS NULL OR suspend_until < ?)", group, model, maxPrioritySubQuery, now)
-	}
-	if common.UsingSQLite.Load() || common.UsingPostgreSQL.Load() {
-		err = channelQuery.Order("RANDOM()").First(&ability).Error
-	} else {
-		err = channelQuery.Order("RAND()").First(&ability).Error
-	}
-	if err != nil {
-		return nil, errors.Wrap(err, "get random satisfied channel")
-	}
-
-	channel := Channel{}
-	channel.Id = ability.ChannelId
-	err = DB.First(&channel, "id = ?", ability.ChannelId).Error
-	if err != nil {
-		return nil, errors.Wrapf(err, "load channel %d for ability", ability.ChannelId)
-	}
-	if !channel.SupportsModel(model) {
-		return nil, errors.Errorf("channel #%d does not list support for model %s", channel.Id, model)
-	}
-	return &channel, nil
+	return GetRandomSatisfiedChannelExcluding(group, model, ignoreFirstPriority, nil)
 }
 
 func (channel *Channel) AddAbilities() error {
