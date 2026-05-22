@@ -33,3 +33,17 @@ uniapi.new
 /uniapi
 /one-api
 .gstack/
+
+# local workspace/debug artifacts
+.workbuddy/
+CLAUDE.md.bak
+DEBUG_GUIDE.md
+SETUP_COMPLETE.md
+start-debug.sh
+output.txt
+test_output.txt
+web/modern/test_output.txt
+web/modern/playwright-report/
+web/modern/test-results/
+uniapi-fixed
+uniapi-test
