@@ -1,0 +1,102 @@
+name: Main Regression
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: main-regression-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  baseline-check:
+    name: Baseline Build And Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: yarn
+          cache-dependency-path: web/modern/yarn.lock
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Baseline Verification
+        run: |
+          go mod download
+          go vet ./...
+          go test -race ./...
+          make build-frontend-modern
+          go build -o uniapi .
+
+  protocol-matrix:
+    name: Protocol Compatibility Matrix
+    runs-on: ubuntu-latest
+    needs:
+      - baseline-check
+    env:
+      ONEAPI_TEST_TOKEN: ${{ secrets['ONEAPI_TEST_TOKEN'] }}
+      ONEAPI_TEST_BASE: ${{ secrets['ONEAPI_TEST_BASE'] }}
+      ONEAPI_TEST_MODELS: ${{ secrets['ONEAPI_TEST_MODELS'] }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Run cmd/test Matrix
+        run: |
+          if [ -z "${ONEAPI_TEST_TOKEN}" ] || [ -z "${ONEAPI_TEST_BASE}" ]; then
+            echo "ONEAPI_TEST_TOKEN or ONEAPI_TEST_BASE is empty, skipping protocol matrix"
+            exit 0
+          fi
+          MODELS="${ONEAPI_TEST_MODELS:-gpt-4o-mini,gpt-5-mini,claude-3.5-haiku,gemini-2.5-flash}"
+          API_TOKEN="${ONEAPI_TEST_TOKEN}" API_BASE="${ONEAPI_TEST_BASE}" ONEAPI_TEST_MODELS="${MODELS}" go run ./cmd/test run
+
+  live-probe:
+    name: Live Account Probe
+    runs-on: ubuntu-latest
+    needs:
+      - baseline-check
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    env:
+      ONEAPI_TEST_TOKEN: ${{ secrets['ONEAPI_TEST_TOKEN'] }}
+      ONEAPI_TEST_BASE: ${{ secrets['ONEAPI_TEST_BASE'] }}
+      ONEAPI_TEST_PROBE_MODEL: ${{ secrets['ONEAPI_TEST_PROBE_MODEL'] }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Run cmd/test live
+        run: |
+          if [ -z "${ONEAPI_TEST_TOKEN}" ] || [ -z "${ONEAPI_TEST_BASE}" ]; then
+            echo "ONEAPI_TEST_TOKEN or ONEAPI_TEST_BASE is empty, skipping live probe"
+            exit 0
+          fi
+          MODEL="${ONEAPI_TEST_PROBE_MODEL:-gpt-5-mini}"
+          API_TOKEN="${ONEAPI_TEST_TOKEN}" API_BASE="${ONEAPI_TEST_BASE}" ONEAPI_TEST_MODELS="${MODEL}" go run ./cmd/test live --model "${MODEL}" --rounds 2 --concurrency 1 --timeout 120s

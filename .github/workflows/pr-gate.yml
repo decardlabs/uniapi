@@ -1,0 +1,134 @@
+name: PR Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-check:
+    name: Backend Vet And Race Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Verify Backend
+        run: |
+          go mod download
+          go vet ./...
+          go test -race ./...
+
+  frontend-check:
+    name: Frontend Typecheck Lint Unit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web/modern
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: yarn
+          cache-dependency-path: web/modern/yarn.lock
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install Dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Type Check
+        run: yarn type-check
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Unit Test
+        run: yarn test --run
+
+  e2e-smoke:
+    name: E2E Smoke Chromium
+    runs-on: ubuntu-latest
+    needs:
+      - backend-check
+      - frontend-check
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: yarn
+          cache-dependency-path: web/modern/yarn.lock
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install Frontend Dependencies
+        working-directory: web/modern
+        run: yarn install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        working-directory: web/modern
+        run: npx playwright install --with-deps chromium
+
+      - name: Build Binary
+        run: |
+          cd web/modern
+          VITE_APP_VERSION="${GITHUB_SHA}" yarn build
+          cd ../..
+          go build -o uniapi .
+
+      - name: Start UniAPI
+        run: |
+          nohup ./uniapi > uniapi.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/ >/dev/null; then
+              echo "uniapi is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "uniapi failed to become ready"
+          tail -n 200 uniapi.log || true
+          exit 1
+
+      - name: Run Smoke Spec
+        working-directory: web/modern
+        env:
+          BASE_URL: http://127.0.0.1:3000
+        run: npx playwright test e2e/smoke.spec.ts --project=chromium
+
+      - name: Upload E2E Artifacts On Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-gate-e2e-artifacts
+          path: |
+            uniapi.log
+            web/modern/playwright-report
+            web/modern/test-results

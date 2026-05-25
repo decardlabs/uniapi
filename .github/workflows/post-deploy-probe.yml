@@ -1,0 +1,96 @@
+name: Post Deploy Probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_base:
+        description: 'Probe target base URL, for example https://oneapi.example.com'
+        required: true
+        type: string
+      model:
+        description: 'Model name for live probe'
+        required: true
+        default: 'gpt-5-mini'
+        type: string
+      rounds:
+        description: 'Probe rounds'
+        required: true
+        default: '2'
+        type: string
+      timeout:
+        description: 'Per request timeout, for example 120s'
+        required: true
+        default: '120s'
+        type: string
+  repository_dispatch:
+    types:
+      - post_deploy_probe
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Probe Production Readiness
+    runs-on: ubuntu-latest
+    env:
+      ONEAPI_TEST_TOKEN: ${{ secrets['ONEAPI_TEST_TOKEN'] }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Resolve Inputs
+        id: resolve
+        run: |
+          API_BASE="${{ github.event.inputs.api_base }}"
+          MODEL="${{ github.event.inputs.model }}"
+          ROUNDS="${{ github.event.inputs.rounds }}"
+          TIMEOUT="${{ github.event.inputs.timeout }}"
+
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            API_BASE="${{ github.event.client_payload.api_base }}"
+            MODEL="${{ github.event.client_payload.model }}"
+            ROUNDS="${{ github.event.client_payload.rounds }}"
+            TIMEOUT="${{ github.event.client_payload.timeout }}"
+          fi
+
+          if [ -z "${API_BASE}" ]; then
+            echo "api_base is required"
+            exit 1
+          fi
+
+          if [ -z "${MODEL}" ]; then
+            MODEL="gpt-5-mini"
+          fi
+          if [ -z "${ROUNDS}" ]; then
+            ROUNDS="2"
+          fi
+          if [ -z "${TIMEOUT}" ]; then
+            TIMEOUT="120s"
+          fi
+
+          echo "api_base=${API_BASE}" >> "$GITHUB_OUTPUT"
+          echo "model=${MODEL}" >> "$GITHUB_OUTPUT"
+          echo "rounds=${ROUNDS}" >> "$GITHUB_OUTPUT"
+          echo "timeout=${TIMEOUT}" >> "$GITHUB_OUTPUT"
+
+      - name: Run Live Probe
+        run: |
+          if [ -z "${ONEAPI_TEST_TOKEN}" ]; then
+            echo "ONEAPI_TEST_TOKEN is required"
+            exit 1
+          fi
+
+          API_TOKEN="${ONEAPI_TEST_TOKEN}" \
+          API_BASE="${{ steps.resolve.outputs.api_base }}" \
+          ONEAPI_TEST_MODELS="${{ steps.resolve.outputs.model }}" \
+          go run ./cmd/test live \
+            --model "${{ steps.resolve.outputs.model }}" \
+            --rounds "${{ steps.resolve.outputs.rounds }}" \
+            --concurrency 1 \
+            --timeout "${{ steps.resolve.outputs.timeout }}"
