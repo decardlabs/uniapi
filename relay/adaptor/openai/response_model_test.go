@@ -268,6 +268,39 @@ func TestConvertResponseAPIToChatCompletionRequest(t *testing.T) {
 	require.Equal(t, reasoningEffort, *chatReq.Reasoning.Effort, "reasoning effort not preserved")
 }
 
+func TestConvertResponseAPIToChatCompletionRequestRejectsPromptTemplate(t *testing.T) {
+	t.Parallel()
+
+	request := &ResponseAPIRequest{
+		Model: "MiniMax-M2.7",
+		Prompt: &ResponseAPIPrompt{
+			Id: "pmpt_123",
+		},
+		Input: ResponseAPIInput{"hello"},
+	}
+
+	chatReq, err := ConvertResponseAPIToChatCompletionRequest(request)
+	require.Error(t, err)
+	require.Nil(t, chatReq)
+	require.ErrorContains(t, err, "prompt templates are not supported for this channel")
+}
+
+func TestConvertResponseAPIToChatCompletionRequestRejectsBackgroundResponses(t *testing.T) {
+	t.Parallel()
+
+	background := true
+	request := &ResponseAPIRequest{
+		Model:      "MiniMax-M2.7",
+		Background: &background,
+		Input:      ResponseAPIInput{"hello"},
+	}
+
+	chatReq, err := ConvertResponseAPIToChatCompletionRequest(request)
+	require.Error(t, err)
+	require.Nil(t, chatReq)
+	require.ErrorContains(t, err, "background responses are not supported for this channel")
+}
+
 func TestConvertResponseAPIToChatCompletionRequest_DefaultsFunctionSchema(t *testing.T) {
 	stream := false
 	responseReq := &ResponseAPIRequest{

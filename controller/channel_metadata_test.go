@@ -67,7 +67,7 @@ func TestGetChannelMetadata(t *testing.T) {
 
 		require.True(t, response["success"].(bool))
 		data := response["data"].(map[string]interface{})
-		require.Equal(t, "https://api.minimax.chat/v1", data["default_base_url"])
+		require.Equal(t, "https://api.minimaxi.com/v1", data["default_base_url"])
 		require.True(t, data["base_url_editable"].(bool))
 	})
 

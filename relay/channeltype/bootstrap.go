@@ -75,7 +75,7 @@ func init() {
 		Label:       "MiniMax",
 		Category:    "official",
 		Description: "MiniMax（海螺AI）official endpoint，支持 MiniMax-Text-01、MiniMax-M1 等主要模型",
-		Template:    registerBaseTemplate("https://api.minimax.chat/v1"),
+		Template:    registerBaseTemplate("https://api.minimaxi.com/v1"),
 	})
 	RegisterChannelType(ChannelTypeInfoV2{
 		ID:          SiliconFlow,

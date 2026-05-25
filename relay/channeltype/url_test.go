@@ -16,7 +16,7 @@ func TestChannelBaseURLs(t *testing.T) {
 func TestChannelBaseURLConfigs_Release37Channels(t *testing.T) {
 	Convey("release 3.7 channel base url defaults", t, func() {
 		So(GetChannelBaseURLConfig(OpenRouter).URL, ShouldEqual, "https://openrouter.ai/api/v1")
-		So(GetChannelBaseURLConfig(Minimax).URL, ShouldEqual, "https://api.minimax.chat/v1")
+		So(GetChannelBaseURLConfig(Minimax).URL, ShouldEqual, "https://api.minimaxi.com/v1")
 		So(GetChannelBaseURLConfig(DeepSeek).URL, ShouldEqual, "https://api.deepseek.com/v1")
 		So(GetChannelBaseURLConfig(GLM).URL, ShouldEqual, "https://open.bigmodel.cn/api/paas/v4")
 		So(GetChannelBaseURLConfig(Moonshot).URL, ShouldEqual, "https://api.moonshot.cn/v1")
