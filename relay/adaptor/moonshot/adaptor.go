@@ -8,9 +8,11 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/decardlabs/uniapi/relay/adaptor"
+	"github.com/decardlabs/uniapi/relay/adaptor/common/structuredjson"
 	"github.com/decardlabs/uniapi/relay/adaptor/openai_compatible"
 	"github.com/decardlabs/uniapi/relay/meta"
 	"github.com/decardlabs/uniapi/relay/model"
+	"github.com/decardlabs/uniapi/relay/relaymode"
 )
 
 type Adaptor struct {
@@ -58,13 +60,11 @@ func (a *Adaptor) DefaultToolingConfig() adaptor.ChannelToolConfig {
 func (a *Adaptor) Init(meta *meta.Meta) {}
 
 func (a *Adaptor) GetRequestURL(meta *meta.Meta) (string, error) {
-	// Handle Claude Messages requests - convert to OpenAI Chat Completions endpoint
-	if meta.RequestURLPath == "/v1/messages" {
-		// Claude Messages requests should use OpenAI's chat completions endpoint
-		chatCompletionsPath := "/v1/chat/completions"
-		return openai_compatible.GetFullRequestURL(meta.BaseURL, chatCompletionsPath, meta.ChannelType), nil
+	// Route all chat-based modes to the chat completions endpoint
+	switch meta.Mode {
+	case relaymode.ChatCompletions, relaymode.ClaudeMessages, relaymode.ResponseAPI:
+		return openai_compatible.GetFullRequestURL(meta.BaseURL, "/v1/chat/completions", meta.ChannelType), nil
 	}
-
 	// Moonshot uses OpenAI-compatible API endpoints
 	return openai_compatible.GetFullRequestURL(meta.BaseURL, meta.RequestURLPath, meta.ChannelType), nil
 }
@@ -76,10 +76,20 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Request, meta *me
 }
 
 func (a *Adaptor) ConvertRequest(c *gin.Context, relayMode int, request *model.GeneralOpenAIRequest) (any, error) {
+	// Moonshot requires name on role=tool messages; backfill from tool_calls
+	openai_compatible.BackfillToolMessageNamesFromToolCalls(request)
+
 	// Moonshot is OpenAI-compatible, so we can pass the request through with minimal changes
 	// Remove reasoning_effort as Moonshot doesn't support it
 	if request.ReasoningEffort != nil {
 		request.ReasoningEffort = nil
+	}
+	// Moonshot does not support top_k
+	request.TopK = nil
+	// Moonshot does not support json_schema response_format; preserve the schema as a system instruction
+	if request.ResponseFormat != nil && request.ResponseFormat.JsonSchema != nil {
+		structuredjson.EnsureInstruction(request)
+		request.ResponseFormat = nil
 	}
 	return request, nil
 }
@@ -89,8 +99,22 @@ func (a *Adaptor) ConvertImageRequest(c *gin.Context, request *model.ImageReques
 }
 
 func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, request *model.ClaudeRequest) (any, error) {
-	// Use the shared OpenAI-compatible Claude Messages conversion
-	return openai_compatible.ConvertClaudeRequest(c, request)
+	converted, err := openai_compatible.ConvertClaudeRequest(c, request)
+	if err != nil {
+		return nil, errors.Wrap(err, "convert claude request")
+	}
+	openaiReq, ok := converted.(*model.GeneralOpenAIRequest)
+	if !ok {
+		return converted, nil
+	}
+	// Apply same post-processing as ConvertRequest
+	openaiReq.ReasoningEffort = nil
+	openaiReq.TopK = nil
+	if openaiReq.ResponseFormat != nil && openaiReq.ResponseFormat.JsonSchema != nil {
+		structuredjson.EnsureInstruction(openaiReq)
+		openaiReq.ResponseFormat = nil
+	}
+	return openaiReq, nil
 }
 
 func (a *Adaptor) DoRequest(c *gin.Context, meta *meta.Meta, requestBody io.Reader) (*http.Response, error) {

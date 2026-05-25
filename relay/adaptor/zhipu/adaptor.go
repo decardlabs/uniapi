@@ -1,7 +1,6 @@
 package zhipu
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,29 +9,30 @@ import (
 	"github.com/Laisky/errors/v2"
 	"github.com/gin-gonic/gin"
 
-	"github.com/decardlabs/uniapi/common/ctxkey"
 	"github.com/decardlabs/uniapi/common/helper"
 	"github.com/decardlabs/uniapi/relay/adaptor"
+	"github.com/decardlabs/uniapi/relay/adaptor/common/structuredjson"
 	"github.com/decardlabs/uniapi/relay/adaptor/openai"
+	"github.com/decardlabs/uniapi/relay/adaptor/openai_compatible"
 	"github.com/decardlabs/uniapi/relay/meta"
 	"github.com/decardlabs/uniapi/relay/model"
 	"github.com/decardlabs/uniapi/relay/relaymode"
 )
 
 type Adaptor struct {
-	APIVersion string
 }
 
 func (a *Adaptor) Init(meta *meta.Meta) {
 
 }
 
-func (a *Adaptor) SetVersionByModeName(modelName string) {
+// getAPIVersion determines the API version from the model name.
+// Models with "glm-" prefix use v4 (OpenAI-compatible), others use v3 (proprietary format).
+func getAPIVersion(modelName string) string {
 	if strings.HasPrefix(modelName, "glm-") {
-		a.APIVersion = "v4"
-	} else {
-		a.APIVersion = "v3"
+		return "v4"
 	}
+	return "v3"
 }
 
 func (a *Adaptor) GetRequestURL(meta *meta.Meta) (string, error) {
@@ -44,11 +44,13 @@ func (a *Adaptor) GetRequestURL(meta *meta.Meta) (string, error) {
 	case relaymode.OCR:
 		return fmt.Sprintf("%s/api/paas/v4/layout_parsing", meta.BaseURL), nil
 	}
+	// OCR model detection by model name takes priority for backward compatibility
 	if isOCRModel(meta.ActualModelName) {
 		return fmt.Sprintf("%s/api/paas/v4/layout_parsing", meta.BaseURL), nil
 	}
-	a.SetVersionByModeName(meta.ActualModelName)
-	if a.APIVersion == "v4" {
+	// All other modes (ChatCompletions, ClaudeMessages, ResponseAPI, etc.)
+	// route to the chat completions endpoint
+	if getAPIVersion(meta.ActualModelName) == "v4" {
 		return fmt.Sprintf("%s/api/paas/v4/chat/completions", meta.BaseURL), nil
 	}
 	method := "invoke"
@@ -60,7 +62,10 @@ func (a *Adaptor) GetRequestURL(meta *meta.Meta) (string, error) {
 
 func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Request, meta *meta.Meta) error {
 	adaptor.SetupCommonRequestHeader(c, req, meta)
-	token := GetToken(meta.APIKey)
+	token, err := GetToken(meta.APIKey)
+	if err != nil {
+		return err
+	}
 	req.Header.Set("Authorization", token)
 	return nil
 }
@@ -88,11 +93,27 @@ func (a *Adaptor) ConvertRequest(c *gin.Context, relayMode int, request *model.G
 		// Temperature [0.0, 1.0]
 		request.Temperature = helper.Float64PtrMax(request.Temperature, 1)
 		request.Temperature = helper.Float64PtrMin(request.Temperature, 0)
-		a.SetVersionByModeName(request.Model)
-		if a.APIVersion == "v4" {
+
+		// Zhipu does not support reasoning_effort
+		request.ReasoningEffort = nil
+
+		// Zhipu does not support top_k
+		request.TopK = nil
+
+		// Zhipu does not support json_schema response_format; preserve the schema as a system instruction
+		if request.ResponseFormat != nil && request.ResponseFormat.JsonSchema != nil {
+			structuredjson.EnsureInstruction(request)
+			request.ResponseFormat = nil
+		}
+
+		if getAPIVersion(request.Model) == "v4" {
 			return request, nil
 		}
-		return ConvertRequest(*request), nil
+		v3Req, err := ConvertRequest(*request)
+		if err != nil {
+			return nil, err
+		}
+		return v3Req, nil
 	}
 }
 
@@ -109,147 +130,42 @@ func (a *Adaptor) ConvertImageRequest(_ *gin.Context, request *model.ImageReques
 }
 
 func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, request *model.ClaudeRequest) (any, error) {
-	if request == nil {
-		return nil, errors.New("request is nil")
+	// 1. Use the shared Claude-to-OpenAI conversion (handles structured output
+	//    promotion, tool normalization, tool_choice normalization, and all
+	//    message/block conversion)
+	converted, err := openai_compatible.ConvertClaudeRequest(c, request)
+	if err != nil {
+		return nil, errors.Wrap(err, "convert claude request")
 	}
 
-	maxTokens := request.MaxTokens
-
-	// Convert Claude Messages API request to OpenAI format first
-	openaiRequest := &model.GeneralOpenAIRequest{
-		Model:               request.Model,
-		MaxCompletionTokens: &maxTokens,
-		Temperature:         request.Temperature,
-		TopP:                request.TopP,
-		Stream:              request.Stream != nil && *request.Stream,
-		Stop:                request.StopSequences,
+	openaiReq, ok := converted.(*model.GeneralOpenAIRequest)
+	if !ok {
+		return converted, nil
 	}
 
-	// Convert system prompt
-	if request.System != nil {
-		switch system := request.System.(type) {
-		case string:
-			if system != "" {
-				openaiRequest.Messages = append(openaiRequest.Messages, model.Message{
-					Role:    "system",
-					Content: system,
-				})
-			}
-		case []any:
-			// For structured system content, extract text parts
-			var systemParts []string
-			for _, block := range system {
-				if blockMap, ok := block.(map[string]any); ok {
-					if text, exists := blockMap["text"]; exists {
-						if textStr, ok := text.(string); ok {
-							systemParts = append(systemParts, textStr)
-						}
-					}
-				}
-			}
-			if len(systemParts) > 0 {
-				systemText := strings.Join(systemParts, "\n")
-				openaiRequest.Messages = append(openaiRequest.Messages, model.Message{
-					Role:    "system",
-					Content: systemText,
-				})
-			}
-		}
+	// 2. Zhipu-specific: clamp Temperature and TopP to [0, 1]
+	openaiReq.Temperature = helper.Float64PtrMax(openaiReq.Temperature, 1)
+	openaiReq.Temperature = helper.Float64PtrMin(openaiReq.Temperature, 0)
+	openaiReq.TopP = helper.Float64PtrMax(openaiReq.TopP, 1)
+	openaiReq.TopP = helper.Float64PtrMin(openaiReq.TopP, 0)
+
+	// 3. Zhipu-specific: strip unsupported fields
+	openaiReq.ReasoningEffort = nil
+	openaiReq.TopK = nil
+	if openaiReq.ResponseFormat != nil && openaiReq.ResponseFormat.JsonSchema != nil {
+		structuredjson.EnsureInstruction(openaiReq)
+		openaiReq.ResponseFormat = nil
 	}
 
-	// Convert messages
-	for _, msg := range request.Messages {
-		openaiMessage := model.Message{
-			Role: msg.Role,
-		}
-
-		// Convert content based on type
-		switch content := msg.Content.(type) {
-		case string:
-			// Simple string content
-			openaiMessage.Content = content
-		case []any:
-			// Structured content blocks - convert to OpenAI format
-			var contentParts []model.MessageContent
-			for _, block := range content {
-				if blockMap, ok := block.(map[string]any); ok {
-					if blockType, exists := blockMap["type"]; exists {
-						switch blockType {
-						case "text":
-							if text, exists := blockMap["text"]; exists {
-								if textStr, ok := text.(string); ok {
-									contentParts = append(contentParts, model.MessageContent{
-										Type: "text",
-										Text: &textStr,
-									})
-								}
-							}
-						case "image":
-							if source, exists := blockMap["source"]; exists {
-								if sourceMap, ok := source.(map[string]any); ok {
-									imageURL := model.ImageURL{}
-									if mediaType, exists := sourceMap["media_type"]; exists {
-										if data, exists := sourceMap["data"]; exists {
-											if dataStr, ok := data.(string); ok {
-												// Convert to data URL format
-												imageURL.Url = fmt.Sprintf("data:%s;base64,%s", mediaType, dataStr)
-											}
-										}
-									}
-									contentParts = append(contentParts, model.MessageContent{
-										Type:     "image_url",
-										ImageURL: &imageURL,
-									})
-								}
-							}
-						}
-					}
-				}
-			}
-			if len(contentParts) > 0 {
-				openaiMessage.Content = contentParts
-			}
-		default:
-			// Fallback: convert to string
-			if contentBytes, err := json.Marshal(content); err == nil {
-				openaiMessage.Content = string(contentBytes)
-			}
-		}
-
-		openaiRequest.Messages = append(openaiRequest.Messages, openaiMessage)
+	// 4. Zhipu-specific: v3 format conversion vs v4 passthrough
+	if getAPIVersion(openaiReq.Model) == "v4" {
+		return openaiReq, nil
 	}
-
-	// Convert tools
-	for _, tool := range request.Tools {
-		openaiTool := model.Tool{
-			Type: "function",
-			Function: &model.Function{
-				Name:        tool.Name,
-				Description: tool.Description,
-			},
-		}
-
-		// Convert input schema
-		if tool.InputSchema != nil {
-			if schemaMap, ok := tool.InputSchema.(map[string]any); ok {
-				openaiTool.Function.Parameters = schemaMap
-			}
-		}
-
-		openaiRequest.Tools = append(openaiRequest.Tools, openaiTool)
+	v3Req, err := ConvertRequest(*openaiReq)
+	if err != nil {
+		return nil, err
 	}
-
-	// Convert tool choice
-	if request.ToolChoice != nil {
-		openaiRequest.ToolChoice = request.ToolChoice
-	}
-
-	// Mark this as a Claude Messages conversion for response handling
-	c.Set(ctxkey.ClaudeMessagesConversion, true)
-	c.Set(ctxkey.OriginalClaudeRequest, request)
-
-	// Now convert using Zhipu's existing logic
-	return a.ConvertRequest(c, relaymode.ChatCompletions, openaiRequest)
+	return v3Req, nil
 }
 
 func (a *Adaptor) DoRequest(c *gin.Context, meta *meta.Meta, requestBody io.Reader) (*http.Response, error) {
@@ -278,16 +194,16 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, meta *meta.Met
 		err, usage = OCRHandler(c, resp, meta.ActualModelName)
 		return
 	}
-	if a.APIVersion == "v4" {
+	if getAPIVersion(meta.ActualModelName) == "v4" {
 		return a.DoResponseV4(c, resp, meta)
 	}
 	if meta.IsStream {
-		err, usage = StreamHandler(c, resp)
+		err, usage = StreamHandler(c, resp, meta.ActualModelName)
 	} else {
 		if meta.Mode == relaymode.Embeddings {
 			err, usage = EmbeddingsHandler(c, resp)
 		} else {
-			err, usage = Handler(c, resp)
+			err, usage = Handler(c, resp, meta.ActualModelName)
 		}
 	}
 	return

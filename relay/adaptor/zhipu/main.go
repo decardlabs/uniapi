@@ -31,19 +31,18 @@ import (
 var zhipuTokens sync.Map
 var expSeconds int64 = 24 * 3600
 
-func GetToken(apikey string) string {
+func GetToken(apikey string) (string, error) {
 	data, ok := zhipuTokens.Load(apikey)
 	if ok {
 		tokenData := data.(tokenData)
 		if time.Now().Before(tokenData.ExpiryTime) {
-			return tokenData.Token
+			return tokenData.Token, nil
 		}
 	}
 
 	split := strings.Split(apikey, ".")
 	if len(split) != 2 {
-		// invalid zhipu key
-		return ""
+		return "", errors.New("invalid zhipu api key format, expected 'id.secret'")
 	}
 
 	id := split[0]
@@ -67,7 +66,7 @@ func GetToken(apikey string) string {
 
 	tokenString, err := token.SignedString([]byte(secret))
 	if err != nil {
-		return ""
+		return "", errors.Wrap(err, "failed to sign JWT token")
 	}
 
 	zhipuTokens.Store(apikey, tokenData{
@@ -75,12 +74,16 @@ func GetToken(apikey string) string {
 		ExpiryTime: expiryTime,
 	})
 
-	return tokenString
+	return tokenString, nil
 }
 
-func ConvertRequest(request model.GeneralOpenAIRequest) *Request {
+func ConvertRequest(request model.GeneralOpenAIRequest) (*Request, error) {
 	messages := make([]Message, 0, len(request.Messages))
 	for _, message := range request.Messages {
+		// Check for multimodal content (image_url, etc.)
+		if !message.IsStringContent() {
+			return nil, errors.New("glm v3 API does not support multimodal content (image_url, audio, etc.); please use glm-4v or other v4 models for multimodal requests")
+		}
 		messages = append(messages, Message{
 			Role:    message.Role,
 			Content: message.StringContent(),
@@ -91,16 +94,17 @@ func ConvertRequest(request model.GeneralOpenAIRequest) *Request {
 		Temperature: request.Temperature,
 		TopP:        request.TopP,
 		Incremental: false,
-	}
+	}, nil
 }
 
-func responseZhipu2OpenAI(response *Response) *openai.TextResponse {
+func responseZhipu2OpenAI(response *Response, modelName string) *openai.TextResponse {
 	fullTextResponse := openai.TextResponse{
 		Id:      response.Data.TaskId,
 		Object:  "chat.completion",
 		Created: helper.GetTimestamp(),
 		Choices: make([]openai.TextResponseChoice, 0, len(response.Data.Choices)),
 		Usage:   response.Data.Usage,
+		Model:   modelName,
 	}
 	for i, choice := range response.Data.Choices {
 		openaiChoice := openai.TextResponseChoice{
@@ -119,19 +123,19 @@ func responseZhipu2OpenAI(response *Response) *openai.TextResponse {
 	return &fullTextResponse
 }
 
-func streamResponseZhipu2OpenAI(zhipuResponse string) *openai.ChatCompletionsStreamResponse {
+func streamResponseZhipu2OpenAI(zhipuResponse string, modelName string) *openai.ChatCompletionsStreamResponse {
 	var choice openai.ChatCompletionsStreamResponseChoice
 	choice.Delta.Content = zhipuResponse
 	response := openai.ChatCompletionsStreamResponse{
 		Object:  "chat.completion.chunk",
 		Created: helper.GetTimestamp(),
-		Model:   "chatglm",
+		Model:   modelName,
 		Choices: []openai.ChatCompletionsStreamResponseChoice{choice},
 	}
 	return &response
 }
 
-func streamMetaResponseZhipu2OpenAI(zhipuResponse *StreamMetaResponse) (*openai.ChatCompletionsStreamResponse, *model.Usage) {
+func streamMetaResponseZhipu2OpenAI(zhipuResponse *StreamMetaResponse, modelName string) (*openai.ChatCompletionsStreamResponse, *model.Usage) {
 	var choice openai.ChatCompletionsStreamResponseChoice
 	choice.Delta.Content = ""
 	choice.FinishReason = &constant.StopFinishReason
@@ -139,13 +143,13 @@ func streamMetaResponseZhipu2OpenAI(zhipuResponse *StreamMetaResponse) (*openai.
 		Id:      zhipuResponse.RequestId,
 		Object:  "chat.completion.chunk",
 		Created: helper.GetTimestamp(),
-		Model:   "chatglm",
+		Model:   modelName,
 		Choices: []openai.ChatCompletionsStreamResponseChoice{choice},
 	}
 	return &response, &zhipuResponse.Usage
 }
 
-func StreamHandler(c *gin.Context, resp *http.Response) (*model.ErrorWithStatusCode, *model.Usage) {
+func StreamHandler(c *gin.Context, resp *http.Response, modelName string) (*model.ErrorWithStatusCode, *model.Usage) {
 	var usage *model.Usage
 	lg := gmw.GetLogger(c)
 	lineReader := commonsse.NewLineReader(resp.Body, commonsse.DefaultLineBufferSize)
@@ -170,7 +174,7 @@ func StreamHandler(c *gin.Context, resp *http.Response) (*model.ErrorWithStatusC
 				streamErr = err
 				break
 			}
-			response := streamResponseZhipu2OpenAI(string(payloadBytes))
+			response := streamResponseZhipu2OpenAI(string(payloadBytes), modelName)
 			if err := render.ObjectData(c, response); err != nil {
 				lg.Error("error marshalling oversized stream response", zap.Error(err))
 			}
@@ -182,7 +186,7 @@ func StreamHandler(c *gin.Context, resp *http.Response) (*model.ErrorWithStatusC
 			continue
 		}
 		if strings.HasPrefix(lineText, "data:") {
-			response := streamResponseZhipu2OpenAI(lineText[5:])
+			response := streamResponseZhipu2OpenAI(lineText[5:], modelName)
 			if err := render.ObjectData(c, response); err != nil {
 				lg.Error("error marshalling stream response", zap.Error(err))
 			}
@@ -193,7 +197,7 @@ func StreamHandler(c *gin.Context, resp *http.Response) (*model.ErrorWithStatusC
 				lg.Error("error unmarshalling stream response", zap.Error(err))
 				continue
 			}
-			response, zhipuUsage := streamMetaResponseZhipu2OpenAI(&zhipuResponse)
+			response, zhipuUsage := streamMetaResponseZhipu2OpenAI(&zhipuResponse, modelName)
 			if err := render.ObjectData(c, response); err != nil {
 				lg.Error("error marshalling stream response", zap.Error(err))
 			}
@@ -215,7 +219,7 @@ func StreamHandler(c *gin.Context, resp *http.Response) (*model.ErrorWithStatusC
 	return nil, usage
 }
 
-func Handler(c *gin.Context, resp *http.Response) (*model.ErrorWithStatusCode, *model.Usage) {
+func Handler(c *gin.Context, resp *http.Response, modelName string) (*model.ErrorWithStatusCode, *model.Usage) {
 	var zhipuResponse Response
 	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -241,8 +245,7 @@ func Handler(c *gin.Context, resp *http.Response) (*model.ErrorWithStatusCode, *
 			StatusCode: resp.StatusCode,
 		}, nil
 	}
-	fullTextResponse := responseZhipu2OpenAI(&zhipuResponse)
-	fullTextResponse.Model = "chatglm"
+	fullTextResponse := responseZhipu2OpenAI(&zhipuResponse, modelName)
 	jsonResponse, err := json.Marshal(fullTextResponse)
 	if err != nil {
 		return openai.ErrorWrapper(err, "marshal_response_body_failed", http.StatusInternalServerError), nil

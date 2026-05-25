@@ -171,4 +171,4 @@ If migration stops: diagnose via logs, correct issue, and re-run (safe / idempot
 
 ## Version
 
-Current version: 1.0.0
+Current version: 1.0.1

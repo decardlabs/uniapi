@@ -11,7 +11,7 @@ import (
 func GetRequestURL(meta *meta.Meta) (string, error) {
 	switch meta.Mode {
 	case relaymode.ChatCompletions, relaymode.ClaudeMessages, relaymode.ResponseAPI:
-		return openai_compatible.GetFullRequestURL(meta.BaseURL, "/v1/chat/completions", 0), nil
+		return openai_compatible.GetFullRequestURL(meta.BaseURL, "/v1/chat/completions", meta.ChannelType), nil
 	}
 	return "", errors.Errorf("unsupported relay mode %d for minimax", meta.Mode)
 }

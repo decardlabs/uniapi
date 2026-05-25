@@ -3,12 +3,12 @@ package minimax
 import (
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/Laisky/errors/v2"
 	"github.com/gin-gonic/gin"
 
 	"github.com/decardlabs/uniapi/relay/adaptor"
+	"github.com/decardlabs/uniapi/relay/adaptor/common/structuredjson"
 	"github.com/decardlabs/uniapi/relay/adaptor/openai_compatible"
 	"github.com/decardlabs/uniapi/relay/meta"
 	"github.com/decardlabs/uniapi/relay/model"
@@ -31,66 +31,17 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Request, meta *me
 }
 
 func (a *Adaptor) ConvertRequest(c *gin.Context, relayMode int, request *model.GeneralOpenAIRequest) (any, error) {
-	backfillToolMessageNamesFromToolCalls(request)
+	openai_compatible.BackfillToolMessageNamesFromToolCalls(request)
+	// MiniMax does not support reasoning_effort
+	request.ReasoningEffort = nil
+	// MiniMax does not support top_k
+	request.TopK = nil
+	// MiniMax does not support json_schema response_format; preserve the schema as a system instruction
+	if request.ResponseFormat != nil && request.ResponseFormat.JsonSchema != nil {
+		structuredjson.EnsureInstruction(request)
+		request.ResponseFormat = nil
+	}
 	return request, nil
-}
-
-// backfillToolMessageNamesFromToolCalls backfills role=tool message names from prior assistant
-// tool_calls when tool_call_id can be mapped to a function name.
-func backfillToolMessageNamesFromToolCalls(request *model.GeneralOpenAIRequest) {
-	if request == nil || len(request.Messages) == 0 {
-		return
-	}
-
-	toolCallNames := make(map[string]string)
-	for i := range request.Messages {
-		message := &request.Messages[i]
-		for _, toolCall := range message.ToolCalls {
-			if toolCall.Id == "" || toolCall.Function == nil || toolCall.Function.Name == "" {
-				continue
-			}
-			for _, key := range toolCallIDVariants(toolCall.Id) {
-				if key == "" {
-					continue
-				}
-				toolCallNames[key] = toolCall.Function.Name
-			}
-		}
-	}
-
-	for i := range request.Messages {
-		message := &request.Messages[i]
-		if message.Role != "tool" || message.Name != nil || message.ToolCallId == "" {
-			continue
-		}
-
-		if name, ok := toolCallNames[message.ToolCallId]; ok && name != "" {
-			nameCopy := name
-			message.Name = &nameCopy
-		}
-	}
-}
-
-// toolCallIDVariants returns normalized key variants for matching call IDs from
-// different protocol representations (call_*, fc_*, or bare suffix).
-func toolCallIDVariants(id string) []string {
-	trimmed := strings.TrimSpace(id)
-	if trimmed == "" {
-		return nil
-	}
-
-	variants := []string{trimmed}
-	if strings.HasPrefix(trimmed, "call_") {
-		suffix := strings.TrimPrefix(trimmed, "call_")
-		variants = append(variants, "fc_"+suffix, suffix)
-	} else if strings.HasPrefix(trimmed, "fc_") {
-		suffix := strings.TrimPrefix(trimmed, "fc_")
-		variants = append(variants, "call_"+suffix, suffix)
-	} else {
-		variants = append(variants, "call_"+trimmed, "fc_"+trimmed)
-	}
-
-	return variants
 }
 
 func (a *Adaptor) ConvertImageRequest(c *gin.Context, request *model.ImageRequest) (any, error) {
@@ -98,7 +49,22 @@ func (a *Adaptor) ConvertImageRequest(c *gin.Context, request *model.ImageReques
 }
 
 func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, request *model.ClaudeRequest) (any, error) {
-	return openai_compatible.ConvertClaudeRequest(c, request)
+	converted, err := openai_compatible.ConvertClaudeRequest(c, request)
+	if err != nil {
+		return nil, errors.Wrap(err, "convert claude request")
+	}
+	openaiReq, ok := converted.(*model.GeneralOpenAIRequest)
+	if !ok {
+		return converted, nil
+	}
+	// Apply same post-processing as ConvertRequest
+	openaiReq.ReasoningEffort = nil
+	openaiReq.TopK = nil
+	if openaiReq.ResponseFormat != nil && openaiReq.ResponseFormat.JsonSchema != nil {
+		structuredjson.EnsureInstruction(openaiReq)
+		openaiReq.ResponseFormat = nil
+	}
+	return openaiReq, nil
 }
 
 func (a *Adaptor) DoRequest(c *gin.Context, meta *meta.Meta, requestBody io.Reader) (*http.Response, error) {

@@ -1,11 +1,8 @@
 package deepseek
 
 import (
-	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/Laisky/errors/v2"
 	gmw "github.com/Laisky/gin-middlewares/v7"
@@ -19,6 +16,7 @@ import (
 	"github.com/decardlabs/uniapi/relay/adaptor/openai_compatible"
 	"github.com/decardlabs/uniapi/relay/meta"
 	"github.com/decardlabs/uniapi/relay/model"
+	"github.com/decardlabs/uniapi/relay/relaymode"
 )
 
 type Adaptor struct {
@@ -66,18 +64,11 @@ func (a *Adaptor) GetCompletionRatio(modelName string) float64 {
 func (a *Adaptor) Init(meta *meta.Meta) {}
 
 func (a *Adaptor) GetRequestURL(meta *meta.Meta) (string, error) {
-	// Handle Claude Messages requests - convert to OpenAI Chat Completions endpoint
-	requestPath := meta.RequestURLPath
-	if idx := strings.Index(requestPath, "?"); idx >= 0 {
-		requestPath = requestPath[:idx]
+	// Route all chat-based modes to the chat completions endpoint
+	switch meta.Mode {
+	case relaymode.ChatCompletions, relaymode.ClaudeMessages, relaymode.ResponseAPI:
+		return openai_compatible.GetFullRequestURL(meta.BaseURL, "/v1/chat/completions", meta.ChannelType), nil
 	}
-	if requestPath == "/v1/messages" {
-		// Claude Messages requests should use OpenAI's chat completions endpoint
-		chatCompletionsPath := "/v1/chat/completions"
-		return openai_compatible.GetFullRequestURL(meta.BaseURL, chatCompletionsPath, meta.ChannelType), nil
-	}
-
-	// DeepSeek uses OpenAI-compatible API endpoints
 	return openai_compatible.GetFullRequestURL(meta.BaseURL, meta.RequestURLPath, meta.ChannelType), nil
 }
 
@@ -88,25 +79,29 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Request, meta *me
 }
 
 func (a *Adaptor) ConvertRequest(c *gin.Context, relayMode int, request *model.GeneralOpenAIRequest) (any, error) {
+	// DeepSeek requires name on role=tool messages; backfill from tool_calls
+	openai_compatible.BackfillToolMessageNamesFromToolCalls(request)
+
 	// DeepSeek is OpenAI-compatible, so we can pass the request through with minimal changes
 	// Remove reasoning_effort as DeepSeek doesn't support it
 	if request.ReasoningEffort != nil {
 		request.ReasoningEffort = nil
 	}
 
-	// Remove top-level Thinking field (not supported by DeepSeek's OpenAI-compatible API)
-	// after extracting whether thinking mode is enabled.
-	thinkingEnabled := request.Thinking != nil
-	request.Thinking = nil
+	// DeepSeek does not support top_k
+	request.TopK = nil
 
+	// Remove top-level Thinking field first, then re-apply from Claude context if present.
+	// Check thinking status AFTER normalization to correctly handle the case where
+	// normalizeDeepSeekThinkingConfigFromOriginal recovers Thinking from a ClaudeRequest.
+	request.Thinking = nil
 	normalizeDeepSeekThinkingConfigFromOriginal(c, request)
 
 	normalizeDeepSeekToolMessageContent(c, request)
 
-	// DeepSeek requires reasoning_content on all assistant messages when thinking mode is active.
-	// Claude Code does not replay reasoning_content from previous turns, so we inject empty
-	// values to avoid "The reasoning_content in the thinking mode must be passed back to the API."
-	if thinkingEnabled {
+	// Inject reasoning_content when thinking mode is active (i.e. Thinking was
+	// explicitly set on the original request or recovered from Claude context).
+	if request.Thinking != nil {
 		injectMissingReasoningContent(c, request)
 	}
 
@@ -160,118 +155,16 @@ func normalizeDeepSeekThinkingConfigFromOriginal(c *gin.Context, request *model.
 	)
 }
 
-// injectMissingReasoningContent ensures all assistant messages have reasoning_content when
-// thinking mode is active. DeepSeek rejects requests where any assistant message lacks
-// reasoning_content with: "The reasoning_content in the thinking mode must be passed back to the API."
-//
-// This handles cases where external clients (e.g. Claude Code) do not replay reasoning_content
-// from previous turns. It also converts reasoning (OpenRouter format) and thinking (Anthropic
-// format from Claude message blocks) to reasoning_content.
+// injectMissingReasoningContent delegates to the shared DeepSeek compatibility
+// layer to ensure all assistant messages carry reasoning_content when thinking mode is active.
 func injectMissingReasoningContent(c *gin.Context, request *model.GeneralOpenAIRequest) {
-	lg := gmw.GetLogger(c)
-	injectedCount := 0
-
-	for i := range request.Messages {
-		msg := &request.Messages[i]
-		if msg.Role != "assistant" {
-			continue
-		}
-
-		// Already has reasoning_content — nothing to do
-		if msg.ReasoningContent != nil {
-			continue
-		}
-
-		// reasoning (OpenRouter format) → reasoning_content
-		if msg.Reasoning != nil {
-			msg.ReasoningContent = msg.Reasoning
-			msg.Reasoning = nil
-			msg.Thinking = nil
-			injectedCount++
-			lg.Debug("converted reasoning → reasoning_content for deepseek",
-				zap.Int("message_index", i),
-			)
-			continue
-		}
-
-		// thinking (Anthropic format, from Claude message blocks) → reasoning_content
-		if msg.Thinking != nil {
-			msg.ReasoningContent = msg.Thinking
-			msg.Thinking = nil
-			msg.Reasoning = nil
-			injectedCount++
-			lg.Debug("converted thinking → reasoning_content for deepseek",
-				zap.Int("message_index", i),
-			)
-			continue
-		}
-
-		// Thinking mode active but no reasoning content at all — inject empty string
-		empty := ""
-		msg.ReasoningContent = &empty
-		injectedCount++
-		lg.Debug("injected empty reasoning_content for deepseek assistant message (thinking mode active)",
-			zap.Int("message_index", i),
-		)
-	}
-
-	if injectedCount > 0 {
-		lg.Debug("normalized reasoning fields for deepseek compatibility",
-			zap.Int("injected_count", injectedCount),
-		)
-	}
+	deepseekcompat.InjectMissingReasoningContent(c, request)
 }
 
-// normalizeDeepSeekToolMessageContent converts non-string tool message content into strings for DeepSeek compatibility.
-// DeepSeek requires `messages[].content` for role=tool to be a string and rejects arrays/maps.
+// normalizeDeepSeekToolMessageContent delegates to the shared DeepSeek compatibility
+// layer to convert non-string tool message content into strings.
 func normalizeDeepSeekToolMessageContent(c *gin.Context, request *model.GeneralOpenAIRequest) {
-	lg := gmw.GetLogger(c)
-	normalizedCount := 0
-
-	for i := range request.Messages {
-		message := &request.Messages[i]
-		if message.Role != "tool" {
-			continue
-		}
-
-		if _, ok := message.Content.(string); ok {
-			continue
-		}
-
-		normalized := message.StringContent()
-		if normalized == "" {
-			if message.Content == nil {
-				normalized = ""
-			} else {
-				encoded, err := json.Marshal(message.Content)
-				if err != nil {
-					lg.Debug("deepseek tool message fallback marshal failed",
-						zap.Int("message_index", i),
-						zap.String("original_content_type", fmt.Sprintf("%T", message.Content)),
-						zap.Error(err),
-					)
-					normalized = fmt.Sprintf("%v", message.Content)
-				} else {
-					normalized = string(encoded)
-				}
-			}
-		}
-
-		message.Content = normalized
-		normalizedCount++
-		lg.Debug("normalized deepseek tool message content",
-			zap.Int("message_index", i),
-			zap.String("normalized_content_type", "string"),
-			zap.Int("normalized_content_length", len(normalized)),
-		)
-	}
-
-	if normalizedCount > 0 {
-		lg.Debug("normalized deepseek tool messages for provider compatibility",
-			zap.Int("normalized_count", normalizedCount),
-			zap.Int("message_count", len(request.Messages)),
-		)
-	}
+	deepseekcompat.NormalizeToolMessageContent(gmw.GetLogger(c), request)
 }
 
 func (a *Adaptor) ConvertImageRequest(c *gin.Context, request *model.ImageRequest) (any, error) {
@@ -304,8 +197,14 @@ func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, request *model.ClaudeRequ
 		injectMissingReasoningContent(c, openaiReq)
 	}
 
-	// 5. Remove top-level Thinking field (not a valid OpenAI Chat Completions param)
-	openaiReq.Thinking = nil
+	// 5. DeepSeek-specific: strip unsupported fields
+	openaiReq.ReasoningEffort = nil
+	openaiReq.TopK = nil
+	if openaiReq.ResponseFormat != nil && openaiReq.ResponseFormat.JsonSchema != nil {
+		structuredjson.EnsureInstruction(openaiReq)
+		openaiReq.ResponseFormat = nil
+	}
+	// openaiReq.Thinking = nil // REMOVED: DeepSeek API supports thinking parameter
 
 	return openaiReq, nil
 }
