@@ -19,8 +19,11 @@ import (
 	"github.com/decardlabs/uniapi/common/render"
 	commonsse "github.com/decardlabs/uniapi/common/sse"
 	"github.com/decardlabs/uniapi/relay/adaptor/openai"
+	"github.com/decardlabs/uniapi/relay/adaptor/openai_compatible"
 	"github.com/decardlabs/uniapi/relay/constant"
+	"github.com/decardlabs/uniapi/relay/meta"
 	"github.com/decardlabs/uniapi/relay/model"
+	"github.com/decardlabs/uniapi/relay/streaming"
 )
 
 // https://open.bigmodel.cn/doc/api#chatglm_std
@@ -152,18 +155,39 @@ func streamMetaResponseZhipu2OpenAI(zhipuResponse *StreamMetaResponse, modelName
 func StreamHandler(c *gin.Context, resp *http.Response, modelName string) (*model.ErrorWithStatusCode, *model.Usage) {
 	var usage *model.Usage
 	lg := gmw.GetLogger(c)
+	metaInfo := meta.GetByContext(c)
+	tracker := streaming.FromContext(c)
+
 	lineReader := commonsse.NewLineReader(resp.Body, commonsse.DefaultLineBufferSize)
+
+	// 心跳机制，防止反向代理（如 Cloudflare）超时触发 524 错误
+	hbr := render.NewHeartbeatLineReader(c, lineReader, render.DefaultHeartbeatInterval)
+	defer hbr.Close()
 
 	common.SetEventStreamHeaders(c)
 
+	// 流式错误发送函数
+	sendStreamingError := func(code, message string) {
+		if err := render.ObjectData(c, map[string]any{
+			"error": map[string]any{
+				"message": message,
+				"type":    code,
+				"code":    code,
+			},
+		}); err != nil {
+			lg.Warn("failed to render streaming error", zap.Error(err))
+		}
+		render.Done(c)
+	}
+
 	var streamErr error
+streamLoop:
 	for {
-		line, err := lineReader.Next()
+		line, err := hbr.Next()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
 			}
-
 			streamErr = err
 			break
 		}
@@ -175,6 +199,26 @@ func StreamHandler(c *gin.Context, resp *http.Response, modelName string) (*mode
 				break
 			}
 			response := streamResponseZhipu2OpenAI(string(payloadBytes), modelName)
+
+			// 跟踪 token 用量
+			if tracker != nil && metaInfo != nil {
+				for _, choice := range response.Choices {
+					if content, ok := choice.Delta.Content.(string); ok && content != "" {
+						deltaTokens := openai_compatible.CountTokenText(content, metaInfo.ActualModelName)
+						if deltaTokens > 0 {
+							if err := tracker.RecordCompletionTokens(deltaTokens); err != nil {
+								if errors.Is(err, streaming.ErrQuotaExceeded) {
+									sendStreamingError("insufficient_user_quota", "user quota exhausted during streaming")
+								} else {
+									sendStreamingError("streaming_billing_failed", "failed to track streaming usage")
+								}
+								break streamLoop
+							}
+						}
+					}
+				}
+			}
+
 			if err := render.ObjectData(c, response); err != nil {
 				lg.Error("error marshalling oversized stream response", zap.Error(err))
 			}
@@ -186,7 +230,28 @@ func StreamHandler(c *gin.Context, resp *http.Response, modelName string) (*mode
 			continue
 		}
 		if strings.HasPrefix(lineText, "data:") {
-			response := streamResponseZhipu2OpenAI(lineText[5:], modelName)
+			dataContent := lineText[5:]
+			response := streamResponseZhipu2OpenAI(dataContent, modelName)
+
+			// 跟踪 token 用量
+			if tracker != nil && metaInfo != nil {
+				for _, choice := range response.Choices {
+					if content, ok := choice.Delta.Content.(string); ok && content != "" {
+						deltaTokens := openai_compatible.CountTokenText(content, metaInfo.ActualModelName)
+						if deltaTokens > 0 {
+							if err := tracker.RecordCompletionTokens(deltaTokens); err != nil {
+								if errors.Is(err, streaming.ErrQuotaExceeded) {
+									sendStreamingError("insufficient_user_quota", "user quota exhausted during streaming")
+								} else {
+									sendStreamingError("streaming_billing_failed", "failed to track streaming usage")
+								}
+								break streamLoop
+							}
+						}
+					}
+				}
+			}
+
 			if err := render.ObjectData(c, response); err != nil {
 				lg.Error("error marshalling stream response", zap.Error(err))
 			}
@@ -198,6 +263,12 @@ func StreamHandler(c *gin.Context, resp *http.Response, modelName string) (*mode
 				continue
 			}
 			response, zhipuUsage := streamMetaResponseZhipu2OpenAI(&zhipuResponse, modelName)
+
+			// 更新最终用量
+			if tracker != nil && zhipuUsage != nil {
+				tracker.UpdateFinalUsage(zhipuUsage)
+			}
+
 			if err := render.ObjectData(c, response); err != nil {
 				lg.Error("error marshalling stream response", zap.Error(err))
 			}
