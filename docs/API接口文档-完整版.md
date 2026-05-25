@@ -63,7 +63,7 @@ graph TD
   - POST /v1/chat/completions —— OpenAI兼容
   - POST /v1/completions —— OpenAI兼容
   - POST /v1/messages —— Claude兼容
-  - POST /v1/response —— 通用响应格式
+  - POST /v1/responses —— 通用响应格式
 
 > 详细接口说明见下方“接口详情”章节。
 
@@ -281,7 +281,7 @@ graph TD
 - 描述：Claude Messages 兼容接口
 - 请求参数/响应结构：兼容 Anthropic Claude API
 
-**POST /v1/response**  
+**POST /v1/responses**  
 - 描述：通用响应格式，支持多模型自动适配
 - 请求参数/响应结构：详见 relay/model/message.go
 
@@ -419,10 +419,10 @@ graph TD
 4. 数据库初始化（如用 MySQL，建库并配置好 DSN）
 5. 配置环境变量（见 CONFIG_GUIDE.md）：
    - `PORT` 后端端口
-   - `DB_DSN` 数据库连接串
+  - `SQL_DSN` 数据库连接串
    - `REDIS_URL` Redis 连接串
    - 其它见 common/config/config.go
-6. 启动后端：`./one-api`
+6. 启动后端：`./uniapi`
 7. 启动前端（静态服务或 yarn dev）
 
 ### 生产部署建议
@@ -444,7 +444,7 @@ graph TD
 | 日志查询（LogList）     | GET /api/log                             | 查询调用日志           |
 | Token 管理（TokenList） | GET /api/token<br>POST /api/token<br>PUT /api/token/{id}<br>DELETE /api/token/{id} | API Key 管理           |
 | 充值（Topup）           | POST /api/topup                          | 用户充值               |
-| AI 聊天（Chat）         | POST /v1/chat/completions<br>POST /v1/messages<br>POST /v1/response | AI 代理调用            |
+| AI 聊天（Chat）         | POST /v1/chat/completions<br>POST /v1/messages<br>POST /v1/responses | AI 代理调用            |
 
 > 具体调用逻辑可参考 web/modern/src/lib/services/ 目录下各 API 封装文件。
 

@@ -17,6 +17,7 @@ Open‑source version of OpenRouter, managed through a unified gateway that hand
 
 | 版本        | 日期       | 说明                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | ----------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v3.9.5**  | 2026-05-25 | 项目整体发布版本：对齐后端 `common.Version`、Modern 前端 `package.json` 与锁文件版本元数据，并将本次发布记录同步至版本历史，确保运行时展示、构建注入与仓库文档口径一致。                                                                                                                                                                                                                                                                                                              |
 | **v3.9.3**  | 2026-05-25 | 正式发行版本：修正 Zhipu 适配器响应处理与版本化元数据，统一整理 DeepSeek/MiniMax/Moonshot/Zhipu 渠道兼容性 review，并将本次改动同步发布到 GitHub，确保后端版本常量、前端包版本与对外文档保持一致。                                                                                                                                                                                                                                                                                        |
 | **v3.9.2**  | 2026-05-25 | 版本统一升级发布：后端默认版本常量、Modern 前端包版本与锁文件元数据、数据库迁移工具版本及相关文档说明完成一致性对齐，确保运行时版本展示、构建注入与文档记录保持同一口径，减少版本识别与排障中的歧义。                                                                                                                                                                                                                                                                                     |
 | **v3.9.1**  | 2026-05-25 | MiniMax 兼容性发布：补齐 MiniMax 渠道工具调用历史中的 `tool` 消息 `name` 回填逻辑，兼容 `call_*` / `fc_*` / 裸 ID 三种 `tool_call_id` 形态；同时将 MiniMax 默认 Base URL 统一升级为 `https://api.minimaxi.com/v1`（含渠道模板与元数据返回）；新增 Response API fallback 对 `prompt` 与 `background` 不支持参数的契约测试，防止跨格式转换回归；关键回归覆盖 MiniMax、DeepSeek、channeltype 与 controller 路径。                                                                            |
@@ -97,15 +98,15 @@ Skipped (unsupported combinations):
 
 本分支已对原项目进行精简，仅保留主线功能和 Modern 前端，所有说明文档与实际代码保持一致。历史设计、升级、版本文档已归档至 docs/legacy/，如需参考请前往该目录。
 
-- [One API](#one-api)
-  - [Synopsis](#synopsis)
+- [UniAPI](#为什么选择-uniapi)
+  - [快速开始](#快速开始)
 
 ## 快速开始
 
 1. 后端：
    ```sh
-   go build -o one-api main.go
-   ./one-api
+  go build -o uniapi main.go
+  ./uniapi
    ```
 2. 前端（Modern模板）：
    ```sh
@@ -157,6 +158,57 @@ make build-release-external-static
 
 如需纯 API 部署（无前端，通过 `FRONTEND_BASE_URL` 反代前端），推荐使用 `build-release-no-frontend`。
 
+### 远程服务器升级（现网服务）
+
+当前仓库内置了针对既有服务的升级脚本，默认目标为 `root@43.165.186.252`，并在升级后校验 `10780` 端口监听状态。
+
+适用场景：
+
+- 服务器已经安装并运行 `uniapi.service`
+- 仅需升级二进制，不重新初始化系统服务
+
+执行方式：
+
+```sh
+bash deploy/deploy.sh
+```
+
+脚本行为：
+
+1. 本地先执行 `make build-frontend-modern`，生成最新 Modern 前端产物
+2. 本地打包当前源码（含 `web/build/modern`）并上传到服务器 `/tmp/`
+3. 远程执行 `deploy/deploy_remote.sh` 构建 Linux AMD64 后端二进制
+4. 备份旧二进制到 `/opt/uniapi/uniapi.bak.<timestamp>`
+5. 替换 `/opt/uniapi/uniapi` 并重启 `uniapi.service`
+6. 若启动失败则自动回滚到备份版本
+
+> [!IMPORTANT]
+>
+> 请通过 `make build-frontend-modern`（或 `deploy/deploy.sh`）构建前端。该流程会注入 `VITE_APP_VERSION=$(GIT_TAG)`；若手动执行 `yarn build` 且未设置该变量，右下角版本信息会回退为默认值 `1.0.0`。当前升级脚本也会将同一 `GIT_TAG` 注入后端 `common.Version`，确保 `/api/status` 与页面右下角版本一致。
+
+升级完成后可在服务器上执行：
+
+```sh
+systemctl status uniapi --no-pager
+ss -lntp | grep ':10780'
+```
+
+前后端版本快速自检：
+
+```sh
+# 1) 后端版本（来自后端运行时）
+curl -fsS http://127.0.0.1:10780/api/status | jq -r '.data.version'
+
+# 2) 前端版本注入校验（应能在打包产物中检索到当前 GIT_TAG）
+GIT_TAG=$(git describe --tags --always 2>/dev/null || echo dev)
+grep -R --binary-files=text -m1 "$GIT_TAG" web/build/modern
+
+# 3) 版本一致性检查（后端版本应等于 GIT_TAG）
+test "$(curl -fsS http://127.0.0.1:10780/api/status | jq -r '.data.version')" = "$GIT_TAG"
+```
+
+最后打开页面并核对右下角版本显示，应与当前发布版本一致。
+
 > 历史设计、升级、版本等文档已归档至 docs/legacy/，如需参考请前往该目录。
 
 ## Tutorial
@@ -170,7 +222,7 @@ Docker images available on Docker Hub:
 
 The initial default account and password are `root` / `123456`. Listening port can be configured via the `PORT` environment variable, default is `3000`.
 
-Run one-api using docker-compose:
+Run UniAPI using docker-compose:
 
 > All environment variables can be set via the `environment` section in the `docker-compose.yml` file, please refer to [./common/config/config.go](./common/config/config.go) for all available configuration options.
 
@@ -326,7 +378,7 @@ When adding a new channel in the Modern admin UI, UniAPI now pre-fills the two m
 OTEL_ENABLED="true"
 OTEL_EXPORTER_OTLP_ENDPOINT="http://otel-collector:4317"
 OTEL_EXPORTER_OTLP_INSECURE="true"
-OTEL_SERVICE_NAME="one-api"
+OTEL_SERVICE_NAME="uniapi"
 OTEL_ENVIRONMENT="debug"
 ```
 
@@ -338,7 +390,7 @@ Configure the price and whitelist for a channel’s built‑in tools.
 
 #### Support update user's remained quota
 
-You can update the used quota using the API key of any token, allowing other consumption to be aggregated into the one-api for centralized management.
+You can update the used quota using the API key of any token, allowing other consumption to be aggregated into UniAPI for centralized management.
 
 ```sh
 curl -X POST https://oneapi.laisky.com/api/token/consume \
@@ -579,7 +631,7 @@ Supports adding MCP servers as tool aggregators, which are then provided to down
 
 Features include MCP server addition, automatic MCP tool synchronization, billing, load balancing, automatic retries, and logging.
 
-Additionally, one-api itself can act as an MCP server, aggregating all MCP tools via the `/mcp` endpoint.
+Additionally, UniAPI itself can act as an MCP server, aggregating all MCP tools via the `/mcp` endpoint.
 
 [Read Mode...](./docs/manuals/mcp_aggregator.md)
 

@@ -1,4 +1,4 @@
-# one-api Project Environment Setup Guide
+# UniAPI Project Environment Setup Guide
 
 ## 1. Install Dependencies
 - Go (>=1.25)
@@ -29,7 +29,7 @@
   ```
 - Build frontend:
   ```sh
-  yarn build
+  make build-frontend-modern
   ```
 
 ## 5. Database Setup
@@ -49,7 +49,7 @@
 ## 8. Running Locally
 - Start backend:
   ```sh
-  ./one-api
+  ./uniapi
   ```
 - Start frontend (if needed for dev):
   ```sh
@@ -58,12 +58,12 @@
 
 ## 9. Deployment
 - Use systemd, Docker, or another process manager for production.
-- Example systemd service file: `one-api.service`
+- Example systemd service file: `deploy/uniapi.service`
 - Reload systemd and enable service:
   ```sh
   sudo systemctl daemon-reload
-  sudo systemctl enable one-api
-  sudo systemctl start one-api
+  sudo systemctl enable uniapi
+  sudo systemctl start uniapi
   ```
 
 ## 10. Testing
@@ -76,7 +76,7 @@
 ---
 
 # SSH Access
-- Use your SSH key to connect: `ssh user@43.167.187.228`
+- Use your SSH key to connect: `ssh user@43.165.186.252`
 - Ensure correct permissions for deployment and runtime directories.
 
 # Notes

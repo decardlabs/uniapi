@@ -66,7 +66,7 @@ cat <<EOF
 
 环境搭建完成！
 - 后端已启动，前端已构建。
-- 如需生产部署，请配置 systemd 服务（见 uniapi.service）。
+- 如需生产部署，请配置 systemd 服务（见 deploy/uniapi.service）。
 - 如需调试，推荐使用 Delve (dlv)。
 - 如需自定义环境变量，请编辑 .env 文件。
 

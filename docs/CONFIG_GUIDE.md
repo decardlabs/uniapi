@@ -8,8 +8,8 @@ This guide describes the configuration process after installing UniAPI, includin
 
 - Backend: Build and run with Go 1.25+
   ```sh
-  go build -o one-api main.go
-  ./one-api
+  go build -o uniapi main.go
+  ./uniapi
   ```
 - Frontend (Modern):
   ```sh
@@ -27,7 +27,8 @@ This guide describes the configuration process after installing UniAPI, includin
 - All configuration can be set via environment variables or config files (see `common/config/config.go`).
 - Common variables:
   - `PORT`: Backend listening port (default: 3000)
-  - `DB_DSN`: Database connection string
+  - `SQL_DSN`: Database connection string for MySQL/PostgreSQL
+  - `SQLITE_PATH`: SQLite path used when `SQL_DSN` is empty
   - `REDIS_URL`: Redis connection string (if used)
   - `OTEL_*`: OpenTelemetry tracing (optional)
 - For production, use Docker Compose or Kubernetes (see README and docs/manuals/k8s.md).

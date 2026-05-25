@@ -4,7 +4,7 @@
    <img src="https://kubernetes.io/images/kubernetes.png" alt="sailing-with-k8s" width="80">
 </p>
 
-This section provides comprehensive instructions for deploying One API on Kubernetes with various configurations.
+This section provides comprehensive instructions for deploying UniAPI on Kubernetes with various configurations.
 
 ## Prerequisites
 
@@ -16,7 +16,7 @@ This section provides comprehensive instructions for deploying One API on Kubern
 
 ### Namespace
 
-First, create a dedicated namespace for One API:
+First, create a dedicated namespace for UniAPI:
 
 ```yaml
 # namespace.yaml
@@ -34,7 +34,7 @@ kubectl apply -f namespace.yaml
 
 ### ConfigMap
 
-Create a ConfigMap for One API configuration:
+Create a ConfigMap for UniAPI configuration:
 
 ```yaml
 # configmap.yaml
@@ -72,7 +72,7 @@ kubectl apply -f configmap.yaml
 
 ### Deployment
 
-Create the main One API deployment:
+Create the main UniAPI deployment:
 
 ```yaml
 # deployment.yaml
@@ -167,7 +167,7 @@ kubectl apply -f deployment.yaml
 
 ### Database Setup
 
-One API supports multiple database backends. Here are examples for PostgreSQL and MySQL:
+UniAPI supports multiple database backends. Here are examples for PostgreSQL and MySQL:
 
 ### PostgreSQL Setup
 
@@ -488,7 +488,7 @@ kubectl apply -f redis.yaml
 
 ### NGINX Ingress Controller Installation
 
-Before configuring Ingress for One API, you need to install an Ingress Controller. This section covers installing NGINX Ingress Controller, which is one of the most popular choices.
+Before configuring Ingress for UniAPI, you need to install an Ingress Controller. This section covers installing NGINX Ingress Controller, which is one of the most popular choices.
 
 #### For Cloud Providers
 
@@ -881,11 +881,11 @@ Common issues and solutions:
    - Adjust the NGINX configuration ConfigMap as shown above
    - Monitor NGINX metrics and logs for insights
 
-Now your cluster is ready for the One API Ingress configuration!
+Now your cluster is ready for the UniAPI Ingress configuration!
 
 #### Ingress Configuration
 
-To expose One API to the internet, configure an Ingress:
+To expose UniAPI to the internet, configure an Ingress:
 
 ##### NGINX Ingress
 
@@ -1073,20 +1073,20 @@ spec:
   data:
     - secretKey: dsn
       remoteRef:
-        key: 'One API Database'
+        key: 'UniAPI Database'
         property: dsn
 ```
 
 ### Scaling
 
 > [!IMPORTANT] > **Scaling Strategy for Components with Attached Storage**:
-> For deployments with attached persistent storage (such as PostgreSQL, MySQL, Redis, or **One API with persistent volumes**), **vertical scaling** (increasing CPU/memory resources) is recommended rather than horizontal scaling. This is because:
+> For deployments with attached persistent storage (such as PostgreSQL, MySQL, Redis, or **UniAPI with persistent volumes**), **vertical scaling** (increasing CPU/memory resources) is recommended rather than horizontal scaling. This is because:
 >
 > - PersistentVolumeClaims with `ReadWriteOnce` access mode cannot be shared across multiple pods
 > - Database clustering/replication requires specific configuration and coordination
 > - Horizontal scaling of stateful services can lead to data consistency issues
 >
-> **Horizontal scaling** (HPA) should only be used for **completely stateless components** (One API without persistent storage).
+> **Horizontal scaling** (HPA) should only be used for **completely stateless components** (UniAPI without persistent storage).
 
 1. **Horizontal Pod Autoscaler (HPA)** (for stateless components):
 
@@ -1202,7 +1202,7 @@ kubectl apply -f postgresql.yaml  # or mysql.yaml
 # 3. Deploy Redis (optional but recommended)
 kubectl apply -f redis.yaml
 
-# 4. Deploy One API
+# 4. Deploy UniAPI
 kubectl apply -f configmap.yaml
 kubectl apply -f deployment.yaml
 

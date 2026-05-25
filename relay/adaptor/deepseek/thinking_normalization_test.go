@@ -67,6 +67,8 @@ func TestConvertRequest_PreservesSupportedThinkingType(t *testing.T) {
 
 	converted, ok := convertedAny.(*relaymodel.GeneralOpenAIRequest)
 	require.True(t, ok)
-	// Already-supported type does not require normalization, so Thinking remains unset.
-	require.Nil(t, converted.Thinking)
+	// Already-supported type is preserved and forwarded to DeepSeek.
+	require.NotNil(t, converted.Thinking)
+	require.Equal(t, "enabled", converted.Thinking.Type)
+	require.Equal(t, 1024, *converted.Thinking.BudgetTokens)
 }

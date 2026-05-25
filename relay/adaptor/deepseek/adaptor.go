@@ -82,7 +82,6 @@ func (a *Adaptor) ConvertRequest(c *gin.Context, relayMode int, request *model.G
 	// DeepSeek requires name on role=tool messages; backfill from tool_calls
 	openai_compatible.BackfillToolMessageNamesFromToolCalls(request)
 
-	// DeepSeek is OpenAI-compatible, so we can pass the request through with minimal changes
 	// Remove reasoning_effort as DeepSeek doesn't support it
 	if request.ReasoningEffort != nil {
 		request.ReasoningEffort = nil
@@ -91,17 +90,18 @@ func (a *Adaptor) ConvertRequest(c *gin.Context, relayMode int, request *model.G
 	// DeepSeek does not support top_k
 	request.TopK = nil
 
-	// Remove top-level Thinking field first, then re-apply from Claude context if present.
-	// Check thinking status AFTER normalization to correctly handle the case where
-	// normalizeDeepSeekThinkingConfigFromOriginal recovers Thinking from a ClaudeRequest.
-	request.Thinking = nil
+	// Normalize thinking config from the request itself first (preserving client
+	// intent for direct ChatCompletion requests), then overlay with Claude context
+	// if present (for Claude Messages conversions).
+	normalizeDeepSeekThinkingFromRequest(request)
 	normalizeDeepSeekThinkingConfigFromOriginal(c, request)
 
 	normalizeDeepSeekToolMessageContent(c, request)
 
-	// Inject reasoning_content when thinking mode is active (i.e. Thinking was
-	// explicitly set on the original request or recovered from Claude context).
-	if request.Thinking != nil {
+	// DeepSeek V4 enables thinking mode by default; we only skip injection when
+	// thinking is explicitly disabled.
+	thinkingDisabled := request.Thinking != nil && request.Thinking.Type == "disabled"
+	if !thinkingDisabled {
 		injectMissingReasoningContent(c, request)
 	}
 
@@ -113,6 +113,19 @@ func (a *Adaptor) ConvertRequest(c *gin.Context, relayMode int, request *model.G
 	}
 
 	return request, nil
+}
+
+// normalizeDeepSeekThinkingFromRequest normalizes the thinking config directly from
+// the request's own Thinking field, preserving client intent for direct ChatCompletion
+// requests rather than only handling the Claude Messages conversion path.
+func normalizeDeepSeekThinkingFromRequest(request *model.GeneralOpenAIRequest) {
+	if request == nil || request.Thinking == nil {
+		return
+	}
+	normalizedType, changed := deepseekcompat.NormalizeThinkingType(request.Thinking.Type, request.Thinking.BudgetTokens)
+	if changed {
+		request.Thinking.Type = normalizedType
+	}
 }
 
 // normalizeDeepSeekThinkingConfigFromOriginal reads the original ClaudeRequest from context

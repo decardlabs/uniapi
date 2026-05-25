@@ -8,9 +8,10 @@ Description=UniAPI Service
 After=network.target
 
 [Service]
-User=ubuntu  # Make sure to change the username
-WorkingDirectory=/path/to/uniapi  # Make sure to change the path
-ExecStart=/path/to/uniapi/uniapi --port 3000 --log-dir /path/to/uniapi/logs  # Make sure to change the path and port
+User=uniapi
+WorkingDirectory=/opt/uniapi
+EnvironmentFile=/opt/uniapi/.env
+ExecStart=/opt/uniapi/uniapi --port 10780 --log-dir /opt/uniapi/logs
 Restart=always
 RestartSec=5
 

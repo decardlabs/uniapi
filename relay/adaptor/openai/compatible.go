@@ -66,7 +66,7 @@ func GetCompatibleChannelMeta(channelType int) (string, []string) {
 	case channeltype.StepFun:
 		return "stepfun", stepfun.ModelList
 	case channeltype.DeepSeek:
-		return "deepseek", []string{"deepseek-chat", "deepseek-reasoner"}
+		return "deepseek", []string{"deepseek-v4-pro", "deepseek-v4-flash"}
 	case channeltype.TogetherAI:
 		return "together.ai", togetherai.ModelList
 	case channeltype.Doubao:
