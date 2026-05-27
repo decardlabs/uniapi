@@ -123,6 +123,8 @@ func postConsumeResponseAPIQuota(ctx context.Context,
 		return
 	}
 
+	quotautil.ApplyDeepSeekCacheUsage(usage)
+
 	pricingAdaptor := resolvePricingAdaptor(meta)
 	computeResult := quotautil.Compute(quotautil.ComputeInput{
 		Usage:                  usage,

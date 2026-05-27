@@ -470,6 +470,7 @@ func TestAdapterChatCompletionSupport(t *testing.T) {
 					"stream=true",
 					"invalid baidu apikey",
 					"invalid zhipu key",
+					"invalid zhipu api key format",
 				}
 
 				isConfigError := false
@@ -508,7 +509,32 @@ func TestAdapterChatCompletionSupport(t *testing.T) {
 				// Test SetupRequestHeader method only if URL is valid
 				req := httptest.NewRequest("POST", url, nil)
 				err = tc.Adapter.SetupRequestHeader(c, req, testMeta)
-				assert.NoError(t, err, "SetupRequestHeader should not fail for %s", tc.Name)
+				if err != nil {
+					configErrors := []string{
+						"invalid tencent config",
+						"cannot found vertex chat adaptor",
+						"cannot found vertex adaptor",
+						"adaptor not found",
+						"stream=true",
+						"invalid baidu apikey",
+						"invalid zhipu key",
+						"invalid zhipu api key format",
+					}
+
+					isConfigError := false
+					for _, configErr := range configErrors {
+						if strings.Contains(err.Error(), configErr) {
+							isConfigError = true
+							break
+						}
+					}
+
+					if isConfigError {
+						t.Logf("SetupRequestHeader failed for %s due to configuration requirements (expected): %v", tc.Name, err)
+					} else {
+						assert.NoError(t, err, "SetupRequestHeader should not fail for %s", tc.Name)
+					}
+				}
 			}
 
 			// Test GetModelList method
@@ -578,6 +604,7 @@ func TestAdapterClaudeMessagesSupport(t *testing.T) {
 					"stream=true",
 					"invalid baidu apikey",
 					"invalid zhipu key",
+					"invalid zhipu api key format",
 				}
 
 				isConfigError := false

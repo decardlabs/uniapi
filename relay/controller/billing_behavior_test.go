@@ -148,6 +148,105 @@ func TestPostConsumeQuotaParityAcrossAPIs(t *testing.T) {
 	}
 }
 
+// TestPostConsumeQuotaParityAcrossAPIs_DeepSeekCacheHitField verifies that
+// DeepSeek's top-level prompt_cache_hit_tokens can drive cached billing even
+// when prompt_tokens_details.cached_tokens is absent.
+func TestPostConsumeQuotaParityAcrossAPIs_DeepSeekCacheHitField(t *testing.T) {
+	type quotaPair struct {
+		chat     int64
+		response int64
+		claude   int64
+	}
+
+	runAll := func(usage *relaymodel.Usage) quotaPair {
+		modelName := "deepseek-v4-flash"
+		modelRatio := 1.4
+		groupRatio := 1.0
+		completionRatio := 2.0
+		completionOverrides := map[string]float64{modelName: completionRatio}
+		channelModelConfigs := map[string]model.ModelConfigLocal{
+			modelName: {
+				Ratio:            modelRatio,
+				CompletionRatio:  completionRatio,
+				CachedInputRatio: modelRatio * 0.2,
+			},
+		}
+		meta := &metalib.Meta{StartTime: time.Now(), APIType: -1, ChannelType: -1}
+
+		return quotaPair{
+			chat: postConsumeQuota(
+				context.Background(),
+				cloneUsage(usage),
+				meta,
+				&relaymodel.GeneralOpenAIRequest{Model: modelName},
+				0,
+				0,
+				0,
+				modelRatio,
+				nil,
+				groupRatio,
+				false,
+				channelModelConfigs,
+				completionOverrides,
+			),
+			response: postConsumeResponseAPIQuota(
+				context.Background(),
+				cloneUsage(usage),
+				meta,
+				&openai.ResponseAPIRequest{Model: modelName},
+				0,
+				modelRatio,
+				nil,
+				groupRatio,
+				channelModelConfigs,
+				completionOverrides,
+			),
+			claude: postConsumeClaudeMessagesQuotaWithTraceID(
+				context.Background(),
+				"",
+				"",
+				cloneUsage(usage),
+				meta,
+				&ClaudeMessagesRequest{Model: modelName},
+				0,
+				0,
+				0,
+				modelRatio,
+				nil,
+				groupRatio,
+				channelModelConfigs,
+				completionOverrides,
+			),
+		}
+	}
+
+	usageNoCache := &relaymodel.Usage{PromptTokens: 1000, CompletionTokens: 200, TotalTokens: 1200}
+	usageCachedViaDetails := &relaymodel.Usage{
+		PromptTokens:        1000,
+		CompletionTokens:    200,
+		TotalTokens:         1200,
+		PromptTokensDetails: &relaymodel.UsagePromptTokensDetails{CachedTokens: 800},
+	}
+	usageCachedViaDeepSeekField := &relaymodel.Usage{
+		PromptTokens:         1000,
+		CompletionTokens:     200,
+		TotalTokens:          1200,
+		PromptCacheHitTokens: 800,
+	}
+
+	noCache := runAll(usageNoCache)
+	cachedViaDetails := runAll(usageCachedViaDetails)
+	cachedViaDeepSeekField := runAll(usageCachedViaDeepSeekField)
+
+	require.Equal(t, cachedViaDetails.chat, cachedViaDeepSeekField.chat)
+	require.Equal(t, cachedViaDetails.response, cachedViaDeepSeekField.response)
+	require.Equal(t, cachedViaDetails.claude, cachedViaDeepSeekField.claude)
+
+	require.Less(t, cachedViaDeepSeekField.chat, noCache.chat)
+	require.Less(t, cachedViaDeepSeekField.response, noCache.response)
+	require.Less(t, cachedViaDeepSeekField.claude, noCache.claude)
+}
+
 // TestUpdateMCPRequestCostEstimateDoesNotDoubleCountTools verifies provisional
 // MCP request-cost snapshots reuse the shared total quota without adding tool cost twice.
 func TestUpdateMCPRequestCostEstimateDoesNotDoubleCountTools(t *testing.T) {

@@ -27,6 +27,11 @@ type Usage struct {
 	// They are optional and only set when providers return such details.
 	CacheWrite5mTokens int `json:"cache_write_5m_tokens,omitempty"`
 	CacheWrite1hTokens int `json:"cache_write_1h_tokens,omitempty"`
+
+	// DeepSeek prompt cache counters are returned at usage top-level.
+	// They are mapped into PromptTokensDetails.CachedTokens before quota computation.
+	PromptCacheHitTokens  int `json:"prompt_cache_hit_tokens,omitempty"`
+	PromptCacheMissTokens int `json:"prompt_cache_miss_tokens,omitempty"`
 }
 
 // ErrorType enumerates the standardized error categories we expose to clients.

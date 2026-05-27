@@ -78,6 +78,8 @@ func postConsumeClaudeMessagesQuotaWithTraceID(ctx context.Context, requestId st
 		return 0
 	}
 
+	quotautil.ApplyDeepSeekCacheUsage(usage)
+
 	pricingAdaptor := resolvePricingAdaptor(meta)
 	computeResult := quotautil.Compute(quotautil.ComputeInput{
 		Usage:                  usage,
