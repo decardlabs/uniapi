@@ -31,9 +31,19 @@ make lint
 
 # Install dev tooling (golangci-lint, goimports, govulncheck)
 make install
+
+# Live channel probing (tests real upstream connectivity)
+go run ./cmd/test live
+
+# Run database migrations
+go run ./cmd/migrate
 ```
 
 **Frontend**: Use `yarn` (not npm). Frontend source is in `web/modern/`. Language files in `web/modern/src/i18n/locales/`.
+
+**Local dev setup**: Copy `.env.example` to `.env` and configure MySQL (`DB_DSN`) and Redis (`REDIS_URL`). Default port is `3000`, default admin credentials are `root` / `123456`. VS Code: `F5` to debug, `Cmd+Shift+B` to build.
+
+**Module path**: `github.com/decardlabs/uniapi` (Go 1.25).
 
 ## Architecture
 
@@ -73,6 +83,24 @@ Client → Gin Router → Middleware (auth, rate-limit, distribute) → Controll
 | [relay/mcp/](relay/mcp/) | MCP (Model Context Protocol) proxy and aggregation |
 | [dto/](dto/) | Data transfer objects for API responses |
 | [monitor/](monitor/) | Prometheus + OpenTelemetry monitoring setup |
+
+### Billing Pipeline
+
+Four-layer pricing resolution ([docs/arch/billing.md](docs/arch/billing.md)):
+1. **Channel overrides** — per-model pricing set on a specific channel
+2. **Adaptor defaults** — provider-supplied default pricing via `GetDefaultModelPricing`
+3. **Global fallback** — configured global model price list
+4. **Safe default** — ratio=1 with no completion multiplier
+
+### Channel Type Template System
+
+Channel types and their parameter schemas are defined server-side and served via `GET /api/channel/types`. The Modern frontend dynamically renders channel forms and validation from this template — adding a new channel type or parameter in the backend requires no frontend changes. See [README.md](README.md#channel-parameter-template-mechanism--extension) for details.
+
+### Key Files
+
+- [middleware/distributor.go](middleware/distributor.go) — channel selection, sticky sessions, rate-limit precheck, and retry logic. This is the core routing brain of the gateway.
+- [relay/adaptor/openai/](relay/adaptor/openai/) — the **reference adaptor**. Model new provider adaptors after this one.
+- [relay/adaptor/openai_compatible/](relay/adaptor/openai_compatible/) — base adaptor for providers with OpenAI-compatible APIs. Many providers embed this.
 
 ### Conventions
 
