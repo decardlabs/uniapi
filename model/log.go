@@ -1004,18 +1004,24 @@ func GetLogById(id int) (*Log, error) {
 	return &log, nil
 }
 
-// dayAggregationSelect returns the SQL expression that normalizes log timestamps
-// into YYYY-MM-DD strings, accounting for the configured database engine.
-func dayAggregationSelect() string {
+// dayAggregationSelectForColumn returns the SQL expression that normalizes the
+// given timestamp column into YYYY-MM-DD strings, accounting for database engine.
+func dayAggregationSelectForColumn(column string) string {
 	if common.UsingPostgreSQL.Load() {
-		return "TO_CHAR(date_trunc('day', to_timestamp(created_at)), 'YYYY-MM-DD') as day"
+		return fmt.Sprintf("TO_CHAR(date_trunc('day', to_timestamp(%s)), 'YYYY-MM-DD') as day", column)
 	}
 
 	if common.UsingSQLite.Load() {
-		return "strftime('%Y-%m-%d', datetime(created_at, 'unixepoch')) as day"
+		return fmt.Sprintf("strftime('%%Y-%%m-%%d', datetime(%s, 'unixepoch')) as day", column)
 	}
 
-	return "DATE_FORMAT(FROM_UNIXTIME(created_at), '%Y-%m-%d') as day"
+	return fmt.Sprintf("DATE_FORMAT(FROM_UNIXTIME(%s), '%%Y-%%m-%%d') as day", column)
+}
+
+// dayAggregationSelect returns the SQL expression that normalizes log timestamps
+// into YYYY-MM-DD strings, accounting for the configured database engine.
+func dayAggregationSelect() string {
+	return dayAggregationSelectForColumn("created_at")
 }
 
 // SearchLogsByDayAndModel returns per-day, per-model aggregates for logs in the
@@ -1164,7 +1170,7 @@ func SearchLogsByDayAndToken(userId, start, endExclusive int) ([]*dto.LogStatist
 // The query uses the half-open range [start, endExclusive), where timestamps are Unix seconds.
 // Optional filters are applied when modelName/requestFormat are non-empty or channelID is positive.
 func SearchCacheAnalyticsRows(userId, start, endExclusive int, modelName string, channelID int, requestFormat string) ([]*dto.CacheAnalyticsRow, error) {
-	groupSelect := dayAggregationSelect()
+	groupSelect := dayAggregationSelectForColumn("logs.created_at")
 
 	query := `
 		SELECT ` + groupSelect + `,
