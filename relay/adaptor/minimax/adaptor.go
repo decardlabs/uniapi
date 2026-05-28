@@ -3,6 +3,7 @@ package minimax
 import (
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/Laisky/errors/v2"
 	"github.com/gin-gonic/gin"
@@ -34,8 +35,10 @@ func (a *Adaptor) ConvertRequest(c *gin.Context, relayMode int, request *model.G
 	openai_compatible.BackfillToolMessageNamesFromToolCalls(request)
 	// MiniMax does not support reasoning_effort
 	request.ReasoningEffort = nil
-	// MiniMax does not support top_k
-	request.TopK = nil
+	// M2 series support top_k; strip only for legacy models
+	if !isMiniMaxM2Model(request.Model) {
+		request.TopK = nil
+	}
 	// MiniMax does not support json_schema response_format; preserve the schema as a system instruction
 	if request.ResponseFormat != nil && request.ResponseFormat.JsonSchema != nil {
 		structuredjson.EnsureInstruction(request)
@@ -59,7 +62,9 @@ func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, request *model.ClaudeRequ
 	}
 	// Apply same post-processing as ConvertRequest
 	openaiReq.ReasoningEffort = nil
-	openaiReq.TopK = nil
+	if !isMiniMaxM2Model(openaiReq.Model) {
+		openaiReq.TopK = nil
+	}
 	if openaiReq.ResponseFormat != nil && openaiReq.ResponseFormat.JsonSchema != nil {
 		structuredjson.EnsureInstruction(openaiReq)
 		openaiReq.ResponseFormat = nil
@@ -74,9 +79,9 @@ func (a *Adaptor) DoRequest(c *gin.Context, meta *meta.Meta, requestBody io.Read
 func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, meta *meta.Meta) (usage *model.Usage, err *model.ErrorWithStatusCode) {
 	return openai_compatible.HandleClaudeMessagesResponse(c, resp, meta, func(c *gin.Context, resp *http.Response, promptTokens int, modelName string) (*model.ErrorWithStatusCode, *model.Usage) {
 		if meta.IsStream {
-			return openai_compatible.StreamHandler(c, resp, promptTokens, modelName)
+			return openai_compatible.StreamHandlerWithThinking(c, resp, promptTokens, modelName)
 		}
-		return openai_compatible.Handler(c, resp, promptTokens, modelName)
+		return openai_compatible.HandlerWithThinking(c, resp, promptTokens, modelName)
 	})
 }
 
@@ -115,4 +120,9 @@ func (a *Adaptor) GetCompletionRatio(modelName string) float64 {
 // DefaultToolingConfig returns MiniMax tooling defaults (no published per-call pricing as of 2025-11-12).
 func (a *Adaptor) DefaultToolingConfig() adaptor.ChannelToolConfig {
 	return MinimaxToolingDefaults
+}
+
+// isMiniMaxM2Model reports whether the model name indicates a MiniMax M2 series model.
+func isMiniMaxM2Model(modelName string) bool {
+	return strings.HasPrefix(modelName, "MiniMax-M2")
 }

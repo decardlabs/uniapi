@@ -161,6 +161,17 @@ func chatResponseToClaude(r *chatTextResponse) relaymodel.ClaudeResponse {
 			thinkingContent = choice.Message.Reasoning
 		}
 
+		// Fallback: extract <think>...</think> from text content for providers
+		// that embed thinking inline (e.g. MiniMax M2 series).
+		if thinkingContent == nil {
+			if contentStr := choice.Message.StringContent(); contentStr != "" {
+				if thinking, clean := ExtractThinkingContent(contentStr); thinking != "" {
+					thinkingContent = &thinking
+					choice.Message.Content = clean
+				}
+			}
+		}
+
 		if thinkingContent != nil && *thinkingContent != "" {
 			out.Content = append(out.Content, relaymodel.ClaudeContent{Type: "thinking", Thinking: *thinkingContent})
 		}
@@ -261,6 +272,9 @@ func ConvertOpenAIStreamToClaudeSSE(c *gin.Context, resp *http.Response, promptT
 	thinkingIndex := -1
 	textIndex := -1
 	toolStarted := map[string]int{} // tool_call_id -> index
+
+	// Think tag processor for inline <think>...</think> detection in streaming content
+	thinkProc := &ThinkingProcessor{}
 
 	// writeClaudeSSE writes a Claude-format SSE event: "event: <type>\ndata: <json>\n\n".
 	// The event type is extracted from the "type" field of the payload.
@@ -363,21 +377,42 @@ func ConvertOpenAIStreamToClaudeSSE(c *gin.Context, resp *http.Response, promptT
 
 				deltaText := choice.Delta.StringContent()
 				if deltaText != "" {
-					if textIndex == -1 {
+					// Route inline <think> content to thinking blocks
+					cleanText, reasoning, _ := thinkProc.ProcessThinkingContent(deltaText)
+					if reasoning != nil && *reasoning != "" {
+						if thinkingIndex == -1 {
+							writeClaudeSSE(map[string]any{
+								"type":          "content_block_start",
+								"index":         nextIndex,
+								"content_block": map[string]any{"type": "thinking", "thinking": ""},
+							})
+							thinkingIndex = nextIndex
+							nextIndex++
+						}
+						accumThinking += *reasoning
 						writeClaudeSSE(map[string]any{
-							"type":          "content_block_start",
-							"index":         nextIndex,
-							"content_block": map[string]any{"type": "text", "text": ""},
+							"type":  "content_block_delta",
+							"index": thinkingIndex,
+							"delta": map[string]any{"type": "thinking_delta", "thinking": *reasoning},
 						})
-						textIndex = nextIndex
-						nextIndex++
 					}
-					accumText += deltaText
-					writeClaudeSSE(map[string]any{
-						"type":  "content_block_delta",
-						"index": textIndex,
-						"delta": map[string]any{"type": "text_delta", "text": deltaText},
-					})
+					if cleanText != "" {
+						if textIndex == -1 {
+							writeClaudeSSE(map[string]any{
+								"type":          "content_block_start",
+								"index":         nextIndex,
+								"content_block": map[string]any{"type": "text", "text": ""},
+							})
+							textIndex = nextIndex
+							nextIndex++
+						}
+						accumText += cleanText
+						writeClaudeSSE(map[string]any{
+							"type":  "content_block_delta",
+							"index": textIndex,
+							"delta": map[string]any{"type": "text_delta", "text": cleanText},
+						})
+					}
 				}
 
 				if len(choice.Delta.ToolCalls) > 0 {
@@ -521,24 +556,44 @@ func ConvertOpenAIStreamToClaudeSSE(c *gin.Context, resp *http.Response, promptT
 				})
 			}
 
-			// Text delta
+			// Text delta — route inline <think> content to thinking blocks
 			deltaText := choice.Delta.StringContent()
 			if deltaText != "" {
-				if textIndex == -1 {
+				cleanText, reasoning, _ := thinkProc.ProcessThinkingContent(deltaText)
+				if reasoning != nil && *reasoning != "" {
+					if thinkingIndex == -1 {
+						writeClaudeSSE(map[string]any{
+							"type":          "content_block_start",
+							"index":         nextIndex,
+							"content_block": map[string]any{"type": "thinking", "thinking": ""},
+						})
+						thinkingIndex = nextIndex
+						nextIndex++
+					}
+					accumThinking += *reasoning
 					writeClaudeSSE(map[string]any{
-						"type":          "content_block_start",
-						"index":         nextIndex,
-						"content_block": map[string]any{"type": "text", "text": ""},
+						"type":  "content_block_delta",
+						"index": thinkingIndex,
+						"delta": map[string]any{"type": "thinking_delta", "thinking": *reasoning},
 					})
-					textIndex = nextIndex
-					nextIndex++
 				}
-				accumText += deltaText
-				writeClaudeSSE(map[string]any{
-					"type":  "content_block_delta",
-					"index": textIndex,
-					"delta": map[string]any{"type": "text_delta", "text": deltaText},
-				})
+				if cleanText != "" {
+					if textIndex == -1 {
+						writeClaudeSSE(map[string]any{
+							"type":          "content_block_start",
+							"index":         nextIndex,
+							"content_block": map[string]any{"type": "text", "text": ""},
+						})
+						textIndex = nextIndex
+						nextIndex++
+					}
+					accumText += cleanText
+					writeClaudeSSE(map[string]any{
+						"type":  "content_block_delta",
+						"index": textIndex,
+						"delta": map[string]any{"type": "text_delta", "text": cleanText},
+					})
+				}
 			}
 
 			// Tool call deltas
