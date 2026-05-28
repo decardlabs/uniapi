@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -614,6 +615,262 @@ func GetDashboardUsers(c *gin.Context) {
 		"message": "",
 		"data":    userOptions,
 	})
+}
+
+// GetUserCacheAnalytics returns cache observability metrics for administrators.
+// The endpoint accepts the same date semantics as GetUserDashboard and supports
+// optional model/channel filters for drill-down analysis.
+func GetUserCacheAnalytics(c *gin.Context) {
+	role := c.GetInt(ctxkey.Role)
+	if role < model.RoleAdminUser {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "No permission to access cache analytics",
+			"data":    nil,
+		})
+		return
+	}
+
+	now := time.Now()
+	fromDateStr := c.Query("from_date")
+	toDateStr := c.Query("to_date")
+
+	var startTs, endTsExclusive int64
+	if fromDateStr != "" && toDateStr != "" {
+		maxDays := 365
+		s, e, err := utils.NormalizeDateRange(fromDateStr, toDateStr, maxDays)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": err.Error(), "data": nil})
+			return
+		}
+		startTs = s
+		endTsExclusive = e
+	} else {
+		today := now.UTC().Truncate(24 * time.Hour)
+		startTs = today.AddDate(0, 0, -6).Unix()
+		endTsExclusive = today.Add(24 * time.Hour).Unix()
+	}
+
+	targetUserID := 0
+	if role == model.RoleRootUser {
+		userIDParam := c.Query("user_id")
+		if userIDParam != "" && userIDParam != "all" {
+			parsedUserID, err := strconv.Atoi(userIDParam)
+			if err != nil {
+				c.JSON(http.StatusOK, gin.H{"success": false, "message": "Invalid user_id parameter", "data": nil})
+				return
+			}
+			targetUserID = parsedUserID
+		}
+	}
+
+	modelName := strings.TrimSpace(c.Query("model_name"))
+	requestFormat := strings.TrimSpace(c.Query("request_format"))
+	channelID := 0
+	if channelIDParam := strings.TrimSpace(c.Query("channel_id")); channelIDParam != "" {
+		parsedChannelID, err := strconv.Atoi(channelIDParam)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": "Invalid channel_id parameter", "data": nil})
+			return
+		}
+		channelID = parsedChannelID
+	}
+
+	compareDateStr := strings.TrimSpace(c.Query("compare_date"))
+	if compareDateStr != "" {
+		if _, err := time.Parse("2006-01-02", compareDateStr); err != nil {
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": "Invalid compare_date parameter", "data": nil})
+			return
+		}
+	}
+
+	rows, err := model.SearchCacheAnalyticsRows(targetUserID, int(startTs), int(endTsExclusive), modelName, channelID, requestFormat)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "Failed to get cache analytics: " + err.Error(),
+			"data":    nil,
+		})
+		return
+	}
+
+	type dayAggregate struct {
+		Day                    string  `json:"day"`
+		RequestCount           int     `json:"request_count"`
+		PromptTokens           int     `json:"prompt_tokens"`
+		CachedPromptTokens     int     `json:"cached_prompt_tokens"`
+		Quota                  int     `json:"quota"`
+		CacheHitRate           float64 `json:"cache_hit_rate"`
+		EstimatedSavingsRate   float64 `json:"estimated_savings_rate"`
+		CompletionTokens       int     `json:"completion_tokens"`
+		CachedCompletionTokens int     `json:"cached_completion_tokens"`
+	}
+
+	type breakdownAggregate struct {
+		ModelName              string  `json:"model_name"`
+		ChannelID              int     `json:"channel_id"`
+		RequestFormat          string  `json:"request_format"`
+		ChannelName            string  `json:"channel_name"`
+		RequestCount           int     `json:"request_count"`
+		PromptTokens           int     `json:"prompt_tokens"`
+		CachedPromptTokens     int     `json:"cached_prompt_tokens"`
+		CompletionTokens       int     `json:"completion_tokens"`
+		CachedCompletionTokens int     `json:"cached_completion_tokens"`
+		Quota                  int     `json:"quota"`
+		CacheHitRate           float64 `json:"cache_hit_rate"`
+		EstimatedSavingsRate   float64 `json:"estimated_savings_rate"`
+	}
+
+	type summaryAggregate struct {
+		RequestCount           int     `json:"request_count"`
+		PromptTokens           int     `json:"prompt_tokens"`
+		CachedPromptTokens     int     `json:"cached_prompt_tokens"`
+		CompletionTokens       int     `json:"completion_tokens"`
+		CachedCompletionTokens int     `json:"cached_completion_tokens"`
+		Quota                  int     `json:"quota"`
+		CacheHitRate           float64 `json:"cache_hit_rate"`
+		EstimatedSavingsRate   float64 `json:"estimated_savings_rate"`
+	}
+
+	dayMap := make(map[string]*dayAggregate)
+	breakdownMap := make(map[string]*breakdownAggregate)
+
+	totalRequests := 0
+	totalPromptTokens := 0
+	totalCachedPromptTokens := 0
+	totalCompletionTokens := 0
+	totalCachedCompletionTokens := 0
+	totalQuota := 0
+
+	beforeSummary := &summaryAggregate{}
+	afterSummary := &summaryAggregate{}
+
+	for _, row := range rows {
+		if strings.TrimSpace(row.RequestFormat) == "" {
+			row.RequestFormat = "unknown"
+		}
+
+		totalRequests += row.RequestCount
+		totalPromptTokens += row.PromptTokens
+		totalCachedPromptTokens += row.CachedPromptTokens
+		totalCompletionTokens += row.CompletionTokens
+		totalCachedCompletionTokens += row.CachedCompletionTokens
+		totalQuota += row.Quota
+
+		dayEntry, ok := dayMap[row.Day]
+		if !ok {
+			dayEntry = &dayAggregate{Day: row.Day}
+			dayMap[row.Day] = dayEntry
+		}
+		dayEntry.RequestCount += row.RequestCount
+		dayEntry.PromptTokens += row.PromptTokens
+		dayEntry.CachedPromptTokens += row.CachedPromptTokens
+		dayEntry.CompletionTokens += row.CompletionTokens
+		dayEntry.CachedCompletionTokens += row.CachedCompletionTokens
+		dayEntry.Quota += row.Quota
+
+		breakdownKey := fmt.Sprintf("%s|%d|%s", row.ModelName, row.ChannelID, row.RequestFormat)
+		breakdownEntry, ok := breakdownMap[breakdownKey]
+		if !ok {
+			breakdownEntry = &breakdownAggregate{
+				ModelName:     row.ModelName,
+				ChannelID:     row.ChannelID,
+				RequestFormat: row.RequestFormat,
+				ChannelName:   row.ChannelName,
+			}
+			breakdownMap[breakdownKey] = breakdownEntry
+		}
+		breakdownEntry.RequestCount += row.RequestCount
+		breakdownEntry.PromptTokens += row.PromptTokens
+		breakdownEntry.CachedPromptTokens += row.CachedPromptTokens
+		breakdownEntry.CompletionTokens += row.CompletionTokens
+		breakdownEntry.CachedCompletionTokens += row.CachedCompletionTokens
+		breakdownEntry.Quota += row.Quota
+
+		if compareDateStr != "" {
+			target := afterSummary
+			if row.Day < compareDateStr {
+				target = beforeSummary
+			}
+			target.RequestCount += row.RequestCount
+			target.PromptTokens += row.PromptTokens
+			target.CachedPromptTokens += row.CachedPromptTokens
+			target.CompletionTokens += row.CompletionTokens
+			target.CachedCompletionTokens += row.CachedCompletionTokens
+			target.Quota += row.Quota
+		}
+	}
+
+	timeseries := make([]*dayAggregate, 0, len(dayMap))
+	for _, entry := range dayMap {
+		entry.CacheHitRate = computeAnalyticsRate(entry.CachedPromptTokens, entry.PromptTokens)
+		entry.EstimatedSavingsRate = entry.CacheHitRate
+		timeseries = append(timeseries, entry)
+	}
+	sort.Slice(timeseries, func(i, j int) bool {
+		return timeseries[i].Day < timeseries[j].Day
+	})
+
+	breakdown := make([]*breakdownAggregate, 0, len(breakdownMap))
+	for _, entry := range breakdownMap {
+		entry.CacheHitRate = computeAnalyticsRate(entry.CachedPromptTokens, entry.PromptTokens)
+		entry.EstimatedSavingsRate = entry.CacheHitRate
+		breakdown = append(breakdown, entry)
+	}
+	sort.Slice(breakdown, func(i, j int) bool {
+		if breakdown[i].Quota == breakdown[j].Quota {
+			if breakdown[i].ModelName == breakdown[j].ModelName {
+				if breakdown[i].ChannelID == breakdown[j].ChannelID {
+					return breakdown[i].RequestFormat < breakdown[j].RequestFormat
+				}
+				return breakdown[i].ChannelID < breakdown[j].ChannelID
+			}
+			return breakdown[i].ModelName < breakdown[j].ModelName
+		}
+		return breakdown[i].Quota > breakdown[j].Quota
+	})
+
+	beforeSummary.CacheHitRate = computeAnalyticsRate(beforeSummary.CachedPromptTokens, beforeSummary.PromptTokens)
+	beforeSummary.EstimatedSavingsRate = beforeSummary.CacheHitRate
+	afterSummary.CacheHitRate = computeAnalyticsRate(afterSummary.CachedPromptTokens, afterSummary.PromptTokens)
+	afterSummary.EstimatedSavingsRate = afterSummary.CacheHitRate
+
+	response := gin.H{
+		"summary": gin.H{
+			"request_count":            totalRequests,
+			"prompt_tokens":            totalPromptTokens,
+			"cached_prompt_tokens":     totalCachedPromptTokens,
+			"completion_tokens":        totalCompletionTokens,
+			"cached_completion_tokens": totalCachedCompletionTokens,
+			"quota":                    totalQuota,
+			"cache_hit_rate":           computeAnalyticsRate(totalCachedPromptTokens, totalPromptTokens),
+			"estimated_savings_rate":   computeAnalyticsRate(totalCachedPromptTokens, totalPromptTokens),
+		},
+		"timeseries": timeseries,
+		"breakdown":  breakdown,
+		"compare": gin.H{
+			"compare_date": compareDateStr,
+			"before":       beforeSummary,
+			"after":        afterSummary,
+		},
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    response,
+	})
+}
+
+// computeAnalyticsRate returns numerator/denominator as a ratio in [0,1] when denominator is positive.
+func computeAnalyticsRate(numerator, denominator int) float64 {
+	if denominator <= 0 || numerator <= 0 {
+		return 0
+	}
+	if numerator >= denominator {
+		return 1
+	}
+	return float64(numerator) / float64(denominator)
 }
 
 func GenerateAccessToken(c *gin.Context) {

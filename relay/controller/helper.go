@@ -323,6 +323,7 @@ func postConsumeQuota(ctx context.Context,
 		}
 		metadata := model.AppendToolUsageMetadata(nil, toolSummary)
 		metadata = model.AppendCacheWriteTokensMetadata(metadata, usage.CacheWrite5mTokens, usage.CacheWrite1hTokens)
+		metadata = model.AppendRequestFormatMetadata(metadata, "chat_completions")
 
 		billing.PostConsumeQuotaDetailed(billing.QuotaConsumeDetail{
 			Ctx:                    ctx,
@@ -347,6 +348,7 @@ func postConsumeQuota(ctx context.Context,
 			CacheWrite5mTokens:     usage.CacheWrite5mTokens,
 			CacheWrite1hTokens:     usage.CacheWrite1hTokens,
 			Metadata:               metadata,
+			RequestFormat:          "chat_completions",
 			RequestId:              requestId,
 			TraceId:                traceId,
 			ProvisionalLogId:       provisionalLogId,
@@ -435,6 +437,7 @@ func postConsumeQuotaWithTraceID(ctx context.Context, traceId string,
 		}
 		metadata := model.AppendToolUsageMetadata(nil, toolSummary)
 		metadata = model.AppendCacheWriteTokensMetadata(metadata, usage.CacheWrite5mTokens, usage.CacheWrite1hTokens)
+		metadata = model.AppendRequestFormatMetadata(metadata, "chat_completions")
 
 		billing.PostConsumeQuotaDetailed(billing.QuotaConsumeDetail{
 			Ctx:                    ctx,
@@ -459,6 +462,7 @@ func postConsumeQuotaWithTraceID(ctx context.Context, traceId string,
 			CacheWrite5mTokens:     usage.CacheWrite5mTokens,
 			CacheWrite1hTokens:     usage.CacheWrite1hTokens,
 			Metadata:               metadata,
+			RequestFormat:          "chat_completions",
 			RequestId:              requestId,
 			TraceId:                traceId,
 			ProvisionalLogId:       provisionalLogId,

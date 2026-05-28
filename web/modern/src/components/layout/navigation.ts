@@ -4,25 +4,22 @@
  */
 
 import {
-  BarChart3,
-  CreditCard,
-  DollarSign,
-  FileText,
-  Gift,
-  Home,
-  Info,
-  LogOut,
-  Menu,
-  MessageSquare,
-  PiggyBank,
-  Radio,
-  Server,
-  Settings,
-  User,
-  Users,
-  Wrench,
-  Zap,
-  type LucideIcon,
+    BarChart3,
+    CreditCard,
+    DollarSign,
+    FileText,
+    Gift,
+    Home,
+    Info,
+    MessageSquare,
+    PiggyBank,
+    Radio,
+    Server,
+    Settings,
+    Users,
+    Wrench,
+    Zap,
+    type LucideIcon
 } from 'lucide-react';
 
 /** Navigation item definition */
@@ -50,6 +47,7 @@ export interface NavGroup {
 // Icon mapping — path → Lucide icon component
 const iconMap: Record<string, LucideIcon> = {
   '/dashboard': Home,
+  '/cache-analytics': BarChart3,
   '/channels': Zap,
   '/tokens': CreditCard,
   '/logs': FileText,
@@ -79,6 +77,7 @@ export function getNavIcon(path: string): LucideIcon | undefined {
 export function buildAuthenticatedNavItems(t: any, isAdmin: boolean): NavItem[] {
   const rawItems = [
     { name: t('common.dashboard'), to: '/dashboard', show: true },
+    { name: t('common.cache_analytics'), to: '/cache-analytics', show: isAdmin, requiresAdmin: true },
     { name: t('common.tokens'), to: '/tokens', show: true },
     { name: t('common.logs'), to: '/logs', show: true },
     { name: t('common.users'), to: '/users', show: isAdmin, requiresAdmin: true },
@@ -132,10 +131,11 @@ export function buildPublicNavItems(t: any): NavItem[] {
 export function groupNavItems(items: NavItem[]): NavGroup[] {
   const corePaths = ['/dashboard', '/tokens', '/logs', '/topup', '/models', '/tools', '/status', '/chat', '/playground'];
   const adminPaths = ['/users', '/channels', '/mcps', '/recharges', '/pools'];
+  const adminExtendedPaths = ['/cache-analytics'];
   const systemPaths = ['/about', '/settings'];
 
   const core = items.filter((item) => corePaths.includes(item.to));
-  const admin = items.filter((item) => adminPaths.includes(item.to));
+  const admin = items.filter((item) => adminPaths.includes(item.to) || adminExtendedPaths.includes(item.to));
   const system = items.filter((item) => systemPaths.includes(item.to));
 
   const groups: NavGroup[] = [];

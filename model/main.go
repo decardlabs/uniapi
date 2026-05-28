@@ -299,7 +299,9 @@ func migrateDB() error {
 		return errors.Wrapf(err, "failed to migrate Ability")
 	}
 	if err = DB.AutoMigrate(&Log{}); err != nil {
-		return errors.Wrapf(err, "failed to migrate Log")
+		if !shouldIgnoreDuplicateColumn(err, "request_format") {
+			return errors.Wrapf(err, "failed to migrate Log")
+		}
 	}
 	if err = DB.AutoMigrate(&TokenTransaction{}); err != nil {
 		return errors.Wrapf(err, "failed to migrate TokenTransaction")
@@ -388,7 +390,9 @@ func InitLogDB() {
 func migrateLOGDB() error {
 	var err error
 	if err = LOG_DB.AutoMigrate(&Log{}); err != nil {
-		return errors.Wrap(err, "auto migrate log database")
+		if !shouldIgnoreDuplicateColumn(err, "request_format") {
+			return errors.Wrap(err, "auto migrate log database")
+		}
 	}
 	return nil
 }

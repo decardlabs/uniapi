@@ -32,3 +32,18 @@ type LogStatisticByToken struct {
 	PromptTokens     int    `gorm:"column:prompt_tokens"`
 	CompletionTokens int    `gorm:"column:completion_tokens"`
 }
+
+// CacheAnalyticsRow captures aggregated cache-related usage grouped by day, model, and channel.
+type CacheAnalyticsRow struct {
+	Day                    string `gorm:"column:day"`
+	ModelName              string `gorm:"column:model_name"`
+	ChannelID              int    `gorm:"column:channel_id"`
+	RequestFormat          string `gorm:"column:request_format"`
+	ChannelName            string `gorm:"column:channel_name"`
+	RequestCount           int    `gorm:"column:request_count"`
+	Quota                  int    `gorm:"column:quota"`
+	PromptTokens           int    `gorm:"column:prompt_tokens"`
+	CompletionTokens       int    `gorm:"column:completion_tokens"`
+	CachedPromptTokens     int    `gorm:"column:cached_prompt_tokens"`
+	CachedCompletionTokens int    `gorm:"column:cached_completion_tokens"`
+}

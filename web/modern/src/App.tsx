@@ -20,6 +20,7 @@ const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage'));
 const ChannelsPage = lazy(() => import('@/pages/channels/ChannelsPage').then((m) => ({ default: m.ChannelsPage })));
 const EditChannelPage = lazy(() => import('@/pages/channels/EditChannelPage'));
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
+const CacheAnalyticsPage = lazy(() => import('@/pages/cache-analytics/CacheAnalyticsPage'));
 const LogsPage = lazy(() => import('@/pages/logs/LogsPage').then((m) => ({ default: m.LogsPage })));
 const EditMCPServerPage = lazy(() => import('@/pages/mcp/EditMCPServerPage').then((m) => ({ default: m.EditMCPServerPage })));
 const MCPServersPage = lazy(() => import('@/pages/mcp/MCPServersPage').then((m) => ({ default: m.MCPServersPage })));
@@ -101,6 +102,7 @@ function App() {
                 <Route element={<ProtectedRoute />}>
                   <Route path="/" element={<Layout />}>
                     <Route path="dashboard" element={<DashboardPage />} />
+                    <Route path="cache-analytics" element={<CacheAnalyticsPage />} />
                     <Route path="tokens" element={<TokensPage />} />
                     <Route path="tokens/add" element={<EditTokenPage />} />
                     <Route path="tokens/edit/:id" element={<EditTokenPage />} />

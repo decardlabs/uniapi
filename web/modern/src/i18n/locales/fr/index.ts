@@ -1,5 +1,6 @@
 import auth from './auth.json';
 import billing from './billing.json';
+import cacheAnalytics from './cacheAnalytics.json';
 import channels from './channels.json';
 import common from './common.json';
 import dashboard from './dashboard.json';
@@ -23,6 +24,7 @@ const translations = {
   ...realtime,
   ...models,
   ...billing,
+  ...cacheAnalytics,
   ...logs,
   ...mcp,
   ...tools,

@@ -176,6 +176,7 @@ func postConsumeResponseAPIQuota(ctx context.Context,
 		}
 		metadata := model.AppendToolUsageMetadata(nil, toolSummary)
 		metadata = model.AppendCacheWriteTokensMetadata(metadata, usage.CacheWrite5mTokens, usage.CacheWrite1hTokens)
+		metadata = model.AppendRequestFormatMetadata(metadata, "response_api")
 
 		billing.PostConsumeQuotaDetailed(billing.QuotaConsumeDetail{
 			Ctx:                    ctx,
@@ -200,6 +201,7 @@ func postConsumeResponseAPIQuota(ctx context.Context,
 			CacheWrite5mTokens:     usage.CacheWrite5mTokens,
 			CacheWrite1hTokens:     usage.CacheWrite1hTokens,
 			Metadata:               metadata,
+			RequestFormat:          "response_api",
 			RequestId:              requestId,
 			TraceId:                traceId,
 			ProvisionalLogId:       provisionalLogId,

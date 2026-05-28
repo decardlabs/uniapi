@@ -39,6 +39,7 @@ type Log struct {
 	UpdatedAt         int64  `json:"updated_at" gorm:"bigint;autoUpdateTime:milli"`
 	ElapsedTime       int64  `json:"elapsed_time" gorm:"default:0;index"` // Added index for sorting (unit is ms)
 	IsStream          bool   `json:"is_stream" gorm:"default:false"`
+	RequestFormat     string `json:"request_format" gorm:"type:varchar(32);index;default:''"`
 	SystemPromptReset bool   `json:"system_prompt_reset" gorm:"default:false"`
 	// Cached token counts (prompt/output) for cost transparency
 	CachedPromptTokens     int `json:"cached_prompt_tokens" gorm:"default:0;index"`
@@ -75,6 +76,8 @@ const (
 	// LogMetadataKeyProvisional marks a consume log entry as provisional (pre-consumed, awaiting reconciliation).
 	// Post-billing removes this flag when the log is reconciled with actual usage.
 	LogMetadataKeyProvisional = "provisional"
+	// LogMetadataKeyRequestFormat records request format category (chat/response/claude/realtime).
+	LogMetadataKeyRequestFormat = "request_format"
 )
 
 // ToolUsageEntry captures per-tool usage metadata for logging.
@@ -227,6 +230,19 @@ func AppendToolUsageMetadata(metadata LogMetadata, summary *ToolUsageSummary) Lo
 	}
 
 	metadata[LogMetadataKeyToolUsage] = entry
+	return metadata
+}
+
+// AppendRequestFormatMetadata appends request format metadata when provided.
+func AppendRequestFormatMetadata(metadata LogMetadata, requestFormat string) LogMetadata {
+	requestFormat = strings.TrimSpace(requestFormat)
+	if requestFormat == "" {
+		return metadata
+	}
+	if metadata == nil {
+		metadata = LogMetadata{}
+	}
+	metadata[LogMetadataKeyRequestFormat] = requestFormat
 	return metadata
 }
 
@@ -1142,4 +1158,56 @@ func SearchLogsByDayAndToken(userId, start, endExclusive int) ([]*dto.LogStatist
 	var stats []*dto.LogStatisticByToken
 	err := LOG_DB.Raw(query, args...).Scan(&stats).Error
 	return stats, err
+}
+
+// SearchCacheAnalyticsRows returns cache-related aggregates grouped by day, model, channel, and request format.
+// The query uses the half-open range [start, endExclusive), where timestamps are Unix seconds.
+// Optional filters are applied when modelName/requestFormat are non-empty or channelID is positive.
+func SearchCacheAnalyticsRows(userId, start, endExclusive int, modelName string, channelID int, requestFormat string) ([]*dto.CacheAnalyticsRow, error) {
+	groupSelect := dayAggregationSelect()
+
+	query := `
+		SELECT ` + groupSelect + `,
+			logs.model_name,
+			logs.channel_id,
+			logs.request_format,
+			COALESCE(channels.name, '') AS channel_name,
+			COUNT(1) AS request_count,
+			SUM(logs.quota) AS quota,
+			SUM(logs.prompt_tokens) AS prompt_tokens,
+			SUM(logs.completion_tokens) AS completion_tokens,
+			SUM(logs.cached_prompt_tokens) AS cached_prompt_tokens,
+			SUM(logs.cached_completion_tokens) AS cached_completion_tokens
+		FROM logs
+		LEFT JOIN channels ON logs.channel_id = channels.id
+		WHERE logs.type = 2
+			AND logs.created_at >= ? AND logs.created_at < ?
+	`
+
+	args := []any{start, endExclusive}
+	if userId > 0 {
+		query += " AND logs.user_id = ?"
+		args = append(args, userId)
+	}
+	if strings.TrimSpace(modelName) != "" {
+		query += " AND logs.model_name = ?"
+		args = append(args, modelName)
+	}
+	if channelID > 0 {
+		query += " AND logs.channel_id = ?"
+		args = append(args, channelID)
+	}
+	if strings.TrimSpace(requestFormat) != "" {
+		query += " AND logs.request_format = ?"
+		args = append(args, requestFormat)
+	}
+
+	query += `
+		GROUP BY day, logs.model_name, logs.channel_id, logs.request_format, channels.name
+		ORDER BY day, logs.model_name, logs.channel_id, logs.request_format
+	`
+
+	var rows []*dto.CacheAnalyticsRow
+	err := LOG_DB.Raw(query, args...).Scan(&rows).Error
+	return rows, err
 }

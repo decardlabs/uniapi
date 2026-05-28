@@ -260,6 +260,8 @@ func postConsumeRealtimeQuota(
 		ctx, cancel := context.WithTimeout(ctx, billingTimeout)
 		defer cancel()
 
+		metadata := model.AppendRequestFormatMetadata(nil, "realtime")
+
 		billing.PostConsumeQuotaDetailed(billing.QuotaConsumeDetail{
 			Ctx:              ctx,
 			TokenId:          relayMeta.TokenId,
@@ -276,6 +278,8 @@ func postConsumeRealtimeQuota(
 			IsStream:         true,
 			StartTime:        relayMeta.StartTime,
 			CompletionRatio:  computeResult.UsedCompletionRatio,
+			Metadata:         metadata,
+			RequestFormat:    "realtime",
 			RequestId:        requestId,
 			TraceId:          traceId,
 			ProvisionalLogId: provisionalLogId,
