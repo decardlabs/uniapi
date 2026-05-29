@@ -8,13 +8,13 @@
 - `deploy_remote.sh`：上传到目标服务器后执行的远端构建与替换脚本。
 - `setup_auto.sh`：Ubuntu/Debian 环境自动化安装与构建辅助脚本。
 - `uniapi.service`：systemd 服务示例配置文件。
-- `Dockerfile`：容器镜像构建文件。
+- `../Dockerfile`：仓库根目录容器镜像构建文件。
 
 ## 使用建议
 
 - 远程升级：在仓库根目录执行 `bash deploy/deploy.sh`。
 - systemd 部署参考：使用 `deploy/uniapi.service` 作为模板并按实际环境调整。
-- 容器构建：在仓库根目录执行 `docker build -f deploy/Dockerfile .`。
+- 容器构建：在仓库根目录执行 `docker build -f Dockerfile .`。
 
 ## 迁移说明
 

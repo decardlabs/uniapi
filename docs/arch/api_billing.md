@@ -298,6 +298,7 @@ Function calls are billed through the standard token mechanism:
 For reasoning models (like o1-preview, o1-mini):
 
 - **Reasoning tokens** are currently merged into completion tokens by most providers
+- UniAPI quota computation also guards provider differences: when `CompletionTokensDetails.ReasoningTokens` is reported separately and exceeds `CompletionTokens`, it merges reasoning into completion to avoid under-billing for separate-reporting providers while avoiding double-counting for subset-reporting providers
 - Future implementation may separate reasoning token billing
 - Currently billed at standard completion token rates
 
