@@ -50,6 +50,16 @@ func Compute(input ComputeInput) ComputeResult {
 	promptTokens := usage.PromptTokens
 	completionTokens := usage.CompletionTokens
 
+	// Merge reasoning tokens for providers that report them separately (e.g. DeepSeek V4).
+	// Guard: only adds when reasoning > completion, which distinguishes
+	// separate-reporting providers from subset-reporting providers (e.g. OpenAI o-series).
+	if usage.CompletionTokensDetails != nil {
+		rt := max(usage.CompletionTokensDetails.ReasoningTokens, 0)
+		if rt > completionTokens {
+			completionTokens += rt
+		}
+	}
+
 	pricingAdaptor := input.PricingAdaptor
 	resolvedModelCfg, hasResolvedModelCfg := pricing.ResolveModelConfigRatioOnly(input.ModelName, input.ChannelModelConfigs, pricingAdaptor)
 	hasChannelModelRatioOverride := hasOverrideForModel(input.ModelName, input.ChannelModelRatio)
