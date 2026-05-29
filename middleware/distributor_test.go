@@ -268,6 +268,320 @@ func TestDistributeSpecificChannelAllowsSupportedModel(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code, "middleware should leave response as OK")
 }
 
+func TestDistributeSpecificChannelUsesAutoRoutedModel(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db, cleanup := setupDistributorTestDB(t)
+	defer cleanup()
+
+	user := &model.User{
+		Id:       30,
+		Username: "auto-route-user",
+		Password: "hashed",
+		Group:    "default",
+		Status:   model.UserStatusEnabled,
+	}
+	require.NoError(t, db.Create(user).Error)
+
+	priority := int64(55)
+	channel := &model.Channel{
+		Id:       40,
+		Name:     "vision-channel",
+		Type:     channeltype.OpenAI,
+		Models:   "gpt-4o",
+		Group:    "default",
+		Status:   model.ChannelStatusEnabled,
+		Priority: &priority,
+	}
+	require.NoError(t, db.Create(channel).Error)
+	require.NoError(t, channel.AddAbilities())
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewBufferString(`{"model":"openai/gpt-oss-120b"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = req
+
+	c.Set(ctxkey.Id, user.Id)
+	c.Set(ctxkey.RequestModel, "openai/gpt-oss-120b")
+	c.Set(ctxkey.AutoRoutedModel, "gpt-4o")
+	c.Set(ctxkey.SpecificChannelId, channel.Id)
+	c.Set(ctxkey.TokenId, 199)
+	gmw.SetLogger(c, logger.Logger)
+
+	Distribute()(c)
+
+	require.False(t, c.IsAborted(), "middleware should allow request through auto-routed model")
+	require.Equal(t, http.StatusOK, rec.Code, "middleware should leave response as OK")
+
+	mapping := c.GetStringMapString(ctxkey.ModelMapping)
+	require.Equal(t, "gpt-4o", mapping["openai/gpt-oss-120b"], "expected request-scoped model mapping to preserve original model while routing to fallback")
+}
+
+func TestDistributeCapabilityBasedVisionRoutingSelectsChannelModel(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db, cleanup := setupDistributorTestDB(t)
+	defer cleanup()
+
+	originalRouteMode := config.MultimodalRouteMode
+	config.MultimodalRouteMode = "capability_based"
+	defer func() { config.MultimodalRouteMode = originalRouteMode }()
+
+	user := &model.User{Id: 88, Username: "capability-user", Password: "hashed", Group: "default", Status: model.UserStatusEnabled}
+	require.NoError(t, db.Create(user).Error)
+
+	textPriority := int64(200)
+	textChannel := &model.Channel{
+		Id:       880,
+		Name:     "text-only",
+		Type:     channeltype.OpenAI,
+		Models:   "openai/gpt-oss-120b",
+		Group:    "default",
+		Status:   model.ChannelStatusEnabled,
+		Priority: &textPriority,
+	}
+	require.NoError(t, db.Create(textChannel).Error)
+	require.NoError(t, textChannel.AddAbilities())
+
+	visionPriority := int64(150)
+	visionChannel := &model.Channel{
+		Id:       881,
+		Name:     "vision-capable",
+		Type:     channeltype.OpenAI,
+		Models:   "gpt-4o",
+		Group:    "default",
+		Status:   model.ChannelStatusEnabled,
+		Priority: &visionPriority,
+		Config:   `{"supports_vision":true,"vision_models":["gpt-4o"]}`,
+	}
+	require.NoError(t, db.Create(visionChannel).Error)
+	require.NoError(t, visionChannel.AddAbilities())
+
+	reqBody := `{"model":"openai/gpt-oss-120b","messages":[{"role":"user","content":[{"type":"text","text":"analyze screenshot"},{"type":"image_url","image_url":{"url":"https://example.com/screenshot.png"}}]}]}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewBufferString(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = req
+
+	c.Set(ctxkey.Id, user.Id)
+	c.Set(ctxkey.UserObj, user)
+	c.Set(ctxkey.RequestModel, "openai/gpt-oss-120b")
+	c.Set(ctxkey.TokenId, 8801)
+	gmw.SetLogger(c, logger.Logger)
+
+	Distribute()(c)
+
+	require.False(t, c.IsAborted(), "capability routing should find a vision-capable channel")
+	require.Equal(t, visionChannel.Id, c.GetInt(ctxkey.ChannelId))
+	require.Equal(t, "gpt-4o", c.GetString(ctxkey.AutoRoutedModel))
+
+	mapping := c.GetStringMapString(ctxkey.ModelMapping)
+	require.Equal(t, "gpt-4o", mapping["openai/gpt-oss-120b"])
+}
+
+func TestDistributeCapabilityBasedVisionRoutingRejectsWhenUnavailable(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db, cleanup := setupDistributorTestDB(t)
+	defer cleanup()
+
+	originalRouteMode := config.MultimodalRouteMode
+	config.MultimodalRouteMode = "capability_based"
+	defer func() { config.MultimodalRouteMode = originalRouteMode }()
+
+	user := &model.User{Id: 89, Username: "capability-user-2", Password: "hashed", Group: "default", Status: model.UserStatusEnabled}
+	require.NoError(t, db.Create(user).Error)
+
+	textPriority := int64(200)
+	textChannel := &model.Channel{
+		Id:       890,
+		Name:     "text-only",
+		Type:     channeltype.OpenAI,
+		Models:   "openai/gpt-oss-120b",
+		Group:    "default",
+		Status:   model.ChannelStatusEnabled,
+		Priority: &textPriority,
+	}
+	require.NoError(t, db.Create(textChannel).Error)
+	require.NoError(t, textChannel.AddAbilities())
+
+	reqBody := `{"model":"openai/gpt-oss-120b","messages":[{"role":"user","content":[{"type":"text","text":"analyze screenshot"},{"type":"image_url","image_url":{"url":"https://example.com/screenshot.png"}}]}]}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewBufferString(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = req
+
+	c.Set(ctxkey.Id, user.Id)
+	c.Set(ctxkey.UserObj, user)
+	c.Set(ctxkey.RequestModel, "openai/gpt-oss-120b")
+	c.Set(ctxkey.TokenId, 8901)
+	gmw.SetLogger(c, logger.Logger)
+
+	Distribute()(c)
+
+	require.True(t, c.IsAborted())
+	require.Equal(t, http.StatusBadRequest, rec.Code)
+	require.Contains(t, rec.Body.String(), "no vision-capable model")
+}
+
+func TestDistributeImageRejectionThenTextContinues(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db, cleanup := setupDistributorTestDB(t)
+	defer cleanup()
+
+	originalRouteMode := config.MultimodalRouteMode
+	config.MultimodalRouteMode = "capability_based"
+	defer func() { config.MultimodalRouteMode = originalRouteMode }()
+
+	user := &model.User{Id: 892, Username: "continue-after-reject", Password: "hashed", Group: "default", Status: model.UserStatusEnabled}
+	require.NoError(t, db.Create(user).Error)
+
+	textPriority := int64(200)
+	textChannel := &model.Channel{
+		Id:       8920,
+		Name:     "text-only-channel",
+		Type:     channeltype.OpenAI,
+		Models:   "deepseek-v4-pro",
+		Group:    "default",
+		Status:   model.ChannelStatusEnabled,
+		Priority: &textPriority,
+	}
+	require.NoError(t, db.Create(textChannel).Error)
+	require.NoError(t, textChannel.AddAbilities())
+
+	// Step 1: image input is rejected with deterministic validation message.
+	imageReqBody := `{"model":"deepseek-v4-pro","messages":[{"role":"user","content":[{"type":"text","text":"analyze screenshot"},{"type":"image_url","image_url":{"url":"https://example.com/screenshot.png"}}]}]}`
+	imageReq := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewBufferString(imageReqBody))
+	imageReq.Header.Set("Content-Type", "application/json")
+	imageRec := httptest.NewRecorder()
+	imageCtx, _ := gin.CreateTestContext(imageRec)
+	imageCtx.Request = imageReq
+	imageCtx.Set(ctxkey.Id, user.Id)
+	imageCtx.Set(ctxkey.UserObj, user)
+	imageCtx.Set(ctxkey.RequestModel, "deepseek-v4-pro")
+	imageCtx.Set(ctxkey.TokenId, 89201)
+	gmw.SetLogger(imageCtx, logger.Logger)
+
+	Distribute()(imageCtx)
+
+	require.True(t, imageCtx.IsAborted())
+	require.Equal(t, http.StatusBadRequest, imageRec.Code)
+	require.Contains(t, imageRec.Body.String(), "only supports text content")
+	require.Contains(t, imageRec.Body.String(), "content types: image_url")
+	require.Contains(t, imageRec.Body.String(), "Remove image input and retry with text")
+
+	// Step 2: next pure text request continues successfully.
+	textReqBody := `{"model":"deepseek-v4-pro","messages":[{"role":"user","content":"continue with text only"}]}`
+	textReq := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewBufferString(textReqBody))
+	textReq.Header.Set("Content-Type", "application/json")
+	textRec := httptest.NewRecorder()
+	textCtx, _ := gin.CreateTestContext(textRec)
+	textCtx.Request = textReq
+	textCtx.Set(ctxkey.Id, user.Id)
+	textCtx.Set(ctxkey.UserObj, user)
+	textCtx.Set(ctxkey.RequestModel, "deepseek-v4-pro")
+	textCtx.Set(ctxkey.TokenId, 89202)
+	gmw.SetLogger(textCtx, logger.Logger)
+
+	Distribute()(textCtx)
+
+	require.False(t, textCtx.IsAborted(), "text-only request should proceed after previous image rejection")
+	require.Equal(t, textChannel.Id, textCtx.GetInt(ctxkey.ChannelId))
+	require.Empty(t, textCtx.GetString(ctxkey.AutoRoutedModel))
+}
+
+func TestDistributeCapabilityBasedVisionRoutingForClaudeMessages(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db, cleanup := setupDistributorTestDB(t)
+	defer cleanup()
+
+	originalRouteMode := config.MultimodalRouteMode
+	config.MultimodalRouteMode = "capability_based"
+	defer func() { config.MultimodalRouteMode = originalRouteMode }()
+
+	user := &model.User{Id: 90, Username: "claude-capability-user", Password: "hashed", Group: "default", Status: model.UserStatusEnabled}
+	require.NoError(t, db.Create(user).Error)
+
+	visionPriority := int64(100)
+	visionChannel := &model.Channel{
+		Id:       900,
+		Name:     "vision-claude-channel",
+		Type:     channeltype.OpenAI,
+		Models:   "gpt-4o",
+		Group:    "default",
+		Status:   model.ChannelStatusEnabled,
+		Priority: &visionPriority,
+		Config:   `{"supports_vision":true,"vision_models":["gpt-4o"],"supported_endpoints":["claude_messages"]}`,
+	}
+	require.NoError(t, db.Create(visionChannel).Error)
+	require.NoError(t, visionChannel.AddAbilities())
+
+	reqBody := `{"model":"openai/gpt-oss-120b","messages":[{"role":"user","content":[{"type":"text","text":"analyze screenshot"},{"type":"image","source":{"type":"url","url":"https://example.com/screenshot.png","media_type":"image/png"}}]}]}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/messages", bytes.NewBufferString(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = req
+
+	c.Set(ctxkey.Id, user.Id)
+	c.Set(ctxkey.UserObj, user)
+	c.Set(ctxkey.RequestModel, "openai/gpt-oss-120b")
+	c.Set(ctxkey.TokenId, 9001)
+	gmw.SetLogger(c, logger.Logger)
+
+	Distribute()(c)
+
+	require.False(t, c.IsAborted())
+	require.Equal(t, visionChannel.Id, c.GetInt(ctxkey.ChannelId))
+	require.Equal(t, "gpt-4o", c.GetString(ctxkey.AutoRoutedModel))
+}
+
+func TestDistributeCapabilityBasedVisionRoutingForResponseAPI(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db, cleanup := setupDistributorTestDB(t)
+	defer cleanup()
+
+	originalRouteMode := config.MultimodalRouteMode
+	config.MultimodalRouteMode = "capability_based"
+	defer func() { config.MultimodalRouteMode = originalRouteMode }()
+
+	user := &model.User{Id: 91, Username: "response-capability-user", Password: "hashed", Group: "default", Status: model.UserStatusEnabled}
+	require.NoError(t, db.Create(user).Error)
+
+	visionPriority := int64(100)
+	visionChannel := &model.Channel{
+		Id:       910,
+		Name:     "vision-response-channel",
+		Type:     channeltype.OpenAI,
+		Models:   "gpt-4o",
+		Group:    "default",
+		Status:   model.ChannelStatusEnabled,
+		Priority: &visionPriority,
+		Config:   `{"supports_vision":true,"vision_models":["gpt-4o"],"supported_endpoints":["response_api"]}`,
+	}
+	require.NoError(t, db.Create(visionChannel).Error)
+	require.NoError(t, visionChannel.AddAbilities())
+
+	reqBody := `{"model":"openai/gpt-oss-120b","input":[{"role":"user","content":[{"type":"input_text","text":"analyze screenshot"},{"type":"input_image","image_url":"https://example.com/screenshot.png"}]}]}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/responses", bytes.NewBufferString(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = req
+
+	c.Set(ctxkey.Id, user.Id)
+	c.Set(ctxkey.UserObj, user)
+	c.Set(ctxkey.RequestModel, "openai/gpt-oss-120b")
+	c.Set(ctxkey.TokenId, 9101)
+	gmw.SetLogger(c, logger.Logger)
+
+	Distribute()(c)
+
+	require.False(t, c.IsAborted())
+	require.Equal(t, visionChannel.Id, c.GetInt(ctxkey.ChannelId))
+	require.Equal(t, "gpt-4o", c.GetString(ctxkey.AutoRoutedModel))
+}
+
 func TestDistributeAutoSkipsUnsupportedChannel(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db, cleanup := setupDistributorTestDB(t)

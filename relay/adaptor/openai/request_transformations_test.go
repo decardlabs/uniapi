@@ -1,8 +1,10 @@
 package openai
 
 import (
+	"net/http/httptest"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
 	"github.com/decardlabs/uniapi/relay/channeltype"
@@ -13,6 +15,90 @@ import (
 
 func float64PtrRT(v float64) *float64 {
 	return &v
+}
+
+func TestConvertClaudeRequest_RejectsMultimodalForGPTOSS(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	adaptor := &Adaptor{}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	relayMeta := &relaymeta.Meta{
+		ChannelType:     channeltype.OpenAICompatible,
+		ActualModelName: "openai/gpt-oss-120b",
+		Mode:            relaymode.ClaudeMessages,
+	}
+	relaymeta.Set2Context(c, relayMeta)
+
+	request := &model.ClaudeRequest{
+		Model:     "openai/gpt-oss-120b",
+		MaxTokens: 256,
+		Messages: []model.ClaudeMessage{
+			{
+				Role: "user",
+				Content: []any{
+					map[string]any{"type": "text", "text": "describe this screenshot"},
+					map[string]any{
+						"type": "image",
+						"source": map[string]any{
+							"type":       "url",
+							"url":        "https://example.com/screenshot.png",
+							"media_type": "image/png",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	converted, err := adaptor.ConvertClaudeRequest(c, request)
+	require.Error(t, err)
+	require.Nil(t, converted)
+	require.Contains(t, err.Error(), "validation failed")
+	require.Contains(t, err.Error(), "openai/gpt-oss-120b")
+	require.Contains(t, err.Error(), "only supports text content")
+}
+
+func TestConvertClaudeRequest_RejectsMultimodalForDeepSeekTextModel(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	adaptor := &Adaptor{}
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	relayMeta := &relaymeta.Meta{
+		ChannelType:     channeltype.OpenAICompatible,
+		ActualModelName: "deepseek-v4-pro",
+		Mode:            relaymode.ClaudeMessages,
+	}
+	relaymeta.Set2Context(c, relayMeta)
+
+	request := &model.ClaudeRequest{
+		Model:     "deepseek-v4-pro",
+		MaxTokens: 256,
+		Messages: []model.ClaudeMessage{
+			{
+				Role: "user",
+				Content: []any{
+					map[string]any{"type": "text", "text": "describe this screenshot"},
+					map[string]any{
+						"type": "image",
+						"source": map[string]any{
+							"type":       "url",
+							"url":        "https://example.com/screenshot.png",
+							"media_type": "image/png",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	converted, err := adaptor.ConvertClaudeRequest(c, request)
+	require.Error(t, err)
+	require.Nil(t, converted)
+	require.Contains(t, err.Error(), "validation failed")
+	require.Contains(t, err.Error(), "deepseek-v4-pro")
+	require.Contains(t, err.Error(), "only supports text content")
 }
 
 func stringPtrRT(s string) *string {

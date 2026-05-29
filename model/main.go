@@ -118,7 +118,7 @@ func openSQLite() (*gorm.DB, error) {
 		return nil, errors.Wrap(err, "prepare sqlite path")
 	}
 
-	logger.Logger.Debug("using SQLite database", zap.String("path", sqlitePath), zap.Int("busy_timeout_ms", common.SQLiteBusyTimeout))
+	logger.Logger.Info("using SQLite database", zap.String("path", sqlitePath), zap.Int("busy_timeout_ms", common.SQLiteBusyTimeout))
 
 	dsn := fmt.Sprintf("%s?_busy_timeout=%d", sqlitePath, common.SQLiteBusyTimeout)
 	return gorm.Open(sqlite.Open(dsn), &gorm.Config{

@@ -8,7 +8,8 @@ export const channelSchema = z.object({
   // key optional on edit; we enforce presence only on create in submit handler
   key: z.string().optional(),
   base_url: z.string().optional(),
-  other: z.record(z.string(), z.any()).optional(),
+  // Keep backward compatibility for historical channels where `other` is a plain string.
+  other: z.union([z.record(z.string(), z.any()), z.string()]).optional(),
   models: z.array(z.string()).default([]),
   model_mapping: z.string().optional(),
   model_configs: z.string().optional(),

@@ -199,6 +199,88 @@ func channelSupportsResponseWebSocket(channel *model.Channel, relayMode int, isR
 	return channel != nil && channel.Type == channeltype.OpenAI
 }
 
+func isCapabilityBasedMultimodalRoutingEnabled() bool {
+	return strings.EqualFold(config.MultimodalRouteMode, "capability_based")
+}
+
+func firstVisionModelForChannel(channel *model.Channel, allowedModels string) string {
+	if channel == nil {
+		return ""
+	}
+
+	cfg, err := channel.LoadConfig()
+	if err != nil {
+		return ""
+	}
+
+	visionModels := cfg.VisionModels
+	if len(visionModels) == 0 {
+		if !cfg.SupportsVision {
+			return ""
+		}
+		visionModels = channel.GetSupportedModelNames()
+	}
+
+	for idx := range visionModels {
+		candidate := strings.TrimSpace(visionModels[idx])
+		if candidate == "" {
+			continue
+		}
+		if !channel.SupportsModel(candidate) {
+			continue
+		}
+		if strings.TrimSpace(allowedModels) != "" && !isModelInList(candidate, allowedModels) {
+			continue
+		}
+		return candidate
+	}
+
+	return ""
+}
+
+func selectCapabilityBasedVisionModel(userGroup string, relayMode int, allowedModels string) string {
+	channels, err := model.GetAllEnabledChannels()
+	if err != nil || len(channels) == 0 {
+		return ""
+	}
+
+	slices.SortStableFunc(channels, func(a, b *model.Channel) int {
+		switch {
+		case a.GetPriority() > b.GetPriority():
+			return -1
+		case a.GetPriority() < b.GetPriority():
+			return 1
+		default:
+			if a.Id < b.Id {
+				return -1
+			}
+			if a.Id > b.Id {
+				return 1
+			}
+			return 0
+		}
+	})
+
+	for idx := range channels {
+		channel := channels[idx]
+		if channel == nil {
+			continue
+		}
+		if !channelSupportsGroup(channel, userGroup) {
+			continue
+		}
+		if !channelSupportsEndpoint(channel, relayMode) {
+			continue
+		}
+
+		if visionModel := firstVisionModelForChannel(channel, allowedModels); visionModel != "" {
+			return visionModel
+		}
+	}
+
+	return ""
+}
+
 // channelRateLimitValue returns the configured per-channel rate limit.
 func channelRateLimitValue(channel *model.Channel) int {
 	if channel == nil || channel.RateLimit == nil {
@@ -257,10 +339,12 @@ func Distribute() func(c *gin.Context) {
 		relayMode := relaymode.GetByPath(c.Request.URL.Path)
 
 		var requestModel string
+		var routingModel string
 		var channel *model.Channel
 		channelBoundFromSession := false
 		selectedBy := "auto_selection"
 		stickyEnabled := config.StickySessionEnabled
+		autoRoutedModel := strings.TrimSpace(c.GetString(ctxkey.AutoRoutedModel))
 		channelId := c.GetInt(ctxkey.SpecificChannelId)
 		if channelId == 0 {
 			if responseID := strings.TrimSpace(c.Param("response_id")); responseID != "" {
@@ -322,9 +406,27 @@ func Distribute() func(c *gin.Context) {
 				return
 			}
 			requestModel = c.GetString(ctxkey.RequestModel)
-			if requestModel != "" && !channel.SupportsModel(requestModel) {
+			routingModel = requestModel
+			if autoRoutedModel != "" {
+				routingModel = autoRoutedModel
+			} else if isCapabilityBasedMultimodalRoutingEnabled() && requestContainsImageInput(c) && isTextOnlyChatModelName(requestModel) {
+				allowedModels := c.GetString(ctxkey.AvailableModels)
+				if routedModel := firstVisionModelForChannel(channel, allowedModels); routedModel != "" {
+					autoRoutedModel = routedModel
+					routingModel = routedModel
+					c.Set(ctxkey.AutoRoutedModel, routedModel)
+					selectedBy = "specific_channel_capability_vision_autoroute"
+				} else {
+					imageContentTypes := detectImageInputContentTypes(c)
+					reason := fmt.Sprintf("no vision-capable model is available for channel #%d", channel.Id)
+					AbortWithError(c, http.StatusBadRequest,
+						errors.New(helper.BuildTextOnlyModelImageInputValidationMessage(requestModel, imageContentTypes, reason)))
+					return
+				}
+			}
+			if routingModel != "" && !channel.SupportsModel(routingModel) {
 				AbortWithError(c, http.StatusBadRequest,
-					errors.Errorf("Channel #%d does not support the requested model: %s", channelId, requestModel))
+					errors.Errorf("Channel #%d does not support the requested model: %s", channelId, routingModel))
 				return
 			}
 			isResponseWSHandshake := isResponseAPIWebSocketHandshake(c, relayMode)
@@ -363,20 +465,38 @@ func Distribute() func(c *gin.Context) {
 
 		if channel == nil {
 			requestModel = c.GetString(ctxkey.RequestModel)
-			if stickyEnabled && requestModel != "" {
-				stickyChannelID, found, stickyErr := model.GetStickySessionChannel(ctx, userId, requestModel)
+			routingModel = requestModel
+			if autoRoutedModel != "" {
+				routingModel = autoRoutedModel
+			} else if isCapabilityBasedMultimodalRoutingEnabled() && requestContainsImageInput(c) && isTextOnlyChatModelName(requestModel) {
+				allowedModels := c.GetString(ctxkey.AvailableModels)
+				routedModel := selectCapabilityBasedVisionModel(userGroup, relayMode, allowedModels)
+				if routedModel == "" {
+					imageContentTypes := detectImageInputContentTypes(c)
+					reason := "no vision-capable model is currently available"
+					AbortWithError(c, http.StatusBadRequest,
+						errors.New(helper.BuildTextOnlyModelImageInputValidationMessage(requestModel, imageContentTypes, reason)))
+					return
+				}
+				autoRoutedModel = routedModel
+				routingModel = routedModel
+				c.Set(ctxkey.AutoRoutedModel, routedModel)
+				selectedBy = "capability_vision_autoroute"
+			}
+			if stickyEnabled && routingModel != "" {
+				stickyChannelID, found, stickyErr := model.GetStickySessionChannel(ctx, userId, routingModel)
 				if stickyErr != nil {
 					lg.Warn("failed to load sticky session channel",
 						zap.Error(stickyErr),
 						zap.Int("user_id", userId),
-						zap.String("model", requestModel),
+						zap.String("model", routingModel),
 					)
 				} else if found {
 					stickyChannel, loadErr := model.GetChannelById(stickyChannelID, true)
 					if loadErr != nil {
-						_ = model.DeleteStickySessionChannel(ctx, userId, requestModel)
-					} else if stickyChannel.Status != model.ChannelStatusEnabled || !stickyChannel.SupportsModel(requestModel) {
-						_ = model.DeleteStickySessionChannel(ctx, userId, requestModel)
+						_ = model.DeleteStickySessionChannel(ctx, userId, routingModel)
+					} else if stickyChannel.Status != model.ChannelStatusEnabled || !stickyChannel.SupportsModel(routingModel) {
+						_ = model.DeleteStickySessionChannel(ctx, userId, routingModel)
 					} else {
 						limitBlocked, limitErr := WouldChannelRateLimitBlock(c, stickyChannel.Id, channelRateLimitValue(stickyChannel))
 						if limitErr != nil {
@@ -389,14 +509,14 @@ func Distribute() func(c *gin.Context) {
 							selectedBy = "sticky_session"
 							lg.Debug("sticky session channel selected",
 								zap.Int("user_id", userId),
-								zap.String("model", requestModel),
+								zap.String("model", routingModel),
 								zap.Int("channel_id", stickyChannel.Id),
 								zap.String("request_id", c.GetString(helper.RequestIdKey)),
 							)
 						} else {
 							lg.Info("sticky session channel is rate limited, selecting alternative channel",
 								zap.Int("user_id", userId),
-								zap.String("model", requestModel),
+								zap.String("model", routingModel),
 								zap.Int("channel_id", stickyChannel.Id),
 							)
 						}
@@ -405,14 +525,14 @@ func Distribute() func(c *gin.Context) {
 			} else if !stickyEnabled && requestModel != "" {
 				lg.Debug("sticky session disabled, skip sticky lookup",
 					zap.Int("user_id", userId),
-					zap.String("model", requestModel),
+					zap.String("model", routingModel),
 				)
 			}
 
 			isResponseWSHandshake := isResponseAPIWebSocketHandshake(c, relayMode)
-			if requestModel == "" && isResponseWSHandshake {
+			if routingModel == "" && isResponseWSHandshake {
 				if hintedModel := strings.TrimSpace(c.Query("model")); hintedModel != "" {
-					requestModel = hintedModel
+					routingModel = hintedModel
 					c.Set(ctxkey.RequestModel, hintedModel)
 					lg.Debug("response websocket handshake uses query model hint",
 						zap.String("model", hintedModel),
@@ -423,12 +543,12 @@ func Distribute() func(c *gin.Context) {
 			}
 
 			selectChannel := func(ignoreFirstPriority bool, exclude map[int]bool) (*model.Channel, error) {
-				if requestModel == "" && isResponseWSHandshake {
+				if routingModel == "" && isResponseWSHandshake {
 					return selectResponseWebSocketChannelWithoutModel(userGroup, relayMode, ignoreFirstPriority)
 				}
 
 				for {
-					candidate, err := model.CacheGetRandomSatisfiedChannelExcluding(userGroup, requestModel, ignoreFirstPriority, exclude, false)
+					candidate, err := model.CacheGetRandomSatisfiedChannelExcluding(userGroup, routingModel, ignoreFirstPriority, exclude, false)
 					if err != nil {
 						return nil, errors.Wrap(err, "select channel from cache")
 					}
@@ -474,18 +594,18 @@ func Distribute() func(c *gin.Context) {
 				var err error
 				channel, err = selectChannel(false, exclude)
 				if err != nil {
-					lg.Info(fmt.Sprintf("No highest priority channels available for model %s in group %s, trying lower priority channels", requestModel, userGroup))
+					lg.Info(fmt.Sprintf("No highest priority channels available for model %s in group %s, trying lower priority channels", routingModel, userGroup))
 					channel, err = selectChannel(true, exclude)
 					if err != nil {
 						// Before returning 503, check whether all abilities are merely suspended
 						// and will recover within ChannelPoolRecoveryWaitMax. If so, wait and retry
 						// once to smooth over short rate-limit bursts without failing the request.
-						if requestModel != "" && config.ChannelPoolRecoveryWaitMax > 0 {
-							soonest, soonestErr := model.GetSoonestSuspendUntil(userGroup, requestModel)
+						if routingModel != "" && config.ChannelPoolRecoveryWaitMax > 0 {
+							soonest, soonestErr := model.GetSoonestSuspendUntil(userGroup, routingModel)
 							if soonestErr != nil {
 								lg.Warn("failed to query soonest suspend_until for pool recovery wait",
 									zap.Error(soonestErr),
-									zap.String("model", requestModel),
+									zap.String("model", routingModel),
 								)
 							} else if soonest != nil {
 								waitDur := time.Until(*soonest)
@@ -493,7 +613,7 @@ func Distribute() func(c *gin.Context) {
 									lg.Info("all channels suspended; waiting for earliest recovery before retrying",
 										zap.Duration("wait_duration", waitDur),
 										zap.Time("soonest_recovery", *soonest),
-										zap.String("model", requestModel),
+										zap.String("model", routingModel),
 										zap.String("group", userGroup),
 									)
 									select {
@@ -510,7 +630,7 @@ func Distribute() func(c *gin.Context) {
 							}
 						}
 						if channel == nil {
-							message := fmt.Sprintf("No available channels for Model %s under Group %s", requestModel, userGroup)
+							message := fmt.Sprintf("No available channels for Model %s under Group %s", routingModel, userGroup)
 							AbortWithError(c, http.StatusServiceUnavailable, errors.New(message))
 							return
 						}
@@ -536,25 +656,35 @@ func Distribute() func(c *gin.Context) {
 			zap.Int("user_id", userId),
 			zap.String("user_group", userGroup),
 			zap.String("request_model", requestModel),
+			zap.String("routing_model", routingModel),
 			zap.Int("selected_channel_id", channel.Id),
 			zap.String("selected_channel_name", channel.Name),
 			zap.String("selected_by", selectedBy),
 			zap.Bool("sticky_enabled", stickyEnabled),
 		)
-		SetupContextForSelectedChannel(c, channel, requestModel)
-		if stickyEnabled && c.GetInt(ctxkey.SpecificChannelId) == 0 && requestModel != "" {
-			if err := model.SetStickySessionChannel(ctx, userId, requestModel, channel.Id); err != nil {
+		SetupContextForSelectedChannel(c, channel, routingModel)
+		if autoRoutedModel != "" && requestModel != "" && routingModel != "" && !strings.EqualFold(requestModel, routingModel) {
+			modelMapping := c.GetStringMapString(ctxkey.ModelMapping)
+			mergedModelMapping := make(map[string]string, len(modelMapping)+1)
+			for sourceModel, targetModel := range modelMapping {
+				mergedModelMapping[sourceModel] = targetModel
+			}
+			mergedModelMapping[requestModel] = routingModel
+			c.Set(ctxkey.ModelMapping, mergedModelMapping)
+		}
+		if stickyEnabled && c.GetInt(ctxkey.SpecificChannelId) == 0 && routingModel != "" {
+			if err := model.SetStickySessionChannel(ctx, userId, routingModel, channel.Id); err != nil {
 				lg.Warn("failed to persist sticky session channel",
 					zap.Error(err),
 					zap.Int("user_id", userId),
-					zap.String("model", requestModel),
+					zap.String("model", routingModel),
 					zap.Int("channel_id", channel.Id),
 				)
 			}
-		} else if !stickyEnabled && requestModel != "" {
+		} else if !stickyEnabled && routingModel != "" {
 			lg.Debug("sticky session disabled, skip sticky persistence",
 				zap.Int("user_id", userId),
-				zap.String("model", requestModel),
+				zap.String("model", routingModel),
 				zap.Int("channel_id", channel.Id),
 			)
 		}

@@ -29,7 +29,10 @@ This guide describes the configuration process after installing UniAPI, includin
   - `PORT`: Backend listening port (default: 3000)
   - `SQL_DSN`: Database connection string for MySQL/PostgreSQL
   - `SQLITE_PATH`: SQLite path used when `SQL_DSN` is empty
-  - `REDIS_URL`: Redis connection string (if used)
+  - `REDIS_CONN_STRING`: Redis connection string (if used)
+  - `SESSION_SECRET`: Session encryption secret for dashboard login state
+  - `MULTIMODAL_ROUTE_MODE`: Image-bearing request routing mode for text-only models (`fixed_fallback` or `capability_based`)
+  - `MULTIMODAL_VISION_FALLBACK_MODEL`: Fixed fallback vision model when `MULTIMODAL_ROUTE_MODE=fixed_fallback` (default: `gpt-4o`)
   - `OTEL_*`: OpenTelemetry tracing (optional)
 - For production, use Docker Compose or Kubernetes (see README and docs/manuals/k8s.md).
 
@@ -51,6 +54,7 @@ UniAPI uses a backend-driven registry for all channel types (model providers). E
   - `pattern`: Regex for validation (optional)
 
 **Example template field:**
+
 ```go
 {Name: "api_base", Type: "string", Required: true, Default: "https://api.openai.com/v1", Description: "API Base URL"}
 ```
@@ -62,6 +66,7 @@ UniAPI uses a backend-driven registry for all channel types (model providers). E
 Below are sample template definitions for mainstream providers. These are registered in `relay/channeltype/bootstrap.go` and exposed via the API for frontend use.
 
 ### OpenAI
+
 ```go
 RegisterChannelType(ChannelTypeInfoV2{
   ID: OpenAI,
@@ -77,6 +82,7 @@ RegisterChannelType(ChannelTypeInfoV2{
 ```
 
 ### Anthropic Claude
+
 ```go
 RegisterChannelType(ChannelTypeInfoV2{
   ID: Anthropic,
@@ -92,6 +98,7 @@ RegisterChannelType(ChannelTypeInfoV2{
 ```
 
 ### Google Gemini
+
 ```go
 RegisterChannelType(ChannelTypeInfoV2{
   ID: Gemini,
@@ -107,6 +114,7 @@ RegisterChannelType(ChannelTypeInfoV2{
 ```
 
 ### DeepSeek
+
 ```go
 RegisterChannelType(ChannelTypeInfoV2{
   ID: DeepSeek,
@@ -122,6 +130,7 @@ RegisterChannelType(ChannelTypeInfoV2{
 ```
 
 ### Replicate
+
 ```go
 RegisterChannelType(ChannelTypeInfoV2{
   ID: Replicate,
@@ -137,6 +146,7 @@ RegisterChannelType(ChannelTypeInfoV2{
 ```
 
 ### Groq
+
 ```go
 RegisterChannelType(ChannelTypeInfoV2{
   ID: Groq,
@@ -152,6 +162,7 @@ RegisterChannelType(ChannelTypeInfoV2{
 ```
 
 ### 智谱 GLM
+
 ```go
 RegisterChannelType(ChannelTypeInfoV2{
   ID: GLM,
@@ -186,6 +197,7 @@ RegisterChannelType(ChannelTypeInfoV2{
 ---
 
 For more details, see:
+
 - `README.md`
 - `relay/channeltype/bootstrap.go`
 - `relay/channeltype/template.go`

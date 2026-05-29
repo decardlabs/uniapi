@@ -86,7 +86,7 @@ func TestGetAndValidateClaudeMessagesRequest(t *testing.T) {
 				"max_tokens": 1024,
 				"messages": [
 					{
-						"role": "system",
+						"role": "tool",
 						"content": "Hello"
 					}
 				]
@@ -123,6 +123,79 @@ func TestGetAndValidateClaudeMessagesRequest(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetAndValidateClaudeMessagesRequest_NormalizesSystemRole(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+
+	body := `{
+		"model": "deepseek-v4-pro",
+		"max_tokens": 1024,
+		"messages": [
+			{
+				"role": "system",
+				"content": "You are a coding assistant."
+			},
+			{
+				"role": "user",
+				"content": "hi"
+			}
+		]
+	}`
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	req, err := http.NewRequest("POST", "/v1/messages", bytes.NewBufferString(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	c.Request = req
+
+	parsed, parseErr := getAndValidateClaudeMessagesRequest(c)
+	require.NoError(t, parseErr)
+	require.NotNil(t, parsed)
+	require.Equal(t, "You are a coding assistant.", parsed.System)
+	require.Len(t, parsed.Messages, 1)
+	require.Equal(t, "user", parsed.Messages[0].Role)
+}
+
+func TestGetAndValidateClaudeMessagesRequest_NormalizesDeveloperRole(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+
+	body := `{
+		"model": "deepseek-v4-pro",
+		"max_tokens": 1024,
+		"messages": [
+			{
+				"role": "developer",
+				"content": "Keep answers concise."
+			},
+			{
+				"role": "assistant",
+				"content": "Ready."
+			},
+			{
+				"role": "user",
+				"content": "continue"
+			}
+		]
+	}`
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	req, err := http.NewRequest("POST", "/v1/messages", bytes.NewBufferString(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	c.Request = req
+
+	parsed, parseErr := getAndValidateClaudeMessagesRequest(c)
+	require.NoError(t, parseErr)
+	require.NotNil(t, parsed)
+	require.Equal(t, "Keep answers concise.", parsed.System)
+	require.Len(t, parsed.Messages, 2)
+	require.Equal(t, "assistant", parsed.Messages[0].Role)
+	require.Equal(t, "user", parsed.Messages[1].Role)
 }
 
 func TestBuildClaudeToolsForMCP(t *testing.T) {

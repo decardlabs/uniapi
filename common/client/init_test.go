@@ -3,7 +3,9 @@ package client
 import (
 	"net/http"
 	"testing"
+	"time"
 
+	"github.com/decardlabs/uniapi/common/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,4 +29,23 @@ func TestInit(t *testing.T) {
 	// Verify other clients are created
 	require.NotNil(t, HTTPClient)
 	require.NotNil(t, ImpatientHTTPClient)
+}
+
+func TestInit_UserContentTimeoutNoProxyUsesConfig(t *testing.T) {
+	t.Helper()
+
+	originalProxy := config.UserContentRequestProxy
+	originalTimeout := config.UserContentRequestTimeout
+	t.Cleanup(func() {
+		config.UserContentRequestProxy = originalProxy
+		config.UserContentRequestTimeout = originalTimeout
+	})
+
+	config.UserContentRequestProxy = ""
+	config.UserContentRequestTimeout = 7
+
+	Init()
+
+	require.NotNil(t, UserContentRequestHTTPClient)
+	require.Equal(t, 7*time.Second, UserContentRequestHTTPClient.Timeout)
 }

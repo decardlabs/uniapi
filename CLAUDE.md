@@ -41,7 +41,7 @@ go run ./cmd/migrate
 
 **Frontend**: Use `yarn` (not npm). Frontend source is in `web/modern/`. Language files in `web/modern/src/i18n/locales/`.
 
-**Local dev setup**: Copy `.env.example` to `.env` and configure MySQL (`DB_DSN`) and Redis (`REDIS_URL`). Default port is `3000`, default admin credentials are `root` / `123456`. VS Code: `F5` to debug, `Cmd+Shift+B` to build.
+**Local dev setup**: Copy `.env.example` to `.env`. The current template defaults to SQLite via `SQLITE_PATH` for local startup, and you can switch to MySQL with `SQL_DSN` if needed. Redis is optional in local development and uses `REDIS_CONN_STRING` when enabled. Default port is `3000`, default admin credentials are `root` / `123456`. VS Code: `F5` to debug, `Cmd+Shift+B` to build.
 
 **Module path**: `github.com/decardlabs/uniapi` (Go 1.25).
 
@@ -69,24 +69,25 @@ Client → Gin Router → Middleware (auth, rate-limit, distribute) → Controll
 
 ### Key Packages
 
-| Package | Purpose |
-|---------|---------|
-| [common/config/](common/config/) | All configuration via environment variables (single package, sectioned by group) |
-| [common/logger/](common/logger/) | Zap-based structured logging with rotation and retention |
-| [model/](model/) | GORM models and data access. Use GORM for writes, raw SQL for complex reads. |
-| [relay/meta/](relay/meta/) | Per-request metadata (channel, model, pricing, token info) threaded through the relay |
-| [relay/channeltype/](relay/channeltype/) | Channel type constants (50+ provider types) |
-| [relay/relaymode/](relay/relaymode/) | Relay mode constants (ChatCompletions, Embeddings, ResponseAPI, ClaudeMessages, etc.) |
-| [relay/billing/](relay/billing/) | Token billing ratio calculations |
-| [relay/pricing/](relay/pricing/) | Global pricing manager and model price resolution |
-| [relay/streaming/](relay/streaming/) | SSE streaming helpers |
-| [relay/mcp/](relay/mcp/) | MCP (Model Context Protocol) proxy and aggregation |
-| [dto/](dto/) | Data transfer objects for API responses |
-| [monitor/](monitor/) | Prometheus + OpenTelemetry monitoring setup |
+| Package                                  | Purpose                                                                               |
+| ---------------------------------------- | ------------------------------------------------------------------------------------- |
+| [common/config/](common/config/)         | All configuration via environment variables (single package, sectioned by group)      |
+| [common/logger/](common/logger/)         | Zap-based structured logging with rotation and retention                              |
+| [model/](model/)                         | GORM models and data access. Use GORM for writes, raw SQL for complex reads.          |
+| [relay/meta/](relay/meta/)               | Per-request metadata (channel, model, pricing, token info) threaded through the relay |
+| [relay/channeltype/](relay/channeltype/) | Channel type constants (50+ provider types)                                           |
+| [relay/relaymode/](relay/relaymode/)     | Relay mode constants (ChatCompletions, Embeddings, ResponseAPI, ClaudeMessages, etc.) |
+| [relay/billing/](relay/billing/)         | Token billing ratio calculations                                                      |
+| [relay/pricing/](relay/pricing/)         | Global pricing manager and model price resolution                                     |
+| [relay/streaming/](relay/streaming/)     | SSE streaming helpers                                                                 |
+| [relay/mcp/](relay/mcp/)                 | MCP (Model Context Protocol) proxy and aggregation                                    |
+| [dto/](dto/)                             | Data transfer objects for API responses                                               |
+| [monitor/](monitor/)                     | Prometheus + OpenTelemetry monitoring setup                                           |
 
 ### Billing Pipeline
 
 Four-layer pricing resolution ([docs/arch/billing.md](docs/arch/billing.md)):
+
 1. **Channel overrides** — per-model pricing set on a specific channel
 2. **Adaptor defaults** — provider-supplied default pricing via `GetDefaultModelPricing`
 3. **Global fallback** — configured global model price list

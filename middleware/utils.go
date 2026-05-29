@@ -1,7 +1,9 @@
 package middleware
 
 import (
+	"encoding/json"
 	"slices"
+	"sort"
 	"strings"
 
 	"github.com/Laisky/errors/v2"
@@ -153,6 +155,97 @@ func getRequestModel(c *gin.Context) (string, error) {
 	}
 
 	return modelRequest.Model, nil
+}
+
+func isTextOnlyChatModelName(modelName string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(modelName))
+	if normalized == "" {
+		return false
+	}
+
+	if strings.Contains(normalized, "gpt-oss") {
+		return true
+	}
+
+	if strings.Contains(normalized, "deepseek") {
+		if strings.Contains(normalized, "vl") || strings.Contains(normalized, "vision") {
+			return false
+		}
+		return true
+	}
+
+	return false
+}
+
+func requestContainsImageInput(c *gin.Context) bool {
+	return len(detectImageInputContentTypes(c)) > 0
+}
+
+// detectImageInputContentTypes inspects request payload content items and returns
+// detected image-related content types (for example image_url/input_image/image).
+// Parameters: c is the current request context.
+// Returns: sorted unique content type markers found in the request payload.
+func detectImageInputContentTypes(c *gin.Context) []string {
+	if c == nil || c.Request == nil {
+		return nil
+	}
+
+	path := c.Request.URL.Path
+	if !strings.HasPrefix(path, "/v1/chat/completions") &&
+		!strings.HasPrefix(path, "/v1/messages") &&
+		!strings.HasPrefix(path, "/v1/responses") {
+		return nil
+	}
+
+	body, err := common.GetRequestBody(c)
+	if err != nil || len(body) == 0 {
+		return nil
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return nil
+	}
+
+	types := make(map[string]struct{})
+	collectImageMarkers(payload["messages"], types)
+	collectImageMarkers(payload["input"], types)
+
+	if len(types) == 0 {
+		return nil
+	}
+
+	collected := make([]string, 0, len(types))
+	for typeName := range types {
+		collected = append(collected, typeName)
+	}
+	sort.Strings(collected)
+
+	return collected
+}
+
+func collectImageMarkers(value any, output map[string]struct{}) {
+	switch typed := value.(type) {
+	case map[string]any:
+		if marker, ok := typed["type"].(string); ok {
+			normalized := strings.ToLower(strings.TrimSpace(marker))
+			if normalized == "image_url" || normalized == "input_image" || normalized == "image" {
+				output[normalized] = struct{}{}
+			}
+		}
+
+		if _, exists := typed["image_url"]; exists {
+			output["image_url"] = struct{}{}
+		}
+
+		for _, nested := range typed {
+			collectImageMarkers(nested, output)
+		}
+	case []any:
+		for idx := range typed {
+			collectImageMarkers(typed[idx], output)
+		}
+	}
 }
 
 func isModelInList(modelName string, models string) bool {

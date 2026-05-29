@@ -67,6 +67,14 @@ const (
 	// mutating RequestModel. Use RequestModel for logging, billing trace, retries, and response.model.
 	RequestModel = "request_model"
 
+	// AutoRoutedModel stores an optional model name selected by middleware for automatic
+	// capability routing (for example, switching image-bearing requests from text-only
+	// models to a configured vision-capable fallback model).
+	// Set in: middleware/auth when request content requires a different model family.
+	// Read in: middleware/distributor to route channel selection and inject temporary
+	// request-scoped model mapping without mutating RequestModel.
+	AutoRoutedModel = "auto_routed_model"
+
 	// ConvertedRequest holds the provider-specific request body after conversion.
 	// Set in: controller/text during conversion, and in several adaptors (AWS/Gemini/OpenAI variants).
 	// Read in: adaptor DoRequest/DoResponse or signing steps that need the converted structure.

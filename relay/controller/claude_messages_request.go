@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/decardlabs/uniapi/common"
+	relaymodel "github.com/decardlabs/uniapi/relay/model"
 )
 
 // sanitizeClaudeMessagesRequest enforces parameter constraints required by upstream providers.
@@ -461,6 +462,61 @@ func messageLocation(messageIndex, blockIndex int) string {
 	return "messages[" + strconv.Itoa(messageIndex) + "].content[" + strconv.Itoa(blockIndex) + "]"
 }
 
+// normalizeClaudeMessagesRoles folds OpenAI-style system/developer role messages
+// into Claude's top-level system field and keeps only user/assistant messages.
+func normalizeClaudeMessagesRoles(request *ClaudeMessagesRequest) {
+	if request == nil || len(request.Messages) == 0 {
+		return
+	}
+
+	var systemParts []string
+	if systemText := extractClaudeMessageText(request.System); strings.TrimSpace(systemText) != "" {
+		systemParts = append(systemParts, systemText)
+	}
+
+	kept := make([]relaymodel.ClaudeMessage, 0, len(request.Messages))
+	for _, message := range request.Messages {
+		switch message.Role {
+		case "system", "developer":
+			if text := extractClaudeMessageText(message.Content); strings.TrimSpace(text) != "" {
+				systemParts = append(systemParts, text)
+			}
+		default:
+			kept = append(kept, message)
+		}
+	}
+
+	request.Messages = kept
+	if len(systemParts) > 0 {
+		request.System = strings.Join(systemParts, "\n\n")
+	}
+}
+
+// extractClaudeMessageText extracts plain text from Claude-compatible content payloads.
+func extractClaudeMessageText(content any) string {
+	switch typed := content.(type) {
+	case string:
+		return typed
+	case []any:
+		parts := make([]string, 0, len(typed))
+		for _, block := range typed {
+			blockMap, ok := block.(map[string]any)
+			if !ok {
+				continue
+			}
+			if blockType, _ := blockMap["type"].(string); blockType != "text" {
+				continue
+			}
+			if text, _ := blockMap["text"].(string); strings.TrimSpace(text) != "" {
+				parts = append(parts, text)
+			}
+		}
+		return strings.Join(parts, "\n")
+	default:
+		return ""
+	}
+}
+
 // getAndValidateClaudeMessagesRequest gets and validates Claude Messages API request.
 func getAndValidateClaudeMessagesRequest(c *gin.Context) (*ClaudeMessagesRequest, error) {
 	claudeRequest := &ClaudeMessagesRequest{}
@@ -476,6 +532,11 @@ func getAndValidateClaudeMessagesRequest(c *gin.Context) (*ClaudeMessagesRequest
 	if claudeRequest.MaxTokens <= 0 {
 		return nil, errors.New("max_tokens must be greater than 0")
 	}
+	if len(claudeRequest.Messages) == 0 {
+		return nil, errors.New("messages array cannot be empty")
+	}
+
+	normalizeClaudeMessagesRoles(claudeRequest)
 	if len(claudeRequest.Messages) == 0 {
 		return nil, errors.New("messages array cannot be empty")
 	}

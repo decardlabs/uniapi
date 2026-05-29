@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/Laisky/errors/v2"
@@ -126,4 +127,45 @@ func TestShouldLogAsWarning_IgnoredErrorPattern(t *testing.T) {
 
 	shouldWarn := shouldLogAsWarning(http.StatusInternalServerError, err)
 	require.True(t, shouldWarn)
+}
+
+func TestIsTextOnlyChatModelName(t *testing.T) {
+	require.True(t, isTextOnlyChatModelName("openai/gpt-oss-120b"))
+	require.True(t, isTextOnlyChatModelName(" GPT-OSS-20B "))
+	require.True(t, isTextOnlyChatModelName("deepseek-v4-pro"))
+	require.True(t, isTextOnlyChatModelName("deepseek-chat"))
+	require.False(t, isTextOnlyChatModelName("deepseek-vl2"))
+	require.False(t, isTextOnlyChatModelName("gpt-4o"))
+}
+
+func TestRequestContainsImageInput(t *testing.T) {
+	t.Run("chat completion with image_url block", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		payload := `{"model":"openai/gpt-oss-120b","messages":[{"role":"user","content":[{"type":"text","text":"check"},{"type":"image_url","image_url":{"url":"https://example.com/img.png"}}]}]}`
+		c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", strings.NewReader(payload))
+		c.Request.Header.Set("Content-Type", "application/json")
+
+		require.True(t, requestContainsImageInput(c))
+	})
+
+	t.Run("responses api with input_image block", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		payload := `{"model":"openai/gpt-oss-120b","input":[{"role":"user","content":[{"type":"input_text","text":"check"},{"type":"input_image","image_url":"https://example.com/img.png"}]}]}`
+		c.Request = httptest.NewRequest(http.MethodPost, "/v1/responses", strings.NewReader(payload))
+		c.Request.Header.Set("Content-Type", "application/json")
+
+		require.True(t, requestContainsImageInput(c))
+	})
+
+	t.Run("text only request", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		payload := `{"model":"openai/gpt-oss-120b","messages":[{"role":"user","content":"hello"}]}`
+		c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", strings.NewReader(payload))
+		c.Request.Header.Set("Content-Type", "application/json")
+
+		require.False(t, requestContainsImageInput(c))
+	})
 }

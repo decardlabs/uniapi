@@ -1,14 +1,13 @@
 import { useNotifications } from '@/components/ui/notifications';
 import { api } from '@/lib/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CHANNEL_TYPES_WITH_DEDICATED_BASE_URL } from '../constants';
 import { isValidJSON, normalizeChannelType, stringifyToolingConfig, toInt, validateModelConfigs } from '../helpers';
 import { type ChannelConfigForm, type ChannelForm, type EndpointInfo, channelSchema } from '../schemas';
-import { useRef } from 'react';
 import { zodSchemaFromTemplate } from '../utils/zodTemplate';
 
 export const useChannelForm = () => {
@@ -56,7 +55,10 @@ export const useChannelForm = () => {
           // 合并错误
           mainResult.errors = {
             ...mainResult.errors,
-            other: { message: result.error.errors.map(e => e.message).join('; ') }
+            other: {
+              type: 'custom',
+              message: result.error.errors.map(e => e.message).join('; '),
+            }
           };
         }
       }
@@ -538,7 +540,8 @@ export const useChannelForm = () => {
         payload.base_url = payload.base_url.slice(0, -1);
       }
 
-      if (watchType === 3 && (!payload.other || payload.other.trim() === '')) {
+      const otherIsEmptyString = typeof payload.other === 'string' && payload.other.trim() === '';
+      if (watchType === 3 && (!payload.other || otherIsEmptyString)) {
         payload.other = '2024-03-01-preview';
       }
 

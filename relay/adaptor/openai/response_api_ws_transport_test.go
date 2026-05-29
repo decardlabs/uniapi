@@ -17,6 +17,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
+	"github.com/decardlabs/uniapi/common/config"
 	dbmodel "github.com/decardlabs/uniapi/model"
 	"github.com/decardlabs/uniapi/relay/channeltype"
 	"github.com/decardlabs/uniapi/relay/meta"
@@ -683,7 +684,7 @@ func TestWebSocketStreamBridge_ContextCancellation(t *testing.T) {
 	select {
 	case <-readDone:
 		// Good - reader unblocked
-	case <-time.After(wsReadIdleTimeout + 5*time.Second):
+	case <-time.After(getWSReadIdleTimeout() + 5*time.Second):
 		t.Fatal("reader did not unblock after context cancellation - goroutine leak")
 	}
 	select {
@@ -692,6 +693,22 @@ func TestWebSocketStreamBridge_ContextCancellation(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("upstream did not see WebSocket close after context cancellation")
 	}
+}
+
+// TestGetWSReadIdleTimeout_UsesConfig verifies idle timeout is sourced from config and has a safe fallback.
+func TestGetWSReadIdleTimeout_UsesConfig(t *testing.T) {
+	t.Helper()
+
+	originalIdleTimeout := config.IdleTimeout
+	t.Cleanup(func() {
+		config.IdleTimeout = originalIdleTimeout
+	})
+
+	config.IdleTimeout = 45
+	require.Equal(t, 45*time.Second, getWSReadIdleTimeout())
+
+	config.IdleTimeout = 0
+	require.Equal(t, 30*time.Second, getWSReadIdleTimeout())
 }
 
 // TestExtractFinalResponseFromWebSocketMessage_Incomplete verifies usage extraction from incomplete events.

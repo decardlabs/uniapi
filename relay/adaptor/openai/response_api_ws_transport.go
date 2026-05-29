@@ -16,6 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 
+	"github.com/decardlabs/uniapi/common/config"
 	"github.com/decardlabs/uniapi/common/ctxkey"
 	"github.com/decardlabs/uniapi/common/tracing"
 	dbmodel "github.com/decardlabs/uniapi/model"
@@ -547,10 +548,15 @@ func parseWebSocketErrorPayload(message []byte) (*responseAPIWSErrorPayload, boo
 	return nil, false
 }
 
-// wsReadIdleTimeout is the maximum duration the WebSocket reader will wait
-// for the next message before giving up. This prevents goroutine leaks when
-// the upstream doesn't close the connection after a terminal event.
-const wsReadIdleTimeout = 30 * time.Second
+// getWSReadIdleTimeout returns the configured websocket read idle timeout.
+// It falls back to 30 seconds to preserve historical behavior when the value is invalid.
+func getWSReadIdleTimeout() time.Duration {
+	if config.IdleTimeout <= 0 {
+		return 30 * time.Second
+	}
+
+	return time.Duration(config.IdleTimeout) * time.Second
+}
 
 // buildStreamingWebSocketHTTPResponse bridges websocket events to an SSE body that existing
 // stream handlers can consume unchanged.
@@ -593,9 +599,10 @@ func buildStreamingWebSocketHTTPResponse(c *gin.Context, conn *websocket.Conn, f
 		}
 
 		for {
+			readIdleTimeout := getWSReadIdleTimeout()
 			// Set a read deadline so we don't block forever if the upstream
 			// fails to close the WebSocket after a terminal event.
-			_ = conn.SetReadDeadline(time.Now().Add(wsReadIdleTimeout))
+			_ = conn.SetReadDeadline(time.Now().Add(readIdleTimeout))
 
 			message, err := readNextWebSocketTextMessage(conn)
 			if err != nil {

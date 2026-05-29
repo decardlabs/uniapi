@@ -2,6 +2,7 @@ package model
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -12,12 +13,22 @@ import (
 	"github.com/decardlabs/uniapi/common/logger"
 )
 
+// TestMain configures the logger and redirects package-level SQLite usage to a
+// temporary database so model tests do not create repository-local files.
 func TestMain(m *testing.M) {
 	// Setup logger for tests
 	logger.SetupLogger()
+	originalSQLitePath := common.SQLitePath
+	tempDir, err := os.MkdirTemp("", "uniapi-model-test-*")
+	if err != nil {
+		panic(err)
+	}
+	common.SQLitePath = filepath.Join(tempDir, "model-test.db")
 
 	// Run tests
 	code := m.Run()
+	common.SQLitePath = originalSQLitePath
+	_ = os.RemoveAll(tempDir)
 
 	// Cleanup
 	os.Exit(code)

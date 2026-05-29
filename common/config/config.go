@@ -214,9 +214,9 @@ var (
 	// The file will be created if it doesn't exist.
 	//
 	// Environment variable: SQLITE_PATH
-	// Default: "uniapi.db"
+	// Default: "./data/uniapi.db"
 	// Example: "/var/lib/uniapi/data.db"
-	SQLitePath = env.String("SQLITE_PATH", "uniapi.db")
+	SQLitePath = env.String("SQLITE_PATH", "./data/uniapi.db")
 
 	// SQLiteBusyTimeout configures SQLite busy timeout to mitigate locking errors
 	// during concurrent access. Higher values reduce lock errors but increase latency.
@@ -556,6 +556,27 @@ var (
 	// Environment variable: STICKY_SESSION_ENABLED
 	// Default: true
 	StickySessionEnabled = env.Bool("STICKY_SESSION_ENABLED", true)
+
+	// StickySessionTimeoutSeconds controls how long user-to-channel sticky bindings
+	// remain valid without refresh.
+	//
+	// MultimodalVisionFallbackModel is used when middleware detects image input on
+	// text-only model families (for example gpt-oss). When set, auth/distributor
+	// can auto-route channel selection to this model while preserving the original
+	// requested model name for tracing.
+	//
+	// Environment variable: MULTIMODAL_VISION_FALLBACK_MODEL
+	// Default: "gpt-4o"
+	MultimodalVisionFallbackModel = strings.TrimSpace(env.String("MULTIMODAL_VISION_FALLBACK_MODEL", "gpt-4o"))
+
+	// MultimodalRouteMode controls how image-bearing requests on text-only models are routed.
+	// Supported values:
+	//   - "fixed_fallback": use MULTIMODAL_VISION_FALLBACK_MODEL
+	//   - "capability_based": choose from channel-level vision capabilities
+	//
+	// Environment variable: MULTIMODAL_ROUTE_MODE
+	// Default: "fixed_fallback"
+	MultimodalRouteMode = strings.ToLower(strings.TrimSpace(env.String("MULTIMODAL_ROUTE_MODE", "fixed_fallback")))
 
 	// StickySessionTimeoutSeconds controls how long user-to-channel sticky bindings
 	// remain valid without refresh.

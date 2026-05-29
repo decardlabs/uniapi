@@ -33,6 +33,7 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Request, meta *me
 
 func (a *Adaptor) ConvertRequest(c *gin.Context, relayMode int, request *model.GeneralOpenAIRequest) (any, error) {
 	openai_compatible.BackfillToolMessageNamesFromToolCalls(request)
+	normalizeMiniMaxMessageRoles(request)
 	// MiniMax does not support reasoning_effort
 	request.ReasoningEffort = nil
 	// M2 series support top_k; strip only for legacy models
@@ -61,6 +62,7 @@ func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, request *model.ClaudeRequ
 		return converted, nil
 	}
 	// Apply same post-processing as ConvertRequest
+	normalizeMiniMaxMessageRoles(openaiReq)
 	openaiReq.ReasoningEffort = nil
 	if !isMiniMaxM2Model(openaiReq.Model) {
 		openaiReq.TopK = nil
@@ -125,4 +127,24 @@ func (a *Adaptor) DefaultToolingConfig() adaptor.ChannelToolConfig {
 // isMiniMaxM2Model reports whether the model name indicates a MiniMax M2 series model.
 func isMiniMaxM2Model(modelName string) bool {
 	return strings.HasPrefix(modelName, "MiniMax-M2")
+}
+
+// normalizeMiniMaxMessageRoles rewrites unsupported OpenAI message roles to
+// user role because MiniMax only accepts user/assistant in messages.
+func normalizeMiniMaxMessageRoles(request *model.GeneralOpenAIRequest) {
+	if request == nil || len(request.Messages) == 0 {
+		return
+	}
+
+	for i := range request.Messages {
+		msg := &request.Messages[i]
+		switch msg.Role {
+		case "user", "assistant":
+			continue
+		case "tool", "system", "developer", "function":
+			msg.Role = "user"
+		default:
+			msg.Role = "user"
+		}
+	}
 }

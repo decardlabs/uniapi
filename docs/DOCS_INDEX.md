@@ -74,3 +74,20 @@ Recommended follow-up audits:
 
 - Sweep docs for legacy naming where context is not historical reference.
 - Keep deployment section and scripts synchronized after each release process change.
+
+## 9) Recent Sync (2026-05-29)
+
+This pass synchronized compatibility fix notes and doc status across the following files:
+
+- Release note and behavior summary: [README.md v3.9.9](../README.md#版本历史)
+- Runtime configuration additions: [CONFIG_GUIDE.md](./CONFIG_GUIDE.md)
+- Multimodal plan status clarification (historical draft): [DEEPSEEK_MULTIMODAL_UPGRADE_PLAN.md](./DEEPSEEK_MULTIMODAL_UPGRADE_PLAN.md)
+
+## 10) Compatibility Testing (2026-05-29)
+
+- Test plan: [COMPATIBILITY_TEST_PLAN_2026-05-29.md](./COMPATIBILITY_TEST_PLAN_2026-05-29.md)
+- Test record: [COMPATIBILITY_TEST_RESULTS_2026-05-29.md](./COMPATIBILITY_TEST_RESULTS_2026-05-29.md)
+
+## 11) Release Deployment Notes (v3.9.9)
+
+- Deployment and configuration recommendations: [DEPLOYMENT_CONFIG_RECOMMENDATIONS_v3.9.9.md](./DEPLOYMENT_CONFIG_RECOMMENDATIONS_v3.9.9.md)

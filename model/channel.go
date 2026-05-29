@@ -99,6 +99,10 @@ type ChannelConfig struct {
 	// images_generations, images_edits, audio_speech, audio_transcription,
 	// audio_translation, rerank, response_api, claude_messages, realtime, videos.
 	SupportedEndpoints []string `json:"supported_endpoints,omitempty"`
+	// SupportsVision indicates whether this channel can process image inputs.
+	SupportsVision bool `json:"supports_vision,omitempty"`
+	// VisionModels lists vision-capable models available on this channel.
+	VisionModels []string `json:"vision_models,omitempty"`
 }
 
 type ModelConfig struct {

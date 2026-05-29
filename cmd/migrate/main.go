@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/Laisky/errors/v2"
 	"github.com/Laisky/zap"
@@ -39,6 +41,15 @@ EXAMPLES:
 	# Re-run migration safely (idempotent - handles existing data automatically)
 	%s -source-dsn="./one-api.db" -target-dsn="postgres://user:pass@localhost/oneapi"
 
+	# Backfill channel vision capability config in place
+	%s -source-dsn="postgres://user:pass@localhost/oneapi" -backfill-vision-capabilities
+
+	# Preview channel vision capability backfill without writing
+	%s -source-dsn="postgres://user:pass@localhost/oneapi" -backfill-vision-capabilities -backfill-vision-dry-run
+
+	# Backfill only enabled channels for selected IDs
+	%s -source-dsn="postgres://user:pass@localhost/oneapi" -backfill-vision-capabilities -backfill-vision-enabled-only -backfill-vision-channel-ids="101,205"
+
 OPTIONS:
 `
 )
@@ -55,11 +66,15 @@ var (
 	skipValidation = flag.Bool("skip-validation", false, "Skip pre-migration validation (not recommended)")
 	workers        = flag.Int("workers", 4, "Number of concurrent workers for batch processing")
 	batchSize      = flag.Int("batch-size", 1000, "Number of records to process in each batch")
+	backfillVision = flag.Bool("backfill-vision-capabilities", false, "Backfill channels config.supports_vision and config.vision_models in source database")
+	backfillDryRun = flag.Bool("backfill-vision-dry-run", false, "Preview backfill updates without persisting channel config changes")
+	backfillEnabledOnly = flag.Bool("backfill-vision-enabled-only", false, "When backfilling vision capabilities, only process enabled channels")
+	backfillChannelIDs  = flag.String("backfill-vision-channel-ids", "", "Comma-separated channel IDs to backfill (e.g. 101,205)")
 )
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, usage, version, os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0])
+		fmt.Fprintf(os.Stderr, usage, version, os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0])
 		flag.PrintDefaults()
 	}
 
@@ -90,6 +105,30 @@ func main() {
 
 	// Create migration context
 	ctx := context.Background()
+
+	if *backfillVision {
+		selectedChannelIDs, err := parseChannelIDs(*backfillChannelIDs)
+		if err != nil {
+			logger.Logger.Fatal("invalid backfill channel ids", zap.Error(err))
+		}
+
+		summary, err := internal.BackfillVisionCapabilities(ctx, *sourceDSN, *backfillDryRun, internal.VisionBackfillOptions{
+			OnlyEnabled: *backfillEnabledOnly,
+			ChannelIDs:  selectedChannelIDs,
+		})
+		if err != nil {
+			logger.Logger.Fatal("vision capability backfill failed", zap.Error(err))
+		}
+
+		logger.Logger.Info("vision capability backfill completed",
+			zap.Bool("dry_run", summary.DryRun),
+			zap.Bool("enabled_only", *backfillEnabledOnly),
+			zap.Int("selected_channel_id_count", len(selectedChannelIDs)),
+			zap.Int("channels_scanned", summary.ScannedChannels),
+			zap.Int("channels_updated", summary.UpdatedChannels),
+		)
+		return
+	}
 
 	// Extract database types from DSNs
 	sourceType, err := internal.ExtractDatabaseTypeFromDSN(*sourceDSN)
@@ -156,6 +195,35 @@ func main() {
 }
 
 func validateFlags() error {
+	if *backfillVision {
+		if *sourceDSN == "" {
+			return errors.Errorf("source-dsn is required")
+		}
+		if err := internal.ValidateDSN(*sourceDSN); err != nil {
+			return errors.Wrapf(err, "invalid source DSN")
+		}
+		if *targetDSN != "" {
+			return errors.Errorf("target-dsn cannot be used with --backfill-vision-capabilities")
+		}
+		if *dryRun || *validateOnly || *showPlan {
+			return errors.Errorf("--backfill-vision-capabilities cannot be combined with migration operation modes")
+		}
+		if *skipValidation {
+			return errors.Errorf("--skip-validation is not applicable to --backfill-vision-capabilities")
+		}
+		if *workers != 4 || *batchSize != 1000 {
+			return errors.Errorf("--workers and --batch-size are not applicable to --backfill-vision-capabilities")
+		}
+		if _, err := parseChannelIDs(*backfillChannelIDs); err != nil {
+			return errors.Wrapf(err, "invalid --backfill-vision-channel-ids")
+		}
+		return nil
+	}
+
+	if *backfillDryRun || *backfillEnabledOnly || strings.TrimSpace(*backfillChannelIDs) != "" {
+		return errors.Errorf("--backfill-vision-dry-run, --backfill-vision-enabled-only, and --backfill-vision-channel-ids must be used with --backfill-vision-capabilities")
+	}
+
 	// Source DSN is always required
 	if *sourceDSN == "" {
 		return errors.Errorf("source-dsn is required")
@@ -204,6 +272,32 @@ func validateFlags() error {
 	}
 
 	return nil
+}
+
+// parseChannelIDs parses comma-separated channel IDs into a set.
+func parseChannelIDs(raw string) (map[int]struct{}, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return nil, nil
+	}
+
+	ids := make(map[int]struct{})
+	for _, part := range strings.Split(trimmed, ",") {
+		candidate := strings.TrimSpace(part)
+		if candidate == "" {
+			return nil, errors.Errorf("empty channel id in %q", raw)
+		}
+		id, err := strconv.Atoi(candidate)
+		if err != nil {
+			return nil, errors.Wrapf(err, "parse channel id %q", candidate)
+		}
+		if id <= 0 {
+			return nil, errors.Errorf("channel id must be positive: %d", id)
+		}
+		ids[id] = struct{}{}
+	}
+
+	return ids, nil
 }
 
 // showMigrationPlan displays the migration plan

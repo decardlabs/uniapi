@@ -199,3 +199,56 @@ func TestAdaptorConvertRequest_BackfillsToolMessageNameWithBareID(t *testing.T) 
 	require.NotNil(t, converted.Messages[1].Name)
 	require.Equal(t, "get_time", *converted.Messages[1].Name)
 }
+
+// TestAdaptorConvertRequest_NormalizesUnsupportedRoles verifies that MiniMax request conversion
+// rewrites unsupported roles to user, because upstream only accepts user/assistant.
+func TestAdaptorConvertRequest_NormalizesUnsupportedRoles(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+	ctx, _ := gin.CreateTestContext(nil)
+
+	req := &model.GeneralOpenAIRequest{
+		Messages: []model.Message{
+			{Role: "system", Content: "You are helpful"},
+			{Role: "tool", ToolCallId: "call_1", Content: "{\"ok\":true}"},
+			{Role: "developer", Content: "prefer concise output"},
+			{Role: "function", Content: "legacy function role"},
+		},
+	}
+
+	adaptor := &Adaptor{}
+	convertedAny, err := adaptor.ConvertRequest(ctx, 0, req)
+	require.NoError(t, err)
+
+	converted, ok := convertedAny.(*model.GeneralOpenAIRequest)
+	require.True(t, ok)
+	require.Len(t, converted.Messages, 4)
+	require.Equal(t, "user", converted.Messages[0].Role)
+	require.Equal(t, "user", converted.Messages[1].Role)
+	require.Equal(t, "user", converted.Messages[2].Role)
+	require.Equal(t, "user", converted.Messages[3].Role)
+}
+
+// TestAdaptorConvertRequest_PreservesSupportedRoles verifies that user/assistant roles are not changed.
+func TestAdaptorConvertRequest_PreservesSupportedRoles(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+	ctx, _ := gin.CreateTestContext(nil)
+
+	req := &model.GeneralOpenAIRequest{
+		Messages: []model.Message{
+			{Role: "user", Content: "hello"},
+			{Role: "assistant", Content: "hi"},
+		},
+	}
+
+	adaptor := &Adaptor{}
+	convertedAny, err := adaptor.ConvertRequest(ctx, 0, req)
+	require.NoError(t, err)
+
+	converted, ok := convertedAny.(*model.GeneralOpenAIRequest)
+	require.True(t, ok)
+	require.Len(t, converted.Messages, 2)
+	require.Equal(t, "user", converted.Messages[0].Role)
+	require.Equal(t, "assistant", converted.Messages[1].Role)
+}

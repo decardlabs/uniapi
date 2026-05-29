@@ -2,9 +2,9 @@
 GIT_TAG    := $(shell git describe --tags --always 2>/dev/null || echo "dev")
 GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_TIME := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
-LDFLAGS    := -X github.com/songquanpeng/one-api/common.Version=$(GIT_TAG) \
-              -X github.com/songquanpeng/one-api/common.BuildCommit=$(GIT_COMMIT) \
-              -X github.com/songquanpeng/one-api/common.BuildTime=$(BUILD_TIME)
+LDFLAGS    := -X github.com/decardlabs/uniapi/common.Version=$(GIT_TAG) \
+			  -X github.com/decardlabs/uniapi/common.BuildCommit=$(GIT_COMMIT) \
+			  -X github.com/decardlabs/uniapi/common.BuildTime=$(BUILD_TIME)
 RELEASE_LDFLAGS := $(LDFLAGS) -s -w
 
 .PHONY: build

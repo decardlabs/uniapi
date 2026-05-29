@@ -196,6 +196,101 @@ func TestRelayResponseAPIHelper_FallbackAzure(t *testing.T) {
 	require.Equal(t, "Hello via response API", chatReq.Messages[1].StringContent(), "user message not preserved")
 }
 
+// TestRelayResponseAPIHelper_FallbackMiniMaxRoleNormalization verifies Response API fallback
+// normalizes unsupported roles before sending requests to MiniMax upstream.
+func TestRelayResponseAPIHelper_FallbackMiniMaxRoleNormalization(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	ensureResponseFallbackFixtures(t)
+
+	prevRedis := common.IsRedisEnabled()
+	common.SetRedisEnabled(false)
+	t.Cleanup(func() { common.SetRedisEnabled(prevRedis) })
+
+	prevLogConsume := config.IsLogConsumeEnabled()
+	config.SetLogConsumeEnabled(false)
+	t.Cleanup(func() { config.SetLogConsumeEnabled(prevLogConsume) })
+
+	upstreamCalled := false
+	var upstreamPath string
+	var upstreamBody []byte
+
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upstreamCalled = true
+		upstreamPath = r.URL.Path
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err, "failed to read upstream body")
+		upstreamBody = body
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+		  "id": "chatcmpl-minimax-role",
+		  "object": "chat.completion",
+		  "created": 1741036800,
+		  "model": "MiniMax-M2.7",
+		  "choices": [
+		    {
+		      "index": 0,
+		      "message": {"role": "assistant", "content": "ok"},
+		      "finish_reason": "stop"
+		    }
+		  ],
+		  "usage": {"prompt_tokens": 7, "completion_tokens": 3, "total_tokens": 10}
+		}`))
+	}))
+	t.Cleanup(upstream.Close)
+
+	prevClient := client.HTTPClient
+	client.HTTPClient = upstream.Client()
+	t.Cleanup(func() { client.HTTPClient = prevClient })
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+
+	requestPayload := `{"model":"MiniMax-M2.7","stream":false,"instructions":"You are helpful.","input":[{"role":"developer","content":[{"type":"input_text","text":"Always be concise."}]},{"role":"user","content":[{"type":"input_text","text":"Hello MiniMax"}]}]}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/responses", bytes.NewBufferString(requestPayload))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer minimax-key")
+	c.Request = req
+
+	gmw.SetLogger(c, logger.Logger)
+
+	c.Set(ctxkey.Channel, channeltype.Minimax)
+	c.Set(ctxkey.ChannelId, fallbackChannelID)
+	c.Set(ctxkey.ChannelModel, &model.Channel{Id: fallbackChannelID, Type: channeltype.Minimax})
+	c.Set(ctxkey.TokenId, fallbackTokenID)
+	c.Set(ctxkey.TokenName, "fallback-token")
+	c.Set(ctxkey.Id, fallbackUserID)
+	c.Set(ctxkey.Group, "default")
+	c.Set(ctxkey.ModelMapping, map[string]string{})
+	c.Set(ctxkey.ChannelRatio, 1.0)
+	c.Set(ctxkey.RequestModel, "MiniMax-M2.7")
+	c.Set(ctxkey.BaseURL, upstream.URL)
+	c.Set(ctxkey.ContentType, "application/json")
+	c.Set(ctxkey.RequestId, "req_fallback_minimax_roles")
+	c.Set(ctxkey.TokenQuotaUnlimited, true)
+	c.Set(ctxkey.TokenQuota, int64(0))
+	c.Set(ctxkey.Username, "response-fallback")
+	c.Set(ctxkey.UserObj, &model.User{Quota: 1_000_000})
+	c.Set(ctxkey.Config, model.ChannelConfig{})
+
+	apiErr := RelayResponseAPIHelper(c)
+	require.Nil(t, apiErr, "RelayResponseAPIHelper returned error")
+
+	require.Equal(t, http.StatusOK, recorder.Code, "unexpected status code")
+	require.True(t, upstreamCalled, "expected upstream to be called")
+	require.Equal(t, "/v1/chat/completions", upstreamPath, "unexpected upstream path")
+
+	var chatReq relaymodel.GeneralOpenAIRequest
+	err := json.Unmarshal(upstreamBody, &chatReq)
+	require.NoError(t, err, "failed to unmarshal upstream chat request")
+	require.GreaterOrEqual(t, len(chatReq.Messages), 2, "expected normalized messages to be present")
+	for i := range chatReq.Messages {
+		role := chatReq.Messages[i].Role
+		require.True(t, role == "user" || role == "assistant", "unexpected minimax role at index %d: %s", i, role)
+	}
+	require.Equal(t, "user", chatReq.Messages[0].Role, "expected instructions role to be normalized to user")
+	require.Equal(t, "user", chatReq.Messages[1].Role, "expected developer role to be normalized to user")
+}
+
 func TestRelayResponseAPIHelper_FallbackSearchPreviewModel(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	ensureResponseFallbackFixtures(t)

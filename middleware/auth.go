@@ -31,6 +31,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/decardlabs/uniapi/common/blacklist"
+	"github.com/decardlabs/uniapi/common/config"
 	"github.com/decardlabs/uniapi/common/ctxkey"
 	"github.com/decardlabs/uniapi/common/helper"
 	"github.com/decardlabs/uniapi/common/network"
@@ -256,11 +257,46 @@ func TokenAuth() func(c *gin.Context) {
 		c.Set(ctxkey.RequestModel, requestModel)
 		tokenInfo.RequestedAt = requestModel
 
+		if requestContainsImageInput(c) && isTextOnlyChatModelName(requestModel) {
+			if config.MultimodalRouteMode == "fixed_fallback" {
+				autoRoutedModel := strings.TrimSpace(config.MultimodalVisionFallbackModel)
+				if autoRoutedModel != "" && !strings.EqualFold(autoRoutedModel, requestModel) {
+					c.Set(ctxkey.AutoRoutedModel, autoRoutedModel)
+				}
+			}
+		}
+
 		// Check if token has model restrictions and validate access
 		if token.Models != nil && *token.Models != "" {
 			c.Set(ctxkey.AvailableModels, *token.Models)
+			effectiveModel := requestModel
+			if routedModel := strings.TrimSpace(c.GetString(ctxkey.AutoRoutedModel)); routedModel != "" {
+				effectiveModel = routedModel
+			}
 			if requestModel != "" && !isModelInList(requestModel, *token.Models) {
 				AbortWithTokenError(c, http.StatusForbidden, errors.Errorf("This API key does not have permission to use the model: %s", requestModel), tokenInfo)
+				return
+			}
+			if effectiveModel != "" && !isModelInList(effectiveModel, *token.Models) {
+				// For image-bearing requests on text-only models, treat auto-route permission
+				// mismatch as a capability validation error so clients can continue with text.
+				if requestContainsImageInput(c) && isTextOnlyChatModelName(requestModel) && strings.TrimSpace(c.GetString(ctxkey.AutoRoutedModel)) != "" {
+					imageContentTypes := detectImageInputContentTypes(c)
+					reason := errors.Errorf("token model permission does not include auto-routed vision model: %s", effectiveModel).Error()
+					AbortWithError(
+						c,
+						http.StatusBadRequest,
+						errors.New(helper.BuildTextOnlyModelImageInputValidationMessage(requestModel, imageContentTypes, reason)),
+					)
+					return
+				}
+
+				AbortWithTokenError(
+					c,
+					http.StatusForbidden,
+					errors.Errorf("This API key does not have permission to use the auto-routed model: %s", effectiveModel),
+					tokenInfo,
+				)
 				return
 			}
 		}

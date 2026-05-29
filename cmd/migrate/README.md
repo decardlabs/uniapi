@@ -6,6 +6,7 @@ A command-line tool for migrating One API data between SQLite, MySQL, and Postgr
 
 - **Auto database type detection** via DSN scheme (`sqlite://`, `mysql://`, `postgres://`)
 - **Validation modes**: plan, validate-only, and dry-run (no data changes)
+- **Vision capability backfill mode** for historical `channels.config` data (`supports_vision` / `vision_models`)
 - **Concurrent batch migration** (`-workers`, `-batch-size`) for large datasets
 - **Idempotent**: safe to re-run; existing rows are skipped / merged by primary key logic
 - **PostgreSQL sequence alignment** after data copy
@@ -36,33 +37,68 @@ go build -o migrate ./cmd/migrate
 
 ## Operation Modes
 
-| Mode          | Flags            | Notes                                                                       |
-| ------------- | ---------------- | --------------------------------------------------------------------------- |
-| Show Plan     | `-show-plan`     | Calculates table list & record counts (target DSN optional but recommended) |
-| Validate Only | `-validate-only` | Connects & runs compatibility checks; no schema or data changes             |
-| Dry Run       | `-dry-run`       | Full pipeline minus writes (no INSERT/sequence updates)                     |
-| Migration     | _(default)_      | Requires both DSNs; performs schema + data + post steps                     |
+| Mode            | Flags                           | Notes                                                                       |
+| --------------- | ------------------------------- | --------------------------------------------------------------------------- |
+| Show Plan       | `-show-plan`                    | Calculates table list & record counts (target DSN optional but recommended) |
+| Validate Only   | `-validate-only`                | Connects & runs compatibility checks; no schema or data changes             |
+| Dry Run         | `-dry-run`                      | Full pipeline minus writes (no INSERT/sequence updates)                     |
+| Migration       | _(default)_                     | Requires both DSNs; performs schema + data + post steps                     |
+| Vision Backfill | `-backfill-vision-capabilities` | In-place update of source `channels.config` vision fields (no target DSN)   |
 
 Mutual exclusivity rules (enforced):
 
 - `-dry-run` cannot be combined with `-validate-only`
 - `-show-plan` cannot be combined with either of the above
+- `-backfill-vision-capabilities` cannot be combined with migration modes (`-show-plan`, `-validate-only`, `-dry-run`)
 
 ## Flags
 
-| Flag               | Description                                                           |
-| ------------------ | --------------------------------------------------------------------- |
-| `-source-dsn`      | Source DB DSN (required)                                              |
-| `-target-dsn`      | Target DB DSN (required except with `-show-plan` or `-validate-only`) |
-| `-dry-run`         | Execute all logic without mutating target                             |
-| `-validate-only`   | Connectivity & compatibility checks only                              |
-| `-show-plan`       | Print migration plan (tables + counts) and exit                       |
-| `-verbose`         | Extra logging (per-table batches etc.)                                |
-| `-skip-validation` | Skip pre-migration validator (not recommended)                        |
-| `-workers`         | Concurrent workers for data copy (default 4)                          |
-| `-batch-size`      | Rows per fetch/insert batch (default 1000)                            |
-| `-h`               | Help                                                                  |
-| `-v`               | Version                                                               |
+| Flag                            | Description                                                               |
+| ------------------------------- | ------------------------------------------------------------------------- |
+| `-source-dsn`                   | Source DB DSN (required)                                                  |
+| `-target-dsn`                   | Target DB DSN (required except with `-show-plan` or `-validate-only`)     |
+| `-dry-run`                      | Execute all logic without mutating target                                 |
+| `-validate-only`                | Connectivity & compatibility checks only                                  |
+| `-show-plan`                    | Print migration plan (tables + counts) and exit                           |
+| `-verbose`                      | Extra logging (per-table batches etc.)                                    |
+| `-skip-validation`              | Skip pre-migration validator (not recommended)                            |
+| `-workers`                      | Concurrent workers for data copy (default 4)                              |
+| `-batch-size`                   | Rows per fetch/insert batch (default 1000)                                |
+| `-backfill-vision-capabilities` | Backfill `supports_vision` / `vision_models` in source DB channels config |
+| `-backfill-vision-dry-run`      | Preview backfill updates without writing (requires backfill mode)         |
+| `-backfill-vision-enabled-only` | Backfill only channels with `status=enabled` (requires backfill mode)     |
+| `-backfill-vision-channel-ids`  | Comma-separated channel IDs to backfill (requires backfill mode)          |
+| `-h`                            | Help                                                                      |
+| `-v`                            | Version                                                                   |
+
+## Vision Capability Backfill
+
+Use this mode when enabling `MULTIMODAL_ROUTE_MODE=capability_based` on older deployments where existing channels do not yet have `supports_vision` / `vision_models` populated.
+
+```bash
+# Preview updates
+./migrate \
+    -source-dsn="postgres://user:pass@localhost/oneapi?sslmode=disable" \
+    -backfill-vision-capabilities \
+    -backfill-vision-dry-run
+
+# Apply updates
+./migrate \
+    -source-dsn="postgres://user:pass@localhost/oneapi?sslmode=disable" \
+    -backfill-vision-capabilities
+
+# Apply conservatively: only enabled channels in whitelist
+./migrate \
+    -source-dsn="postgres://user:pass@localhost/oneapi?sslmode=disable" \
+    -backfill-vision-capabilities \
+    -backfill-vision-enabled-only \
+    -backfill-vision-channel-ids="101,205"
+```
+
+Backfill behavior is idempotent:
+
+- Existing channel configs that already contain both `supports_vision=true` and non-empty `vision_models` are left unchanged.
+- Missing fields are inferred from channel model names using built-in vision model family markers (for example `gpt-4o`, `claude-3`, `gemini`, `qwen-vl`).
 
 ## DSN Formats
 

@@ -109,7 +109,7 @@ func Init() {
 	} else {
 		UserContentRequestHTTPClient = &http.Client{
 			Transport: createTransport(nil, true),
-			Timeout:   30 * time.Second, // Set a reasonable default timeout
+			Timeout:   time.Second * time.Duration(config.UserContentRequestTimeout),
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				if len(via) >= 5 {
 					return errors.New("stopped after 5 redirects")

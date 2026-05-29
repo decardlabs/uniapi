@@ -12,6 +12,7 @@ import (
 
 	"github.com/decardlabs/uniapi/common/config"
 	"github.com/decardlabs/uniapi/common/ctxkey"
+	"github.com/decardlabs/uniapi/common/helper"
 	"github.com/decardlabs/uniapi/common/image"
 	"github.com/decardlabs/uniapi/relay/adaptor"
 	"github.com/decardlabs/uniapi/relay/adaptor/alibailian"
@@ -68,6 +69,103 @@ func shouldForceResponseAPI(metaInfo *meta.Meta) bool {
 
 func normalizedModelName(modelName string) string {
 	return strings.ToLower(strings.TrimSpace(modelName))
+}
+
+type textOnlyUnsupportedContent struct {
+	messageIndex int
+	role         string
+	contentTypes []string
+}
+
+func isTextOnlyChatModel(modelName string) bool {
+	normalized := normalizedModelName(modelName)
+	if strings.Contains(normalized, "gpt-oss") {
+		return true
+	}
+
+	if strings.Contains(normalized, "deepseek") {
+		if strings.Contains(normalized, "vl") || strings.Contains(normalized, "vision") {
+			return false
+		}
+		return true
+	}
+
+	return false
+}
+
+func validateTextOnlyChatRequest(modelName string, messages []model.Message) error {
+	if !isTextOnlyChatModel(modelName) {
+		return nil
+	}
+
+	unsupported := firstUnsupportedTextOnlyContent(messages)
+	if unsupported == nil {
+		return nil
+	}
+
+	hasImageInput := false
+	for idx := range unsupported.contentTypes {
+		if unsupported.contentTypes[idx] == model.ContentTypeImageURL || unsupported.contentTypes[idx] == "input_image" || unsupported.contentTypes[idx] == "image" {
+			hasImageInput = true
+			break
+		}
+	}
+	if hasImageInput {
+		reason := "chat messages cannot include image input for this model"
+		return errors.New(helper.BuildTextOnlyModelImageInputValidationMessage(modelName, unsupported.contentTypes, reason))
+	}
+
+	return errors.Errorf(
+		"validation failed: model %q only supports text content in chat messages; messages[%d] (role=%q) contains unsupported content types: %s",
+		modelName,
+		unsupported.messageIndex,
+		unsupported.role,
+		strings.Join(unsupported.contentTypes, ","),
+	)
+}
+
+func firstUnsupportedTextOnlyContent(messages []model.Message) *textOnlyUnsupportedContent {
+	for idx := range messages {
+		parts := messages[idx].ParseContent()
+		if len(parts) == 0 {
+			continue
+		}
+
+		unsupportedTypes := make([]string, 0, len(parts))
+		for pi := range parts {
+			partType := normalizedModelName(parts[pi].Type)
+			switch partType {
+			case "", model.ContentTypeText:
+				if parts[pi].ImageURL != nil {
+					appendUniqueString(&unsupportedTypes, model.ContentTypeImageURL)
+				}
+			default:
+				appendUniqueString(&unsupportedTypes, partType)
+			}
+		}
+
+		if len(unsupportedTypes) > 0 {
+			return &textOnlyUnsupportedContent{
+				messageIndex: idx,
+				role:         messages[idx].Role,
+				contentTypes: unsupportedTypes,
+			}
+		}
+	}
+
+	return nil
+}
+
+func appendUniqueString(target *[]string, value string) {
+	if target == nil || value == "" {
+		return
+	}
+	for idx := range *target {
+		if (*target)[idx] == value {
+			return
+		}
+	}
+	*target = append(*target, value)
 }
 
 func (a *Adaptor) Init(meta *meta.Meta) {
@@ -294,6 +392,9 @@ func (a *Adaptor) applyRequestTransformations(meta *meta.Meta, request *model.Ge
 	if strings.TrimSpace(actualModel) == "" {
 		actualModel = request.Model
 	}
+	if err := validateTextOnlyChatRequest(actualModel, request.Messages); err != nil {
+		return err
+	}
 	channelType := 0
 	if meta != nil {
 		channelType = meta.ChannelType
@@ -440,6 +541,14 @@ func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, request *model.ClaudeRequ
 	openaiRequest.Thinking = request.Thinking
 
 	metaInfo := meta.GetByContext(c)
+	modelForValidation := openaiRequest.Model
+	if metaInfo != nil && strings.TrimSpace(metaInfo.ActualModelName) != "" {
+		modelForValidation = metaInfo.ActualModelName
+	}
+	if err := validateTextOnlyChatRequest(modelForValidation, openaiRequest.Messages); err != nil {
+		return nil, err
+	}
+
 	isDeepSeek := shouldNormalizeToolMessageContentForDeepSeek(metaInfo, openaiRequest)
 	if isDeepSeek {
 		normalizeClaudeThinkingForDeepSeek(c, openaiRequest)
