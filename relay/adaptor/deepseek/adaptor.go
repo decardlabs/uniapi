@@ -112,6 +112,11 @@ func (a *Adaptor) ConvertRequest(c *gin.Context, relayMode int, request *model.G
 		request.ResponseFormat = nil
 	}
 
+	// DeepSeek text-only models do not support image_url content parts.
+	// Strip them here so both the OpenAI Chat Completions path and the
+	// Claude Messages conversion path are covered.
+	stripImageContentParts(c, request)
+
 	return request, nil
 }
 
@@ -219,7 +224,52 @@ func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, request *model.ClaudeRequ
 	}
 	// openaiReq.Thinking = nil // REMOVED: DeepSeek API supports thinking parameter
 
+	// 6. DeepSeek text-only models do not support image_url content parts.
+	// When Claude Code reads a PDF, it returns each page as an image in the
+	// conversation history. Strip those image parts and replace with a
+	// placeholder so DeepSeek does not return 400 \"unknown variant image_url\".
+	stripImageContentParts(c, openaiReq)
+
 	return openaiReq, nil
+}
+
+// stripImageContentParts removes image_url content parts from all messages in the
+// request and replaces them with a text placeholder. DeepSeek text-only models
+// reject requests that contain image_url parts with HTTP 400.
+func stripImageContentParts(c *gin.Context, request *model.GeneralOpenAIRequest) {
+	if request == nil {
+		return
+	}
+	logger := gmw.GetLogger(c)
+	for i := range request.Messages {
+		parts, ok := request.Messages[i].Content.([]model.MessageContent)
+		if !ok {
+			continue
+		}
+		var filtered []model.MessageContent
+		stripped := 0
+		for _, part := range parts {
+			if part.Type == model.ContentTypeImageURL {
+				stripped++
+				continue
+			}
+			filtered = append(filtered, part)
+		}
+		if stripped > 0 {
+			logger.Debug("stripped image_url parts from message (deepseek does not support vision)",
+				zap.Int("message_index", i),
+				zap.Int("stripped_count", stripped),
+			)
+			if len(filtered) == 0 {
+				// Keep the message alive with a placeholder so the conversation
+				// history remains structurally valid.
+				placeholder := "[图片内容已省略，当前模型不支持视觉输入]"
+				request.Messages[i].Content = placeholder
+			} else {
+				request.Messages[i].Content = filtered
+			}
+		}
+	}
 }
 
 func (a *Adaptor) DoRequest(c *gin.Context, meta *meta.Meta, requestBody io.Reader) (*http.Response, error) {

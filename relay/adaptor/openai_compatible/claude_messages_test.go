@@ -584,3 +584,89 @@ func TestConvertClaudeBlocks_ThinkingWithToolUse(t *testing.T) {
 	assert.Equal(t, "toolu_456", msg.ToolCalls[0].Id)
 	assert.Equal(t, "search", msg.ToolCalls[0].Function.Name)
 }
+
+// TestConvertClaudeBlocks_DocumentBlockBase64PDF 验证 document(base64 PDF) 块的转换行为。
+// 直接调用 deepseek 不会出错，但经过 uniapi 中转时 document 块未被处理，
+// 会落入 default 分支被序列化为 JSON 字符串，导致 DeepSeek 返回 400。
+// 此测试暴露该 bug：document 块不应被序列化成原始 JSON 文本，
+// 而应被转换为可读文本或返回错误。
+func TestConvertClaudeBlocks_DocumentBlockBase64PDF(t *testing.T) {
+	t.Parallel()
+
+	// 模拟 Claude Code 发送的 document 块（base64 PDF）
+	blocks := []any{
+		map[string]any{
+			"type": "text",
+			"text": "请分析这个文档",
+		},
+		map[string]any{
+			"type": "document",
+			"source": map[string]any{
+				"type":       "base64",
+				"media_type": "application/pdf",
+				"data":       "JVBERi0xLjQKdGVzdA==", // 模拟 base64 PDF 数据
+			},
+		},
+	}
+
+	messages := convertClaudeBlocks("user", blocks, map[string]string{})
+	require.Len(t, messages, 1)
+
+	msg := messages[0]
+	contentParts, ok := msg.Content.([]relaymodel.MessageContent)
+	require.True(t, ok, "content 应为 MessageContent 切片")
+
+	// 诊断：打印实际转换结果，便于观察 document 块被如何处理
+	for i, part := range contentParts {
+		if part.Text != nil {
+			t.Logf("part[%d] type=%s text前50字符: %.50s", i, part.Type, *part.Text)
+		} else {
+			t.Logf("part[%d] type=%s (无文本)", i, part.Type)
+		}
+	}
+
+	// 关键断言：document 块不应被序列化为包含 "application/pdf" 的原始 JSON 字符串
+	// 若此断言失败，证明 document 块落入了 default 分支，会导致 DeepSeek 400 错误
+	for _, part := range contentParts {
+		if part.Text != nil {
+			assert.NotContains(t, *part.Text, "application/pdf",
+				"document 块不应被序列化为 JSON 文本发送给上游（会导致 DeepSeek 400）")
+		}
+	}
+}
+
+// TestConvertClaudeBlocks_DocumentBlockURLSource 验证 url 类型的 document 块处理。
+func TestConvertClaudeBlocks_DocumentBlockURLSource(t *testing.T) {
+	t.Parallel()
+
+	blocks := []any{
+		map[string]any{
+			"type": "document",
+			"source": map[string]any{
+				"type": "url",
+				"url":  "https://example.com/spec.pdf",
+			},
+		},
+	}
+
+	messages := convertClaudeBlocks("user", blocks, map[string]string{})
+	require.Len(t, messages, 1)
+
+	msg := messages[0]
+	contentParts, ok := msg.Content.([]relaymodel.MessageContent)
+	require.True(t, ok, "content 应为 MessageContent 切片")
+
+	for i, part := range contentParts {
+		if part.Text != nil {
+			t.Logf("url document part[%d] type=%s text: %s", i, part.Type, *part.Text)
+		}
+	}
+
+	// 同样不应把 URL document 序列化为 JSON 文本
+	for _, part := range contentParts {
+		if part.Text != nil {
+			assert.NotContains(t, *part.Text, `"type":"document"`,
+				"document url 块不应被序列化为 JSON 文本")
+		}
+	}
+}

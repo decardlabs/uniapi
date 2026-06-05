@@ -1,12 +1,14 @@
 # Changelog
 
-## v3.9.10 (2026-05-29)
+## v3.9.10 (2026-06-05)
 
 - 计费口径一致性修复：独立上报 `reasoning_tokens` 合并计入 completion 计费，避免 DeepSeek V4 等低估计费
 - 修复 Zhipu `glm-*` v4 鉴权头兼容性，按官方文档改用 `Bearer <api-key>`，保留 v3 JWT 兼容
 - 新增 Zhipu base URL 归一化（同时支持 `open.bigmodel.cn` 与 `open.bigmodel.cn/api/paas/v4`）
 - GLM 渠道映射到 Zhipu 适配器，补齐常用多模态模型默认列表
 - 修正部署文档 Dockerfile 路径说明
+- DeepSeek 纯文本模型自动剥离图片内容块，避免 Claude Code PDF 历史导致的 `image_url` 400 错误
+- 完善 CLAUDE.md 开发指引（embed 模式、可选适配器接口、cmd 入口等）
 
 ## v3.9.9 (2026-05-29)
 

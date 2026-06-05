@@ -5,6 +5,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
+# Run the server locally (MUST use `go run .` — the main package spans multiple files)
+cp .env.example .env
+go run .
+
 # Build (includes frontend build)
 make build
 
@@ -14,7 +18,7 @@ make build-release
 # Build frontend only
 make build-frontend-modern
 
-# Start frontend dev server
+# Start frontend dev server (port 3001)
 make dev
 
 # Run all tests with race detector
@@ -39,11 +43,11 @@ go run ./cmd/test live
 go run ./cmd/migrate
 ```
 
-**Frontend**: Use `yarn` (not npm). Frontend source is in `web/modern/`. Language files in `web/modern/src/i18n/locales/`.
+**Frontend**: Use `yarn` (not npm). Frontend source is in `web/modern/`. Language files in `web/modern/src/i18n/locales/`. The production frontend is embedded into the Go binary via `//go:embed` in `main.go` — use `go run .` to pick up the embed directives.
 
-**Local dev setup**: Copy `.env.example` to `.env`. The current template defaults to SQLite via `SQLITE_PATH` for local startup, and you can switch to MySQL with `SQL_DSN` if needed. Redis is optional in local development and uses `REDIS_CONN_STRING` when enabled. Default port is `3000`, default admin credentials are `root` / `123456`. VS Code: `F5` to debug, `Cmd+Shift+B` to build.
+**Local dev setup**: Copy `.env.example` to `.env`. The current template defaults to SQLite via `SQLITE_PATH` for local startup, and you can switch to MySQL with `SQL_DSN` if needed. Redis is optional in local development and uses `REDIS_CONN_STRING` when enabled. Default port is `3000`, default admin credentials are `root` / `123456`. VS Code: `F5` to debug, `Cmd+Shift+B` to build. The first registered user automatically becomes admin.
 
-**Module path**: `github.com/decardlabs/uniapi` (Go 1.25).
+**Module path**: `github.com/decardlabs/uniapi` (Go 1.25). Lint config: `.golangci.yml` (golangci-lint v2).
 
 ## Architecture
 
@@ -59,13 +63,14 @@ Client → Gin Router → Middleware (auth, rate-limit, distribute) → Controll
 2. **Middleware** ([middleware/](middleware/)) applies auth (token/user/admin/root), rate limiting, CORS, channel distribution, and API format auto-detection.
 3. **Controller** ([controller/](controller/)) contains HTTP handlers for both relay endpoints (text, image, audio, video, response API, Claude messages, realtime) and management endpoints (channels, tokens, users, billing, MCP).
 4. **Relay engine** ([relay/controller/](relay/controller/)) handles request processing: validation, model mapping, billing calculation, upstream dispatch, and response conversion.
-5. **Adaptor** ([relay/adaptor/](relay/adaptor/)) — each provider has an adaptor implementing the `Adaptor` interface ([relay/adaptor/interface.go](relay/adaptor/interface.go#L313)):
+5. **Adaptor** ([relay/adaptor/](relay/adaptor/)) — each provider has an adaptor implementing the `Adaptor` interface ([relay/adaptor/interface.go](relay/adaptor/interface.go)):
    - `GetRequestURL` — construct the upstream URL
    - `SetupRequestHeader` — set auth/content-type headers
    - `ConvertRequest` / `ConvertImageRequest` / `ConvertClaudeRequest` — translate from OpenAI format to provider-native format
    - `DoRequest` — execute the HTTP call (typically via `DoRequestHelper`)
    - `DoResponse` — parse upstream response, extract usage/billing data
    - Pricing: `GetDefaultModelPricing`, `GetModelRatio`, `GetCompletionRatio`
+   - Optional interfaces: `OCRAdaptor` (layout parsing), `RerankAdaptor` (/v1/rerank), `ToolingDefaultsProvider` (built-in tool defaults)
 
 ### Key Packages
 
@@ -73,6 +78,7 @@ Client → Gin Router → Middleware (auth, rate-limit, distribute) → Controll
 | ---------------------------------------- | ------------------------------------------------------------------------------------- |
 | [common/config/](common/config/)         | All configuration via environment variables (single package, sectioned by group)      |
 | [common/logger/](common/logger/)         | Zap-based structured logging with rotation and retention                              |
+| [common/ctxkey/](common/ctxkey/)         | Type-safe context key constants for values threaded through the request lifecycle     |
 | [model/](model/)                         | GORM models and data access. Use GORM for writes, raw SQL for complex reads.          |
 | [relay/meta/](relay/meta/)               | Per-request metadata (channel, model, pricing, token info) threaded through the relay |
 | [relay/channeltype/](relay/channeltype/) | Channel type constants (50+ provider types)                                           |
@@ -83,6 +89,7 @@ Client → Gin Router → Middleware (auth, rate-limit, distribute) → Controll
 | [relay/mcp/](relay/mcp/)                 | MCP (Model Context Protocol) proxy and aggregation                                    |
 | [dto/](dto/)                             | Data transfer objects for API responses                                               |
 | [monitor/](monitor/)                     | Prometheus + OpenTelemetry monitoring setup                                           |
+| [cmd/](cmd/)                             | CLI entry points: `cmd/migrate` (DB migrations), `cmd/test` (live channel probing)    |
 
 ### Billing Pipeline
 
