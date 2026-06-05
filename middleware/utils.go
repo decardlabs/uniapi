@@ -168,10 +168,9 @@ func isTextOnlyChatModelName(modelName string) bool {
 	}
 
 	if strings.Contains(normalized, "deepseek") {
-		if strings.Contains(normalized, "vl") || strings.Contains(normalized, "vision") {
-			return false
-		}
-		return true
+		// All DeepSeek models are passed through to upstream without multimodal routing.
+		// The upstream API decides whether the model supports image input.
+		return false
 	}
 
 	return false

@@ -9,6 +9,7 @@ import (
 	"github.com/Laisky/errors/v2"
 	"github.com/gin-gonic/gin"
 
+	"github.com/decardlabs/uniapi/common/ctxkey"
 	"github.com/decardlabs/uniapi/common/helper"
 	"github.com/decardlabs/uniapi/relay/adaptor"
 	"github.com/decardlabs/uniapi/relay/adaptor/common/structuredjson"
@@ -35,33 +36,52 @@ func getAPIVersion(modelName string) string {
 	return "v3"
 }
 
+// normalizeZhipuBaseURL returns the Zhipu service host base URL.
+// It accepts both legacy forms with /api/paas/v4 suffix and plain host forms.
+func normalizeZhipuBaseURL(rawBaseURL string) string {
+	baseURL := strings.TrimSpace(rawBaseURL)
+	baseURL = strings.TrimRight(baseURL, "/")
+	baseURL = strings.TrimSuffix(baseURL, "/api/paas/v4")
+	return strings.TrimRight(baseURL, "/")
+}
+
 func (a *Adaptor) GetRequestURL(meta *meta.Meta) (string, error) {
+	baseURL := normalizeZhipuBaseURL(meta.BaseURL)
 	switch meta.Mode {
 	case relaymode.ImagesGenerations:
-		return fmt.Sprintf("%s/api/paas/v4/images/generations", meta.BaseURL), nil
+		return fmt.Sprintf("%s/api/paas/v4/images/generations", baseURL), nil
 	case relaymode.Embeddings:
-		return fmt.Sprintf("%s/api/paas/v4/embeddings", meta.BaseURL), nil
+		return fmt.Sprintf("%s/api/paas/v4/embeddings", baseURL), nil
 	case relaymode.OCR:
-		return fmt.Sprintf("%s/api/paas/v4/layout_parsing", meta.BaseURL), nil
+		return fmt.Sprintf("%s/api/paas/v4/layout_parsing", baseURL), nil
 	}
 	// OCR model detection by model name takes priority for backward compatibility
 	if isOCRModel(meta.ActualModelName) {
-		return fmt.Sprintf("%s/api/paas/v4/layout_parsing", meta.BaseURL), nil
+		return fmt.Sprintf("%s/api/paas/v4/layout_parsing", baseURL), nil
 	}
 	// All other modes (ChatCompletions, ClaudeMessages, ResponseAPI, etc.)
 	// route to the chat completions endpoint
 	if getAPIVersion(meta.ActualModelName) == "v4" {
-		return fmt.Sprintf("%s/api/paas/v4/chat/completions", meta.BaseURL), nil
+		return fmt.Sprintf("%s/api/paas/v4/chat/completions", baseURL), nil
 	}
 	method := "invoke"
 	if meta.IsStream {
 		method = "sse-invoke"
 	}
-	return fmt.Sprintf("%s/api/paas/v3/model-api/%s/%s", meta.BaseURL, meta.ActualModelName, method), nil
+	return fmt.Sprintf("%s/api/paas/v3/model-api/%s/%s", baseURL, meta.ActualModelName, method), nil
 }
 
 func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Request, meta *meta.Meta) error {
 	adaptor.SetupCommonRequestHeader(c, req, meta)
+	if getAPIVersion(meta.ActualModelName) == "v4" {
+		apiKey := strings.TrimSpace(meta.APIKey)
+		if apiKey == "" {
+			return errors.New("zhipu api key is required")
+		}
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+		return nil
+	}
+
 	token, err := GetToken(meta.APIKey)
 	if err != nil {
 		return err
@@ -173,6 +193,18 @@ func (a *Adaptor) DoRequest(c *gin.Context, meta *meta.Meta, requestBody io.Read
 }
 
 func (a *Adaptor) DoResponseV4(c *gin.Context, resp *http.Response, meta *meta.Meta) (usage *model.Usage, err *model.ErrorWithStatusCode) {
+	// Handle Claude Messages conversion when needed
+	if isClaudeConversion, exists := c.Get(ctxkey.ClaudeMessagesConversion); exists && isClaudeConversion.(bool) {
+		return openai_compatible.HandleClaudeMessagesResponse(c, resp, meta, func(c *gin.Context, resp *http.Response, promptTokens int, modelName string) (*model.ErrorWithStatusCode, *model.Usage) {
+			if meta.IsStream {
+				err, _, usage := openai.StreamHandler(c, resp, meta.Mode)
+				return err, usage
+			}
+			err, usage := openai.Handler(c, resp, meta.PromptTokens, meta.ActualModelName)
+			return err, usage
+		})
+	}
+
 	if meta.IsStream {
 		err, _, usage = openai.StreamHandler(c, resp, meta.Mode)
 	} else {

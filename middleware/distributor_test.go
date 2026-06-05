@@ -441,7 +441,7 @@ func TestDistributeImageRejectionThenTextContinues(t *testing.T) {
 		Id:       8920,
 		Name:     "text-only-channel",
 		Type:     channeltype.OpenAI,
-		Models:   "deepseek-v4-pro",
+		Models:   "openai/gpt-oss-120b",
 		Group:    "default",
 		Status:   model.ChannelStatusEnabled,
 		Priority: &textPriority,
@@ -450,7 +450,7 @@ func TestDistributeImageRejectionThenTextContinues(t *testing.T) {
 	require.NoError(t, textChannel.AddAbilities())
 
 	// Step 1: image input is rejected with deterministic validation message.
-	imageReqBody := `{"model":"deepseek-v4-pro","messages":[{"role":"user","content":[{"type":"text","text":"analyze screenshot"},{"type":"image_url","image_url":{"url":"https://example.com/screenshot.png"}}]}]}`
+	imageReqBody := `{"model":"openai/gpt-oss-120b","messages":[{"role":"user","content":[{"type":"text","text":"analyze screenshot"},{"type":"image_url","image_url":{"url":"https://example.com/screenshot.png"}}]}]}`
 	imageReq := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewBufferString(imageReqBody))
 	imageReq.Header.Set("Content-Type", "application/json")
 	imageRec := httptest.NewRecorder()
@@ -458,7 +458,7 @@ func TestDistributeImageRejectionThenTextContinues(t *testing.T) {
 	imageCtx.Request = imageReq
 	imageCtx.Set(ctxkey.Id, user.Id)
 	imageCtx.Set(ctxkey.UserObj, user)
-	imageCtx.Set(ctxkey.RequestModel, "deepseek-v4-pro")
+	imageCtx.Set(ctxkey.RequestModel, "openai/gpt-oss-120b")
 	imageCtx.Set(ctxkey.TokenId, 89201)
 	gmw.SetLogger(imageCtx, logger.Logger)
 
@@ -471,7 +471,7 @@ func TestDistributeImageRejectionThenTextContinues(t *testing.T) {
 	require.Contains(t, imageRec.Body.String(), "Remove image input and retry with text")
 
 	// Step 2: next pure text request continues successfully.
-	textReqBody := `{"model":"deepseek-v4-pro","messages":[{"role":"user","content":"continue with text only"}]}`
+	textReqBody := `{"model":"openai/gpt-oss-120b","messages":[{"role":"user","content":"continue with text only"}]}`
 	textReq := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewBufferString(textReqBody))
 	textReq.Header.Set("Content-Type", "application/json")
 	textRec := httptest.NewRecorder()
@@ -479,7 +479,7 @@ func TestDistributeImageRejectionThenTextContinues(t *testing.T) {
 	textCtx.Request = textReq
 	textCtx.Set(ctxkey.Id, user.Id)
 	textCtx.Set(ctxkey.UserObj, user)
-	textCtx.Set(ctxkey.RequestModel, "deepseek-v4-pro")
+	textCtx.Set(ctxkey.RequestModel, "openai/gpt-oss-120b")
 	textCtx.Set(ctxkey.TokenId, 89202)
 	gmw.SetLogger(textCtx, logger.Logger)
 

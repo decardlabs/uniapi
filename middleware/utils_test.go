@@ -132,8 +132,8 @@ func TestShouldLogAsWarning_IgnoredErrorPattern(t *testing.T) {
 func TestIsTextOnlyChatModelName(t *testing.T) {
 	require.True(t, isTextOnlyChatModelName("openai/gpt-oss-120b"))
 	require.True(t, isTextOnlyChatModelName(" GPT-OSS-20B "))
-	require.True(t, isTextOnlyChatModelName("deepseek-v4-pro"))
-	require.True(t, isTextOnlyChatModelName("deepseek-chat"))
+	require.False(t, isTextOnlyChatModelName("deepseek-v4-pro"))
+	require.False(t, isTextOnlyChatModelName("deepseek-chat"))
 	require.False(t, isTextOnlyChatModelName("deepseek-vl2"))
 	require.False(t, isTextOnlyChatModelName("gpt-4o"))
 }

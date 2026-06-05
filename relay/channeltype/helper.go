@@ -15,6 +15,8 @@ func ToAPIType(channelType int) int {
 		apiType = apitype.PaLM
 	case Zhipu:
 		apiType = apitype.Zhipu
+	case GLM:
+		apiType = apitype.Zhipu
 	case Ali:
 		apiType = apitype.Ali
 	case Xunfei:
@@ -110,6 +112,8 @@ func IdToName(channelType int) string {
 		return "baidu"
 	case Zhipu:
 		return "zhipu"
+	case GLM:
+		return "glm"
 	case Ali:
 		return "ali"
 	case Xunfei:

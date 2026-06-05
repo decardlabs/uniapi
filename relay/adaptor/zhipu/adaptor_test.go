@@ -1,12 +1,14 @@
 package zhipu
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
+	"github.com/decardlabs/uniapi/relay/meta"
 	"github.com/decardlabs/uniapi/relay/model"
 	"github.com/decardlabs/uniapi/relay/relaymode"
 )
@@ -70,4 +72,61 @@ func TestConvertRequestClampsParametersV3(t *testing.T) {
 
 	require.NotNil(t, converted.Temperature, "expected Temperature to be non-nil")
 	require.Equal(t, float64(1), *converted.Temperature, "expected Temperature to be clamped to 1")
+}
+
+func TestSetupRequestHeaderV4UsesBearerAPIKey(t *testing.T) {
+	t.Parallel()
+
+	adaptor := &Adaptor{}
+	c := newZhipuContext()
+	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+
+	err := adaptor.SetupRequestHeader(c, req, &meta.Meta{
+		APIKey:          "test-v4-key",
+		ActualModelName: "glm-5v-turbo",
+	})
+	require.NoError(t, err)
+	require.Equal(t, "Bearer test-v4-key", req.Header.Get("Authorization"))
+}
+
+func TestSetupRequestHeaderV3UsesJWTToken(t *testing.T) {
+	t.Parallel()
+
+	adaptor := &Adaptor{}
+	c := newZhipuContext()
+	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+
+	err := adaptor.SetupRequestHeader(c, req, &meta.Meta{
+		APIKey:          "testid.testsecret",
+		ActualModelName: "chatglm_turbo",
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, req.Header.Get("Authorization"))
+	require.NotEqual(t, "Bearer testid.testsecret", req.Header.Get("Authorization"))
+}
+
+func TestGetRequestURLV4NormalizesLegacyBaseURL(t *testing.T) {
+	t.Parallel()
+
+	adaptor := &Adaptor{}
+	url, err := adaptor.GetRequestURL(&meta.Meta{
+		Mode:            relaymode.ChatCompletions,
+		ActualModelName: "glm-5v-turbo",
+		BaseURL:         "https://open.bigmodel.cn/api/paas/v4",
+	})
+	require.NoError(t, err)
+	require.Equal(t, "https://open.bigmodel.cn/api/paas/v4/chat/completions", url)
+}
+
+func TestGetRequestURLV4SupportsHostBaseURL(t *testing.T) {
+	t.Parallel()
+
+	adaptor := &Adaptor{}
+	url, err := adaptor.GetRequestURL(&meta.Meta{
+		Mode:            relaymode.ChatCompletions,
+		ActualModelName: "glm-5v-turbo",
+		BaseURL:         "https://open.bigmodel.cn",
+	})
+	require.NoError(t, err)
+	require.Equal(t, "https://open.bigmodel.cn/api/paas/v4/chat/completions", url)
 }

@@ -34,9 +34,9 @@ func TestDistributeClaudeImageRejectionThenTextContinues(t *testing.T) {
 	priority := int64(200)
 	textChannel := &model.Channel{
 		Id:       8930,
-		Name:     "deepseek-text-channel",
+		Name:     "text-only-channel",
 		Type:     channeltype.OpenAI,
-		Models:   "deepseek-v4-pro",
+		Models:   "openai/gpt-oss-120b",
 		Group:    "default",
 		Status:   model.ChannelStatusEnabled,
 		Priority: &priority,
@@ -44,7 +44,7 @@ func TestDistributeClaudeImageRejectionThenTextContinues(t *testing.T) {
 	require.NoError(t, db.Create(textChannel).Error)
 	require.NoError(t, textChannel.AddAbilities())
 
-	imageReqBody := `{"model":"deepseek-v4-pro","messages":[{"role":"user","content":[{"type":"text","text":"analyze screenshot"},{"type":"image","source":{"type":"url","url":"https://example.com/screenshot.png","media_type":"image/png"}}]}]}`
+	imageReqBody := `{"model":"openai/gpt-oss-120b","messages":[{"role":"user","content":[{"type":"text","text":"analyze screenshot"},{"type":"image","source":{"type":"url","url":"https://example.com/screenshot.png","media_type":"image/png"}}]}]}`
 	imageReq := httptest.NewRequest(http.MethodPost, "/v1/messages", bytes.NewBufferString(imageReqBody))
 	imageReq.Header.Set("Content-Type", "application/json")
 	imageRec := httptest.NewRecorder()
@@ -52,7 +52,7 @@ func TestDistributeClaudeImageRejectionThenTextContinues(t *testing.T) {
 	imageCtx.Request = imageReq
 	imageCtx.Set(ctxkey.Id, user.Id)
 	imageCtx.Set(ctxkey.UserObj, user)
-	imageCtx.Set(ctxkey.RequestModel, "deepseek-v4-pro")
+	imageCtx.Set(ctxkey.RequestModel, "openai/gpt-oss-120b")
 	imageCtx.Set(ctxkey.TokenId, 89301)
 	gmw.SetLogger(imageCtx, logger.Logger)
 
@@ -63,7 +63,7 @@ func TestDistributeClaudeImageRejectionThenTextContinues(t *testing.T) {
 	require.Contains(t, imageRec.Body.String(), "only supports text content")
 	require.Contains(t, imageRec.Body.String(), "content types: image")
 
-	textReqBody := `{"model":"deepseek-v4-pro","messages":[{"role":"user","content":[{"type":"text","text":"continue with text only"}]}]}`
+	textReqBody := `{"model":"openai/gpt-oss-120b","messages":[{"role":"user","content":[{"type":"text","text":"continue with text only"}]}]}`
 	textReq := httptest.NewRequest(http.MethodPost, "/v1/messages", bytes.NewBufferString(textReqBody))
 	textReq.Header.Set("Content-Type", "application/json")
 	textRec := httptest.NewRecorder()
@@ -71,7 +71,7 @@ func TestDistributeClaudeImageRejectionThenTextContinues(t *testing.T) {
 	textCtx.Request = textReq
 	textCtx.Set(ctxkey.Id, user.Id)
 	textCtx.Set(ctxkey.UserObj, user)
-	textCtx.Set(ctxkey.RequestModel, "deepseek-v4-pro")
+	textCtx.Set(ctxkey.RequestModel, "openai/gpt-oss-120b")
 	textCtx.Set(ctxkey.TokenId, 89302)
 	gmw.SetLogger(textCtx, logger.Logger)
 
@@ -99,9 +99,9 @@ func TestDistributeResponseImageRejectionThenTextContinues(t *testing.T) {
 	priority := int64(200)
 	textChannel := &model.Channel{
 		Id:       8940,
-		Name:     "deepseek-text-response-channel",
+		Name:     "text-only-response-channel",
 		Type:     channeltype.OpenAI,
-		Models:   "deepseek-v4-pro",
+		Models:   "openai/gpt-oss-120b",
 		Group:    "default",
 		Status:   model.ChannelStatusEnabled,
 		Priority: &priority,
@@ -109,7 +109,7 @@ func TestDistributeResponseImageRejectionThenTextContinues(t *testing.T) {
 	require.NoError(t, db.Create(textChannel).Error)
 	require.NoError(t, textChannel.AddAbilities())
 
-	imageReqBody := `{"model":"deepseek-v4-pro","input":[{"role":"user","content":[{"type":"input_text","text":"analyze screenshot"},{"type":"input_image","image_url":"https://example.com/screenshot.png"}]}]}`
+	imageReqBody := `{"model":"openai/gpt-oss-120b","input":[{"role":"user","content":[{"type":"input_text","text":"analyze screenshot"},{"type":"input_image","image_url":"https://example.com/screenshot.png"}]}]}`
 	imageReq := httptest.NewRequest(http.MethodPost, "/v1/responses", bytes.NewBufferString(imageReqBody))
 	imageReq.Header.Set("Content-Type", "application/json")
 	imageRec := httptest.NewRecorder()
@@ -117,7 +117,7 @@ func TestDistributeResponseImageRejectionThenTextContinues(t *testing.T) {
 	imageCtx.Request = imageReq
 	imageCtx.Set(ctxkey.Id, user.Id)
 	imageCtx.Set(ctxkey.UserObj, user)
-	imageCtx.Set(ctxkey.RequestModel, "deepseek-v4-pro")
+	imageCtx.Set(ctxkey.RequestModel, "openai/gpt-oss-120b")
 	imageCtx.Set(ctxkey.TokenId, 89401)
 	gmw.SetLogger(imageCtx, logger.Logger)
 
@@ -128,7 +128,7 @@ func TestDistributeResponseImageRejectionThenTextContinues(t *testing.T) {
 	require.Contains(t, imageRec.Body.String(), "only supports text content")
 	require.Contains(t, imageRec.Body.String(), "content types: image_url,input_image")
 
-	textReqBody := `{"model":"deepseek-v4-pro","input":[{"role":"user","content":[{"type":"input_text","text":"continue with text only"}]}]}`
+	textReqBody := `{"model":"openai/gpt-oss-120b","input":[{"role":"user","content":[{"type":"input_text","text":"continue with text only"}]}]}`
 	textReq := httptest.NewRequest(http.MethodPost, "/v1/responses", bytes.NewBufferString(textReqBody))
 	textReq.Header.Set("Content-Type", "application/json")
 	textRec := httptest.NewRecorder()
@@ -136,7 +136,7 @@ func TestDistributeResponseImageRejectionThenTextContinues(t *testing.T) {
 	textCtx.Request = textReq
 	textCtx.Set(ctxkey.Id, user.Id)
 	textCtx.Set(ctxkey.UserObj, user)
-	textCtx.Set(ctxkey.RequestModel, "deepseek-v4-pro")
+	textCtx.Set(ctxkey.RequestModel, "openai/gpt-oss-120b")
 	textCtx.Set(ctxkey.TokenId, 89402)
 	gmw.SetLogger(textCtx, logger.Logger)
 
