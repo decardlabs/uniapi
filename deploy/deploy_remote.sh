@@ -2,10 +2,12 @@ set -euo pipefail
 TS=$(date +%Y%m%d%H%M%S)
 BUILD_DIR="/tmp/uniapi-build-$TS"
 BIN_NEW="/tmp/uniapi-new-$TS"
+BIN_STAGING="/tmp/uniapi-staging-$TS"
 TARGET_BIN="/opt/uniapi/uniapi"
 BACKUP_BIN="/opt/uniapi/uniapi.bak.$TS"
 SERVICE_NAME="uniapi"
 LISTEN_PORT="10780"
+STAGING_PORT="17980"
 GO_VERSION="1.25.0"
 GIT_TAG="${GIT_TAG:-dev}"
 
@@ -38,20 +40,32 @@ if [ -z "$MODULE_PATH" ]; then
 fi
 
 LDFLAGS="-X ${MODULE_PATH}/common.Version=${GIT_TAG}"
+echo "Building uniapi (linux/amd64)..."
 CGO_ENABLED=1 GOOS=linux GOARCH=amd64 "$GO_BIN" build -trimpath -ldflags "$LDFLAGS" -o "$BIN_NEW" .
 
-mkdir -p /opt/uniapi
-
-# Upgrade only: restart existing systemd service in place.
-if systemctl list-unit-files | grep -q "${SERVICE_NAME}.service"; then
-  systemctl stop "${SERVICE_NAME}" || true
+# === Pre-flight: verify new binary can start and respond ===
+echo "Starting pre-flight validation on port ${STAGING_PORT}..."
+"$BIN_NEW" --port "$STAGING_PORT" --log-dir "/tmp/uniapi-prefight-$TS" &
+NEW_PID=$!
+sleep 3
+if ! curl -fsS "http://127.0.0.1:${STAGING_PORT}/api/status" > /dev/null 2>&1; then
+  echo "Pre-flight FAILED: new binary is broken or unresponsive"
+  kill "$NEW_PID" 2>/dev/null || true
+  wait "$NEW_PID" 2>/dev/null || true
+  rm -f "$BIN_NEW"
+  exit 1
 fi
+echo "Pre-flight passed, new binary is healthy"
+kill "$NEW_PID"
+wait "$NEW_PID" 2>/dev/null || true
 
+# === Deploy: replace binary and restart service ===
+mkdir -p /opt/uniapi
 if [ -f "$TARGET_BIN" ]; then
   cp -a "$TARGET_BIN" "$BACKUP_BIN"
+  echo "Backed up current binary to $BACKUP_BIN"
 fi
 
-# Use 'cp' with follow-links or just remove the old file first to avoid busy errors
 rm -f "$TARGET_BIN"
 cp -a "$BIN_NEW" "$TARGET_BIN"
 chmod +x "$TARGET_BIN"
@@ -61,15 +75,21 @@ if id -u uniapi >/dev/null 2>&1; then
 fi
 
 if systemctl list-unit-files | grep -q "${SERVICE_NAME}.service"; then
-  systemctl daemon-reload || true
-  systemctl start "${SERVICE_NAME}"
-  sleep 2
+  systemctl restart "${SERVICE_NAME}"
+  sleep 3
+
   if ! systemctl is-active --quiet "${SERVICE_NAME}"; then
-    echo "Rollback..."
+    echo "Rollback: new binary failed to start..."
     rm -f "$TARGET_BIN"
-    [ -f "$BACKUP_BIN" ] && cp -a "$BACKUP_BIN" "$TARGET_BIN" && systemctl restart "${SERVICE_NAME}"
+    if [ -f "$BACKUP_BIN" ]; then
+      cp -a "$BACKUP_BIN" "$TARGET_BIN"
+      chmod +x "$TARGET_BIN"
+      systemctl restart "${SERVICE_NAME}"
+      echo "Rollback complete"
+    fi
     exit 1
   fi
+
   systemctl status "${SERVICE_NAME}" --no-pager | head -n 20
 fi
 
